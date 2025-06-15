@@ -1,4 +1,3 @@
-from pyexpat.errors import messages
 from odoo.exceptions import UserError, ValidationError
 import requests
 from odoo import api, fields, models, _
@@ -51,7 +50,7 @@ class CommunicationChannel(models.Model):
         ICP = self.env['ir.config_parameter'].sudo()
         api_key = ICP.get_param('odoo_turbo_ai_agent.openapi_api_key')
 
-        gpt_model_id = ICP.get_param('odoo_turbo_ai_agent.chatgp_model')
+        gpt_model_id = ICP.get_param('odoo_turbo_ai_agent.chatgpt_model_id')
 
         domain = ICP.get_param('web.base.url')
         db_name = ICP.get_param('odoo_turbo_ai_agent.odoodb_dbname')
@@ -112,7 +111,7 @@ class CommunicationChannel(models.Model):
         if not api_key:
             return "❌ Mistral API Key no configurada. Ve a Configuración → Ajustes → Turbo AIAgent 🚀"
         
-        model_id = ICP.get_param('odoo_turbo_ai_agent.chatgp_model')
+        model_id = ICP.get_param('odoo_turbo_ai_agent.chatgpt_model_id')
         model_name = 'mistral-7b-instruct'
         
         try:
