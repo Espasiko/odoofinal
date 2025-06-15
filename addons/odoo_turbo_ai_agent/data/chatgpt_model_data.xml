@@ -7,5 +7,22 @@
         <record id="chatgpt_model_gpt4" model="chatgpt.model">
             <field name="name">gpt-4o</field>
         </record>
+        
+        <!-- Modelos de Mistral AI -->
+        <record id="mistral_model_mistral_7b" model="chatgpt.model">
+            <field name="name">mistral-7b-instruct</field>
+        </record>
+        <record id="mistral_model_mixtral_8x7b" model="chatgpt.model">
+            <field name="name">mixtral-8x7b-instruct</field>
+        </record>
+        <record id="mistral_model_mistral_small" model="chatgpt.model">
+            <field name="name">mistral-small-latest</field>
+        </record>
+        <record id="mistral_model_mistral_medium" model="chatgpt.model">
+            <field name="name">mistral-medium-latest</field>
+        </record>
+        <record id="mistral_model_mistral_large" model="chatgpt.model">
+            <field name="name">mistral-large-latest</field>
+        </record>
     </data>
 </odoo>

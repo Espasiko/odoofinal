@@ -38,7 +38,15 @@ class CommunicationChannel(models.Model):
         return rdata
 
     def _get_chatgpt_response(self, prompt):
-
+        ICP = self.env['ir.config_parameter'].sudo()
+        ai_provider = ICP.get_param('odoo_turbo_ai_agent.ai_provider', 'openai')
+        
+        if ai_provider == 'mistral':
+            return self._get_mistral_response(prompt)
+        else:
+            return self._get_openai_response(prompt)
+    
+    def _get_openai_response(self, prompt):
         # Replace with the actual ChatGPT endpoint URL
         ICP = self.env['ir.config_parameter'].sudo()
         api_key = ICP.get_param('odoo_turbo_ai_agent.openapi_api_key')
@@ -91,8 +99,63 @@ class CommunicationChannel(models.Model):
             turboclient_data_res = turboclient_data.get('message')
             return Markup(turboclient_data_res)
         except requests.exceptions.RequestException as e:
-            _logger.error("Error in ChatGPT response: %s", e)
-            return "Something is wrong !! ☹️."
+            _logger.error("Error in OpenAI response: %s", e)
+            return "Something is wrong with OpenAI!! ☹️."
         except Exception as e:
-            _logger.error("Error in ChatGPT response: %s", e)
-            return e
+            _logger.error("Error in OpenAI response: %s", e)
+            return str(e)
+    
+    def _get_mistral_response(self, prompt):
+        ICP = self.env['ir.config_parameter'].sudo()
+        api_key = ICP.get_param('odoo_turbo_ai_agent.mistral_api_key')
+        
+        if not api_key:
+            return "❌ Mistral API Key no configurada. Ve a Configuración → Ajustes → Turbo AIAgent 🚀"
+        
+        model_id = ICP.get_param('odoo_turbo_ai_agent.chatgp_model')
+        model_name = 'mistral-7b-instruct'
+        
+        try:
+            if model_id:
+                model_name = self.env['chatgpt.model'].browse(int(model_id)).name
+        except Exception as ex:
+            model_name = 'mistral-7b-instruct'
+            _logger.error("Error getting Mistral model: %s", ex)
+        
+        # Mistral API endpoint
+        mistral_url = "https://api.mistral.ai/v1/chat/completions"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        
+        data = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": str(prompt)
+                }
+            ],
+            "max_tokens": 1000,
+            "temperature": 0.7
+        }
+        
+        try:
+            response = requests.post(mistral_url, headers=headers, json=data, timeout=30)
+            response.raise_for_status()
+            
+            response_data = response.json()
+            if 'choices' in response_data and len(response_data['choices']) > 0:
+                message_content = response_data['choices'][0]['message']['content']
+                return Markup(f"🤖 **Mistral AI ({model_name}):**\n\n{message_content}")
+            else:
+                return "❌ No se recibió respuesta válida de Mistral AI"
+                
+        except requests.exceptions.RequestException as e:
+            _logger.error("Error in Mistral API request: %s", e)
+            return f"❌ Error de conexión con Mistral AI: {str(e)}"
+        except Exception as e:
+            _logger.error("Error in Mistral response: %s", e)
+            return f"❌ Error procesando respuesta de Mistral: {str(e)}"

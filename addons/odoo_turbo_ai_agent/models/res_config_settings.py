@@ -11,8 +11,17 @@ class ResConfigSettings(models.TransientModel):
             # Si el registro no existe, devolver False
             return False
 
-    openapi_api_key = fields.Char(string="API Key", help="Provide the API key here", config_parameter="odoo_turbo_ai_agent.openapi_api_key", required=True)
-    chatgpt_model_id = fields.Many2one('chatgpt.model', 'ChatGPT Model', ondelete='cascade', default=_get_default_chatgpt_model,  config_parameter="odoo_turbo_ai_agent.chatgpt_model_id")
+    # Proveedor de IA
+    ai_provider = fields.Selection([
+        ('openai', 'OpenAI'),
+        ('mistral', 'Mistral AI')
+    ], string="AI Provider", default='openai', config_parameter="odoo_turbo_ai_agent.ai_provider", required=True)
+    
+    # API Keys
+    openapi_api_key = fields.Char(string="OpenAI API Key", help="Provide the OpenAI API key here", config_parameter="odoo_turbo_ai_agent.openapi_api_key")
+    mistral_api_key = fields.Char(string="Mistral API Key", help="Provide the Mistral API key here", config_parameter="odoo_turbo_ai_agent.mistral_api_key")
+    
+    chatgpt_model_id = fields.Many2one('chatgpt.model', 'AI Model', ondelete='cascade', default=_get_default_chatgpt_model,  config_parameter="odoo_turbo_ai_agent.chatgpt_model_id")
 
     #database fields
     odoodb_host = fields.Char(string="Host", help="Provide the host here", config_parameter="odoo_turbo_ai_agent.odoodb_host")
