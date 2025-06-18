@@ -1,0 +1,10 @@
+{
+  "terminal.integrated.shellIntegration.enabled": true,
+  "terminal.integrated.shellIntegration.showCommandGuide": false,
+  "terminal.integrated.shellIntegration.environmentReporting": true,
+  "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+  "terminal.integrated.shellIntegration.history": 100,
+  "terminal.integrated.suggest.enabled": true,
+  "terminal.integrated.commandsToSkipShell": [],
+  "terminal.integrated.sendKeybindingsToShell": true
+}

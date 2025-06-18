@@ -285,6 +285,146 @@ class OdooService:
             print("ODOO_SERVICE: Finalizando create_product y limpiando conexión")
             self._cleanup_connection()
     
+    def update_product(self, product_id: int, product_data: dict) -> Optional[Product]:
+        """Actualiza un producto existente en Odoo"""
+        print(f"ODOO_SERVICE: Iniciando update_product para ID: {product_id}")
+        try:
+            # Verificar que el producto existe
+            existing_product = self._execute_kw(
+                'product.template',
+                'read',
+                [[product_id]],
+                {'fields': ['id', 'name']}
+            )
+            
+            if not existing_product:
+                print(f"ODOO_SERVICE: Producto con ID {product_id} no encontrado")
+                return None
+            
+            # Preparar datos para actualización
+            update_data = {}
+            
+            # Mapear campos del frontend a campos de Odoo
+            if 'name' in product_data:
+                update_data['name'] = product_data['name']
+            if 'code' in product_data:
+                update_data['default_code'] = product_data['code']
+            if 'price' in product_data:
+                update_data['list_price'] = float(product_data['price'])
+            if 'category' in product_data:
+                # Buscar categoría por nombre
+                category_id = self._get_category_id_by_name(product_data['category'])
+                if category_id:
+                    update_data['categ_id'] = category_id
+            
+            print(f"ODOO_SERVICE: Datos a actualizar: {update_data}")
+            
+            # Actualizar producto en Odoo
+            success = self._execute_kw(
+                'product.template',
+                'write',
+                [[product_id], update_data]
+            )
+            
+            if not success:
+                print(f"ODOO_SERVICE: Error actualizando producto {product_id}")
+                return None
+            
+            print(f"ODOO_SERVICE: Producto {product_id} actualizado exitosamente")
+            
+            # Leer el producto actualizado para devolverlo
+            updated_product_data = self._execute_kw(
+                'product.template',
+                'read',
+                [[product_id]],
+                {'fields': ['id', 'name', 'default_code', 'categ_id', 'list_price', 'qty_available']}
+            )
+            
+            if not updated_product_data:
+                print(f"ODOO_SERVICE: Error leyendo producto actualizado {product_id}")
+                return None
+            
+            p = updated_product_data[0]
+            category_name = self._get_category_name(p.get('categ_id'))
+            
+            return Product(
+                id=p['id'],
+                name=p['name'],
+                code=p.get('default_code', '') or f"PROD-{p['id']}",
+                category=category_name,
+                price=p.get('list_price', 0.0),
+                stock=int(p.get('qty_available', 0)),
+                image_url=f"/web/image/product.template/{p['id']}/image_1920/"
+            )
+            
+        except Exception as e:
+            print(f"ODOO_SERVICE: Excepción en update_product: {e}")
+            return None
+        finally:
+            print("ODOO_SERVICE: Finalizando update_product y limpiando conexión")
+            self._cleanup_connection()
+    
+    def delete_product(self, product_id: int) -> bool:
+        """Elimina un producto de Odoo (marca como inactivo)"""
+        print(f"ODOO_SERVICE: Iniciando delete_product para ID: {product_id}")
+        try:
+            # Verificar que el producto existe
+            existing_product = self._execute_kw(
+                'product.template',
+                'read',
+                [[product_id]],
+                {'fields': ['id', 'name']}
+            )
+            
+            if not existing_product:
+                print(f"ODOO_SERVICE: Producto con ID {product_id} no encontrado")
+                return False
+            
+            # En lugar de eliminar físicamente, marcamos como inactivo
+            # Esto es una práctica recomendada en Odoo
+            success = self._execute_kw(
+                'product.template',
+                'write',
+                [[product_id], {'active': False}]
+            )
+            
+            if success:
+                print(f"ODOO_SERVICE: Producto {product_id} marcado como inactivo exitosamente")
+                return True
+            else:
+                print(f"ODOO_SERVICE: Error marcando producto {product_id} como inactivo")
+                return False
+                
+        except Exception as e:
+            print(f"ODOO_SERVICE: Excepción en delete_product: {e}")
+            return False
+        finally:
+            print("ODOO_SERVICE: Finalizando delete_product y limpiando conexión")
+            self._cleanup_connection()
+    
+    def _get_category_id_by_name(self, category_name: str) -> Optional[int]:
+        """Busca una categoría por nombre y devuelve su ID"""
+        try:
+            category_ids = self._execute_kw(
+                'product.category',
+                'search',
+                [['name', 'ilike', category_name]]
+            )
+            
+            if category_ids:
+                return category_ids[0]
+            else:
+                # Si no existe, crear la categoría
+                new_category_id = self._execute_kw(
+                    'product.category',
+                    'create',
+                    [{'name': category_name}]
+                )
+                return new_category_id
+        except Exception as e:
+            print(f"Error buscando/creando categoría {category_name}: {e}")
+            return None
+    
     def _get_category_name(self, categ_id) -> str:
         """Obtiene el nombre de una categoría"""
         if not categ_id:
