@@ -85,7 +85,7 @@ class OdooService:
                 'product.template', 
                 'read', 
                 [product_ids],
-                {'fields': ['id', 'name', 'default_code', 'categ_id', 'list_price', 'qty_available']}
+                {'fields': ['id', 'name', 'default_code', 'categ_id', 'list_price', 'qty_available', 'active', 'type']}
             )
             print(f"ODOO_SERVICE: Datos obtenidos: {len(odoo_products) if odoo_products else 0} productos")
             
@@ -98,13 +98,17 @@ class OdooService:
             transformed_products = []
             for p in odoo_products:
                 category_name = self._get_category_name(p.get('categ_id'))
-                
                 transformed_products.append(Product(
                     id=p['id'],
                     name=p['name'],
+                    default_code=p.get('default_code', ''),
+                    list_price=p.get('list_price', 0.0),
+                    categ_id=p.get('categ_id'),
+                    active=p.get('active', True),
+                    type=p.get('type', 'consu'),
                     code=p.get('default_code', '') or f"PROD-{p['id']}",
-                    category=category_name,
                     price=p.get('list_price', 0.0),
+                    category=category_name,
                     stock=int(p.get('qty_available', 0)),
                     image_url=f"https://example.com/images/product_{p['id']}.jpg"
                 ))

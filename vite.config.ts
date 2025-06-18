@@ -21,7 +21,7 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob: https://telemetry.refine.dev; connect-src 'self' http://localhost:8069 http://localhost:8000 http://localhost:8001 http://localhost:3000 http://localhost:3001 https://telemetry.refine.dev;"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:8069 http://localhost:8000 http://localhost:8001 http://localhost:3000 http://localhost:3001;"
     },
     proxy: {
       "/api": {

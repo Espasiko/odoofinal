@@ -10,11 +10,11 @@ router = APIRouter(prefix="/api/v1", tags=["inventory"])
 from datetime import datetime
 
 fake_inventory_db = [
-    InventoryItem(id=1, product_id=1, product_name="Refrigerador Samsung RT38K5982BS", quantity=12, location="Almacén A", last_updated=datetime(2024, 1, 15)),
-    InventoryItem(id=2, product_id=2, product_name="Lavadora LG F4WV5012S0W", quantity=8, location="Almacén A", last_updated=datetime(2024, 1, 14)),
-    InventoryItem(id=3, product_id=3, product_name="Televisor Sony KD-55X80J", quantity=5, location="Almacén B", last_updated=datetime(2024, 1, 13)),
-    InventoryItem(id=4, product_id=1, product_name="Refrigerador Samsung RT38K5982BS", quantity=3, location="Almacén B", last_updated=datetime(2024, 1, 12)),
-    InventoryItem(id=5, product_id=2, product_name="Lavadora LG F4WV5012S0W", quantity=15, location="Almacén C", last_updated=datetime(2024, 1, 11)),
+    InventoryItem(id=1, product_id=[1, 101], location_id=[1, 201], quantity=12, product_name="Refrigerador Samsung RT38K5982BS", location="Almacén A", last_updated=datetime(2024, 1, 15)),
+    InventoryItem(id=2, product_id=[2, 102], location_id=[1, 201], quantity=8, product_name="Lavadora LG F4WV5012S0W", location="Almacén A", last_updated=datetime(2024, 1, 14)),
+    InventoryItem(id=3, product_id=[3, 103], location_id=[2, 202], quantity=5, product_name="Televisor Sony KD-55X80J", location="Almacén B", last_updated=datetime(2024, 1, 13)),
+    InventoryItem(id=4, product_id=[1, 101], location_id=[2, 202], quantity=3, product_name="Refrigerador Samsung RT38K5982BS", location="Almacén B", last_updated=datetime(2024, 1, 12)),
+    InventoryItem(id=5, product_id=[2, 102], location_id=[3, 203], quantity=15, product_name="Lavadora LG F4WV5012S0W", location="Almacén C", last_updated=datetime(2024, 1, 11)),
 ]
 
 @router.get("/inventory", response_model=PaginatedResponse[InventoryItem])
@@ -66,6 +66,11 @@ async def create_inventory_item(
     # Generar nuevo ID
     new_id = max([item.id for item in fake_inventory_db], default=0) + 1
     item.id = new_id
+    # Validar y transformar product_id y location_id si vienen como int
+    if isinstance(item.product_id, int):
+        item.product_id = [item.product_id, getattr(item, "product_name", "")]
+    if isinstance(item.location_id, int):
+        item.location_id = [item.location_id, getattr(item, "location", "")]
     fake_inventory_db.append(item)
     return item
 
@@ -80,7 +85,11 @@ async def update_inventory_item(
     existing_item_idx = next((i for i, item_data in enumerate(fake_inventory_db) if item_data.id == item_id), None)
     if existing_item_idx is None:
         raise HTTPException(status_code=404, detail="Item de inventario no encontrado")
-    
+    # Validar y transformar product_id y location_id si vienen como int
+    if isinstance(item.product_id, int):
+        item.product_id = [item.product_id, getattr(item, "product_name", "")]
+    if isinstance(item.location_id, int):
+        item.location_id = [item.location_id, getattr(item, "location", "")]
     # Actualizar el item
     item.id = item_id
     fake_inventory_db[existing_item_idx] = item

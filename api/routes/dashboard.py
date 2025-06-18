@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
+from datetime import datetime
+from ..models.schemas import Sale, Product
 
 from ..models.schemas import DashboardStats, User
 from ..services.auth_service import auth_service
@@ -10,41 +12,55 @@ router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 async def get_dashboard_stats(
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
-    """Obtiene estadísticas del dashboard"""
+    """Obtiene estadísticas del dashboard desde Odoo"""
     try:
-        # Datos simulados del dashboard
-        # En una implementación real, estos datos vendrían de Odoo
+        # Obtener datos reales desde Odoo
+        from ..services.odoo_service import odoo_service
+        
+        # Obtener productos desde Odoo
+        products = odoo_service.get_products()
+        total_products = len(products)
+        
+        # Calcular productos con stock bajo (menos de 5 unidades)
+        low_stock_products = [p for p in products if hasattr(p, 'stock') and p.stock < 5]
+        out_of_stock_products = [p for p in products if hasattr(p, 'stock') and p.stock == 0]
+        total_stock = sum(getattr(p, 'stock', 0) for p in products)
+        
+        # Obtener clientes desde Odoo
+        customers = odoo_service.get_customers()
+        total_customers = len(customers)
+        
+        # Obtener ventas recientes desde Odoo
+        sales = odoo_service.get_sales()
+        monthly_revenue = sum(getattr(s, 'amount_total', 0) for s in sales)
+        
+        # Calcular categorías principales
+        category_counts = {}
+        for product in products:
+            category = getattr(product, 'category', 'Sin categoría')
+            category_counts[category] = category_counts.get(category, 0) + 1
+        
+        # Ordenar categorías por cantidad y tomar las top 5
+        sorted_categories = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        total_categorized = sum(count for _, count in sorted_categories)
+        
+        top_categories = []
+        for name, count in sorted_categories:
+            percentage = (count / total_categorized * 100) if total_categorized > 0 else 0
+            top_categories.append({"name": name, "count": count, "percentage": round(percentage, 1)})
+        
         stats = DashboardStats(
-            total_products=25,
-            total_sales=4699.95,
-            total_customers=5,
-            pending_orders=1,
-            low_stock_products=3,
-            monthly_revenue=12500.00,
-            top_selling_product="Refrigerador Samsung RT38K5982BS",
-            recent_sales=[
-                {
-                    "id": 1,
-                    "customer_name": "Juan Pérez",
-                    "product_name": "Refrigerador Samsung RT38K5982BS",
-                    "total": 899.99,
-                    "date": "2024-01-15"
-                },
-                {
-                    "id": 2,
-                    "customer_name": "María García",
-                    "product_name": "Lavadora LG F4WV5012S0W",
-                    "total": 649.99,
-                    "date": "2024-01-14"
-                },
-                {
-                    "id": 3,
-                    "customer_name": "Carlos López",
-                    "product_name": "Televisor Sony KD-55X80J",
-                    "total": 1599.98,
-                    "date": "2024-01-13"
-                }
-            ]
+            totalProducts=total_products,
+            totalCustomers=total_customers,
+            monthlyRevenue=monthly_revenue,
+            stockStats=StockStats(
+                lowStockProducts=len(low_stock_products),
+                outOfStockProducts=len(out_of_stock_products),
+                totalStock=total_stock
+            ),
+            topCategories=top_categories,
+            low_stock_products=low_stock_products[:10],  # Limitar a 10 productos
+            recentSales=sales[:10] if sales else []  # Limitar a 10 ventas recientes
         )
         
         return stats
@@ -55,17 +71,39 @@ async def get_dashboard_stats(
 async def get_categories(
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
-    """Obtiene categorías de productos"""
+    """Obtiene categorías de productos desde Odoo"""
     try:
-        # Datos simulados de categorías
-        # En una implementación real, estos datos vendrían de Odoo
-        categories = [
-            {"id": 1, "name": "Refrigeradores", "count": 8},
-            {"id": 2, "name": "Lavadoras", "count": 6},
-            {"id": 3, "name": "Televisores", "count": 5},
-            {"id": 4, "name": "Microondas", "count": 4},
-            {"id": 5, "name": "Lavavajillas", "count": 2}
-        ]
+        # Obtener datos reales desde Odoo
+        from ..services.odoo_service import odoo_service
+        
+        # Obtener productos desde Odoo
+        products = odoo_service.get_products()
+        
+        # Calcular categorías y sus conteos
+        category_counts = {}
+        category_ids = {}
+        
+        for product in products:
+            category = getattr(product, 'category', 'Sin categoría')
+            categ_id = getattr(product, 'categ_id', [0])
+            
+            if category not in category_counts:
+                category_counts[category] = 0
+                category_ids[category] = categ_id[0] if isinstance(categ_id, list) and categ_id else 0
+            
+            category_counts[category] += 1
+        
+        # Convertir a formato esperado
+        categories = []
+        for category, count in category_counts.items():
+            categories.append({
+                "id": category_ids[category],
+                "name": category,
+                "count": count
+            })
+        
+        # Ordenar por cantidad descendente
+        categories.sort(key=lambda x: x["count"], reverse=True)
         
         return {"categories": categories}
     except Exception as e:

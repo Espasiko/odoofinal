@@ -1,0 +1,231 @@
+A	mcp-odoo-yourtechtribe/.env.example
+A	mcp-odoo-yourtechtribe/.gitignore
+A	mcp-odoo-yourtechtribe/CONTRIBUTING.md
+A	mcp-odoo-yourtechtribe/LICENSE
+A	mcp-odoo-yourtechtribe/README.md
+A	mcp-odoo-yourtechtribe/__init__.py
+A	mcp-odoo-yourtechtribe/__main__.py
+A	mcp-odoo-yourtechtribe/config.py
+A	mcp-odoo-yourtechtribe/context_handler.py
+A	mcp-odoo-yourtechtribe/docs/accounting_guide.md
+A	mcp-odoo-yourtechtribe/docs/examples/ai_agent_integration.md
+A	mcp-odoo-yourtechtribe/docs/examples/basic_usage.md
+A	mcp-odoo-yourtechtribe/docs/examples/simple_odoo_agent.py
+A	mcp-odoo-yourtechtribe/docs/implementation_guide.md
+A	mcp-odoo-yourtechtribe/docs/index.md
+A	mcp-odoo-yourtechtribe/docs/troubleshooting.md
+A	mcp-odoo-yourtechtribe/mcp_instance.py
+A	mcp-odoo-yourtechtribe/odoo/__init__.py
+A	mcp-odoo-yourtechtribe/odoo/client.py
+A	mcp-odoo-yourtechtribe/odoo/exceptions.py
+A	mcp-odoo-yourtechtribe/requirements.txt
+A	mcp-odoo-yourtechtribe/resources/__init__.py
+A	mcp-odoo-yourtechtribe/resources/accounting.py
+A	mcp-odoo-yourtechtribe/resources/partners.py
+A	mcp-odoo-yourtechtribe/server.py
+A	mcp-odoo-yourtechtribe/setup.py
+A	mcp-odoo-yourtechtribe/test_connection.py
+
+M	addons/odoo_turbo_ai_agent/models/__init__.py
+M	addons/odoo_turbo_ai_agent/models/mail_channel.py
+M	api/models/schemas.py
+M	docs/memoria_actualizada_17h15_15.06.md
+D	"plantillasodoo/Campa\303\261a UTM (utm.campaign).xlsx:Zone.Identifier"
+D	"plantillasodoo/Categor\303\255a de producto (product.category) (1).csv:Zone.Identifier"
+D	"plantillasodoo/Categor\303\255a de producto (product.category).csv"
+D	"plantillasodoo/Categor\303\255a de producto (product.category).csv:Zone.Identifier"
+D	"plantillasodoo/Categor\303\255a de producto (product.category).xlsx"
+D	test_api.py
+D	test_api_debug.py
+D	test_direct_odoo.py
+D	test_mcp_server.py
+D	test_odoo_connection.py
+D	test_odoo_xmlrpc.py
+D	test_xmlrpc_odoo.py
+
+M	FastAPIFINALconfig.md
+M	addons/odoo_turbo_ai_agent/data/chatgpt_model_data.xml
+M	addons/odoo_turbo_ai_agent/models/mail_channel.py
+M	addons/odoo_turbo_ai_agent/models/res_config_settings.py
+M	addons/odoo_turbo_ai_agent/views/res_config_settings_views.xml
+A	docs/memoria-mcp-odoo.md
+A	docs/memoria_actualizada_17h15_15.06.md
+A	docs/plan-implementacion-mistral-ocr.md
+A	install_mcp_yourtechtribe.py
+A	resize_image.py
+A	test_mcp_server.py
+A	test_odoo_xmlrpc.py
+
+A	addons/odoo_turbo_ai_agent/__init__.py
+A	addons/odoo_turbo_ai_agent/__manifest__.py
+A	addons/odoo_turbo_ai_agent/data/chatgpt_model_data.xml
+A	addons/odoo_turbo_ai_agent/data/mail_channel_data.xml
+A	addons/odoo_turbo_ai_agent/data/user_partner_data.xml
+A	addons/odoo_turbo_ai_agent/models/__init__.py
+A	addons/odoo_turbo_ai_agent/models/chatgpt_model.py
+A	addons/odoo_turbo_ai_agent/models/mail_channel.py
+A	addons/odoo_turbo_ai_agent/models/res_config_settings.py
+A	addons/odoo_turbo_ai_agent/security/ir.model.access.csv
+A	addons/odoo_turbo_ai_agent/static/description/assets/another_application.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/apikey.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/ask_q.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/channel_talk.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/facebook.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/fill_form.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/instagram.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/install.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/linked_in.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/mail.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/ok.svg
+A	addons/odoo_turbo_ai_agent/static/description/assets/pause_button.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/twitter.png
+A	addons/odoo_turbo_ai_agent/static/description/assets/whatsapp.png
+A	addons/odoo_turbo_ai_agent/static/description/banner.gif
+A	addons/odoo_turbo_ai_agent/static/description/banner.jpg
+A	addons/odoo_turbo_ai_agent/static/description/chatgpt_resized.png
+A	addons/odoo_turbo_ai_agent/static/description/icon.png
+A	addons/odoo_turbo_ai_agent/static/description/index.html
+A	addons/odoo_turbo_ai_agent/views/res_config_settings_views.xml
+A	addons/pelotazo_extended/__init__.py
+A	addons/pelotazo_extended/__manifest__.py
+A	addons/pelotazo_extended/models/__init__.py
+A	addons/pelotazo_extended/models/account_invoice.py
+A	addons/pelotazo_extended/models/account_move_ocr.py
+A	addons/pelotazo_extended/models/product.py
+A	addons/pelotazo_extended/security/ir.model.access.csv
+A	addons/pelotazo_extended/views/account_invoice_views.xml
+A	addons/pelotazo_extended/views/product_views.xml
+D	addons/theme_pelotazo/static/src/js/categories.js:Zone.Identifier
+D	addons/theme_pelotazo/static/src/js/theme.js:Zone.Identifier
+D	addons/theme_pelotazo/static/src/scss/theme.scss:Zone.Identifier
+A	custom_addons/pelotazo_extended/__init__.py
+A	custom_addons/pelotazo_extended/__manifest__.py
+A	custom_addons/pelotazo_extended/models/__init__.py
+A	custom_addons/pelotazo_extended/models/account_invoice.py
+A	custom_addons/pelotazo_extended/models/account_move_ocr.py
+A	custom_addons/pelotazo_extended/models/product.py
+A	custom_addons/pelotazo_extended/security/ir.model.access.csv
+A	custom_addons/pelotazo_extended/views/account_invoice_views.xml
+A	custom_addons/pelotazo_extended/views/product_views.xml
+A	docs/Lutra docs de odoo y fallos-2025-06-14-21-17.zip
+A	docs/Lutra docs de odoo y fallos-2025-06-14-21-17.zip:Zone.Identifier
+A	docs/Lutra docs de odoo y fallos-2025-06-14-21-17/[Web Search] Odoo 18 custom field x_notas_inventario does not exist in product.product model error solution forum.md
+A	docs/MEMORIA_DESARROLLO_MODULOS_ODOO18.md
+A	odoo_dynamic_dashboard-18.0.1.0.2.zip
+A	odoo_dynamic_dashboard-18.0.1.0.2.zip:Zone.Identifier
+A	pelotazo.zip
+A	pelotazo_extended (1).zip
+A	pelotazo_extended (2).zip
+A	pelotazo_extended.zip
+A	pelotazo_extended_new.zip
+D	start_api_8001.py
+
+D	docs/docs-main/Plan_desarrollo_11062025.md
+D	docs/docs-main/Plan_desarrollo_11062025.md:Zone.Identifier
+D	docs/docs-main/plan_implementacion_detallado.md
+D	docs/docs-main/plan_implementacion_detallado.md:Zone.Identifier
+D	docs/docs-main/proceso_mapeo_migracion.md
+D	docs/docs-main/proceso_mapeo_migracion.md:Zone.Identifier
+D	docs/docs-main/sistema_mapeador.md
+D	docs/docs-main/sistema_mapeador.md:Zone.Identifier
+D	docs/docs-main/tema_personalizado.md
+D	docs/docs-main/tema_personalizado.md:Zone.Identifier
+
+
+R100	docs/docs-main/OCR-Mistral.md	docs/OCR-Mistral.md
+D	docs/docs-main/OCR-Mistral.md:Zone.Identifier
+
+A	FastAPIFINALconfig.md
+M	analizar_excel.py
+M	analizar_proveedor.py
+M	api/models/schemas.py
+M	api/services/auth_service.py
+M	api/services/odoo_service.py
+M	api/utils/config.py
+D	check_routes.py
+A	"de_manus/Problema de Conexi\303\263n entre Backend y Frontend en Proyecto Odoo.zip"
+A	de_manus/config.py
+A	de_manus/docker-compose.yml
+A	de_manus/main_new.py
+A	de_manus/odooService.ts
+A	de_manus/odoo_service.py
+A	de_manus/package.json
+A	de_manus/products.py
+A	de_manus/verify_connection.py
+A	de_manus/vite.config.ts
+A	debug_fastapi_odoo.py
+M	demo_convertidor.py
+M	docker-compose.yml
+R100	AUTH_BACKEND_NOTES.md	docs/AUTH_BACKEND_NOTES.md
+R100	DOCUMENTACION_INTEGRACION.md	docs/DOCUMENTACION_INTEGRACION.md
+R100	DOCUMENTACION_TECNICA.md	docs/DOCUMENTACION_TECNICA.md
+R100	ESPECIFICACION_COMPLETA_PROYECTO.md	docs/ESPECIFICACION_COMPLETA_PROYECTO.md
+R100	GUIA_INICIO_RAPIDO.md	docs/GUIA_INICIO_RAPIDO.md
+R100	MEMORIA_PROYECTO.md	docs/MEMORIA_PROYECTO.md
+R100	MEMORIA_SOLUCION_START_SH.md	docs/MEMORIA_SOLUCION_START_SH.md
+R100	ODOO_INSTALLATION_README.md	docs/ODOO_INSTALLATION_README.md
+A	docs/PLAN_MVP_DESARROLLO.md
+R100	README_INSTALACION.md	docs/README_INSTALACION.md
+R100	REFACTORIZACION_06_06_25.md	docs/REFACTORIZACION_06_06_25.md
+R100	VARIANTES_DEL_PROYECTO.md	docs/VARIANTES_DEL_PROYECTO.md
+R100	arquitectura_ocr_tvp.md	docs/arquitectura_ocr_tvp.md
+A	docs/barcode_app.md
+R100	configuracion_real_bd_roto.md	docs/configuracion_real_bd_roto.md
+R100	integracion_facturacion_verifactu.md	docs/integracion_facturacion_verifactu.md
+A	docs/memoria14.06.25.md
+R100	memoria_conversacion.md	docs/memoria_conversacion.md
+R100	plan_implementacion_detallado.md	docs/plan_implementacion_detallado.md
+R100	proceso_mapeo_migracion.md	docs/proceso_mapeo_migracion.md
+R100	sistema_mapeador.md	docs/sistema_mapeador.md
+R100	solucion_assets.md	docs/solucion_assets.md
+M	ia_mapeo.py
+D	importador_productos_odoo.py
+M	index.html
+M	informe_proveedores.py
+M	install.sh
+A	main.py
+M	menu_principal.py
+M	nohup.out
+M	procesar_lote.py
+A	run_api_debug.py
+M	start.sh
+R094	start_server_8001.py	start_api_8001.py
+M	start_fastapi.py
+D	start_server_simple.py
+A	test_api.py
+A	test_api_debug.py
+D	test_api_product.py
+D	test_auth.sh
+D	test_auth_simple.py
+D	test_debug.sh
+A	test_direct_odoo.py
+D	test_endpoint_direct.py
+D	test_final.py
+D	test_imports.py
+D	test_minimal_server.py
+M	test_odoo_connection.py
+D	test_odoo_real_connection.py
+D	test_port_8000.py
+D	test_port_8000_final.py
+D	test_products_8001.py
+D	test_products_endpoint.py
+D	test_simple.py
+D	test_simple.sh
+D	test_simple_product.py
+D	test_simple_server.py
+D	test_ultra_simple.py
+A	test_xmlrpc_odoo.py
+M	tests/test_endpoint_direct.py
+M	tests/test_final.py
+M	tests/verify_routes.py
+D	todo.md
+A	verificar_conexion.py
+M	verificar_instalacion.py
+D	verificar_modulo.py
+D	verify_real_data.py
+D	verify_routes.py
+M	vite.config.ts
+
+D	replica/hostinger-api.json:Zone.Identifier
+
+D	replica/hostinger-api.yaml:Zone.Identifier

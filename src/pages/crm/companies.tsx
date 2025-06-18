@@ -1,185 +1,107 @@
-import React from 'react';
-import {
-  List,
-  useTable,
-  EditButton,
-  ShowButton,
-  DeleteButton,
-  CreateButton,
-  FilterDropdown,
-} from '@refinedev/antd';
-import { Table, Space, Input, Card, Typography, Tag } from 'antd';
-import { SearchOutlined, ShopOutlined } from '@ant-design/icons';
-import { useGo, getDefaultFilter } from '@refinedev/core';
+import React from "react";
+import { Table, Typography, Tag, Space, Button } from "antd";
+import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, ShopOutlined } from "@ant-design/icons";
+import { useTable } from "@refinedev/antd";
 
-const { Title } = Typography;
-
-interface Company {
-  id: number;
-  name: string;
-  email?: string;
-  phone?: string;
-  website?: string;
-  industry?: string;
-  city?: string;
-  country?: string;
-  is_company: boolean;
-  customer_rank: number;
-  supplier_rank: number;
+export interface Company {
+    id: number;
+    name: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    city?: string;
+    country?: string;
+    industry?: string;
+    created_at?: string;
 }
 
-const Companies: React.FC = () => {
-  const go = useGo();
-
-  const { tableProps, filters, searchFormProps } = useTable<Company>({
-    resource: 'companies',
-    onSearch: (values: any) => {
-      return [
-        {
-          field: 'name',
-          operator: 'contains',
-          value: values.name,
-        },
-      ];
-    },
-    sorters: {
-      initial: [
-        {
-          field: 'name',
-          order: 'asc',
-        },
-      ],
-    },
-    filters: {
-      initial: [
-        {
-          field: 'is_company',
-          operator: 'eq',
-          value: true,
-        },
-      ],
-    },
-  });
-
-  return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-          <ShopOutlined style={{ fontSize: '24px', marginRight: '12px', color: '#1890ff' }} />
-          <Title level={2} style={{ margin: 0 }}>Gestión de Empresas</Title>
-        </div>
-        
-        <List
-          headerButtons={[
-            <CreateButton key="create" onClick={() => go({ to: '/crm/companies/create' })}>
-              Nueva Empresa
-            </CreateButton>,
-          ]}
-        >
-          <Table
-            {...tableProps}
-            rowKey="id"
-            scroll={{ x: 1200 }}
-            pagination={{
-              ...tableProps.pagination,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} de ${total} empresas`,
-            }}
-          >
-            <Table.Column
-              dataIndex="name"
-              title="Nombre de la Empresa"
-              filterDropdown={(props) => (
-                <FilterDropdown {...props}>
-                  <Input
-                    placeholder="Buscar empresa..."
-                    prefix={<SearchOutlined />}
-                  />
-                </FilterDropdown>
-              )}
-              defaultFilteredValue={getDefaultFilter('name', filters, 'contains')}
-              render={(value: string) => (
-                <div style={{ fontWeight: 'bold', color: '#1890ff' }}>
-                  {value}
-                </div>
-              )}
-            />
-            
-            <Table.Column
-              dataIndex="email"
-              title="Email"
-              render={(value: string) => value || '-'}
-            />
-            
-            <Table.Column
-              dataIndex="phone"
-              title="Teléfono"
-              render={(value: string) => value || '-'}
-            />
-            
-            <Table.Column
-              dataIndex="city"
-              title="Ciudad"
-              render={(value: string) => value || '-'}
-            />
-            
-            <Table.Column
-              dataIndex="industry"
-              title="Sector"
-              render={(value: string) => 
-                value ? <Tag color="blue">{value}</Tag> : '-'
-              }
-            />
-            
-            <Table.Column
-              dataIndex="customer_rank"
-              title="Tipo"
-              render={(value: number, record: Company) => {
-                const tags = [];
-                if (record.customer_rank > 0) {
-                  tags.push(<Tag key="customer" color="green">Cliente</Tag>);
-                }
-                if (record.supplier_rank > 0) {
-                  tags.push(<Tag key="supplier" color="orange">Proveedor</Tag>);
-                }
-                return tags.length > 0 ? tags : <Tag color="default">Empresa</Tag>;
-              }}
-            />
-            
-            <Table.Column
-              title="Acciones"
-              dataIndex="actions"
-              fixed="right"
-              width={200}
-              render={(_, record: Company) => (
-                <Space>
-                  <ShowButton
-                    hideText
-                    size="small"
-                    recordItemId={record.id}
-                    onClick={() => go({ to: `/crm/companies/show/${record.id}` })}
-                  />
-                  <EditButton
-                    hideText
-                    size="small"
-                    recordItemId={record.id}
-                    onClick={() => go({ to: `/crm/companies/edit/${record.id}` })}
-                  />
-                  <DeleteButton
-                    hideText
-                    size="small"
-                    recordItemId={record.id}
-                  />
-                </Space>
-              )}
-            />
-          </Table>
-        </List>
-      </Card>
-    </div>
-  );
+const getIndustryTag = (industry?: string) => {
+    if (!industry) return null;
+    return <Tag color="blue">{industry}</Tag>;
 };
+
+export const Companies: React.FC = () => {
+    const { tableProps, searchFormProps } = useTable<Company>({
+        resource: "companies",
+        initialSorter: [{ field: "created_at", order: "desc" }],
+        initialFilter: [],
+        syncWithLocation: true,
+    });
+
+    return (
+        <div>
+            <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+                <Typography.Title level={3} style={{ margin: 0 }}>
+                    <ShopOutlined style={{ marginRight: 8 }} /> Empresas
+                </Typography.Title>
+                <Button type="primary" icon={<PlusOutlined />}>Nueva Empresa</Button>
+            </Space>
+            <Table
+                {...tableProps}
+                rowKey="id"
+                columns={[
+                    {
+                        title: "Nombre",
+                        dataIndex: "name",
+                        key: "name",
+                        sorter: true,
+                        render: (text: string) => <b>{text}</b>,
+                    },
+                    {
+                        title: "Email",
+                        dataIndex: "email",
+                        key: "email",
+                    },
+                    {
+                        title: "Teléfono",
+                        dataIndex: "phone",
+                        key: "phone",
+                    },
+                    {
+                        title: "Web",
+                        dataIndex: "website",
+                        key: "website",
+                        render: (url?: string) => url ? <a href={url} target="_blank" rel="noopener noreferrer">{url}</a> : "-",
+                    },
+                    {
+                        title: "Ciudad",
+                        dataIndex: "city",
+                        key: "city",
+                    },
+                    {
+                        title: "País",
+                        dataIndex: "country",
+                        key: "country",
+                    },
+                    {
+                        title: "Industria",
+                        dataIndex: "industry",
+                        key: "industry",
+                        render: getIndustryTag,
+                    },
+                    {
+                        title: "Creado",
+                        dataIndex: "created_at",
+                        key: "created_at",
+                        sorter: true,
+                        render: (date?: string) => date ? new Date(date).toLocaleDateString() : "-",
+                    },
+                    {
+                        title: "Acciones",
+                        key: "actions",
+                        render: (_, record: Company) => (
+                            <Space>
+                                <Button icon={<EyeOutlined />} size="small" />
+                                <Button icon={<EditOutlined />} size="small" />
+                                <Button icon={<DeleteOutlined />} size="small" danger />
+                            </Space>
+                        ),
+                    },
+                ]}
+                pagination={{ pageSize: 10 }}
+            />
+        </div>
+    );
+}
 
 export default Companies;

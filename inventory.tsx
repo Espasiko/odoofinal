@@ -1,70 +1,51 @@
 import React from 'react';
-import { Table, Card, Typography, Space, Button, Tag } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Card, Typography, Space, Button, Tag, Spin, Alert, Input } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useInventory } from './src/hooks/useInventory';
 
 const { Title } = Typography;
+const { Search } = Input;
 
 const Inventory: React.FC = () => {
-  // Datos de ejemplo para la tabla de inventario
-  const inventory = [
-    {
-      id: 1,
-      product: 'Refrigerador Samsung RT38K5982BS',
-      code: 'REF-SAM-001',
-      location: 'Almacén Principal',
-      quantity: 12,
-      reserved: 2,
-    },
-    {
-      id: 2,
-      product: 'Lavadora LG F4WV5012S0W',
-      code: 'LAV-LG-002',
-      location: 'Almacén Principal',
-      quantity: 8,
-      reserved: 1,
-    },
-    {
-      id: 3,
-      product: 'Televisor Sony KD-55X80J',
-      code: 'TV-SONY-003',
-      location: 'Almacén Secundario',
-      quantity: 5,
-      reserved: 0,
-    },
-    {
-      id: 4,
-      product: 'Horno Balay 3HB4331X0',
-      code: 'HOR-BAL-004',
-      location: 'Almacén Principal',
-      quantity: 15,
-      reserved: 3,
-    },
-    {
-      id: 5,
-      product: 'Microondas Bosch BFL523MS0',
-      code: 'MIC-BOS-005',
-      location: 'Almacén Secundario',
-      quantity: 20,
-      reserved: 5,
-    },
-  ];
+  const {
+    inventory,
+    loading,
+    error,
+    totalItems,
+    currentPage,
+    pageSize,
+    searchTerm,
+    setCurrentPage,
+    setPageSize,
+    setSearchTerm,
+    refreshInventory,
+    updateInventoryItem,
+    deleteInventoryItem
+  } = useInventory();
 
   const columns = [
     {
-      title: 'Código',
-      dataIndex: 'code',
-      key: 'code',
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
     },
     {
       title: 'Producto',
-      dataIndex: 'product',
-      key: 'product',
+      key: 'product_name',
+      render: (record: any) => {
+        // Usar product_name si está disponible, sino extraer de product_id
+        const productName = record.product_name || (record.product_id && record.product_id[1]) || 'N/A';
+        return productName;
+      },
     },
     {
       title: 'Ubicación',
-      dataIndex: 'location',
       key: 'location',
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
+      render: (record: any) => {
+        // Usar location si está disponible, sino extraer de location_id
+        const locationName = record.location || (record.location_id && record.location_id[1]) || 'N/A';
+        return <Tag color="blue">{locationName}</Tag>;
+      },
     },
     {
       title: 'Cantidad',
@@ -72,22 +53,30 @@ const Inventory: React.FC = () => {
       key: 'quantity',
     },
     {
-      title: 'Reservado',
-      dataIndex: 'reserved',
-      key: 'reserved',
+      title: 'Última Actualización',
+      dataIndex: 'last_updated',
+      key: 'last_updated',
+      render: (text: string) => {
+        if (!text) return 'N/A';
+        return new Date(text).toLocaleDateString();
+      },
     },
     {
-      title: 'Disponible',
-      key: 'available',
+      title: 'Estado',
+      key: 'status',
       render: (record: any) => {
-        const available = record.quantity - record.reserved;
+        const quantity = record.quantity || 0;
+        const available = quantity; // Definimos 'available' correctamente
         let color = 'green';
+        let status = 'En Stock';
         if (available < 5) {
           color = 'red';
+          status = 'Stock Bajo';
         } else if (available < 10) {
           color = 'orange';
+          status = 'Stock Limitado';
         }
-        return <Tag color={color}>{available}</Tag>;
+        return <Tag color={color}>{status + ' (' + available + ')'} </Tag>;
       },
     },
     {
@@ -95,29 +84,97 @@ const Inventory: React.FC = () => {
       key: 'actions',
       render: (_: any, record: any) => (
         <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} />
-          <Button type="text" danger icon={<DeleteOutlined />} />
+          <Button 
+            type="text" 
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          />
+          <Button 
+            type="text" 
+            danger 
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+          />
         </Space>
       ),
     },
   ];
 
+  const handleEdit = (record: any) => {
+    // TODO: Implementar modal de edición
+    console.log('Editar:', record);
+  };
+
+  const handleDelete = async (id: number) => {
+    // TODO: Implementar confirmación de eliminación
+    await deleteInventoryItem(id);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  if (error) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <Alert
+          message="Error al cargar inventario"
+          description={error}
+          type="error"
+          showIcon
+          action={
+            <Button size="small" onClick={refreshInventory}>
+              Reintentar
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       <Space style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
         <Title level={3} style={{ margin: 0, color: '#fff' }}>Inventario</Title>
-        <Button type="primary" icon={<PlusOutlined />}>
-          Ajustar Stock
-        </Button>
+        <Space>
+          <Search
+            placeholder="Buscar productos..."
+            allowClear
+            enterButton={<SearchOutlined />}
+            size="middle"
+            onSearch={handleSearch}
+            onChange={(e) => e.target.value === '' && setSearchTerm('')}
+            style={{ width: 300 }}
+          />
+          <Button type="primary" icon={<PlusOutlined />}>
+            Ajustar Stock
+          </Button>
+        </Space>
       </Space>
       
       <Card style={{ background: '#1f1f1f', borderRadius: '8px' }}>
-        <Table 
-          columns={columns} 
-          dataSource={inventory} 
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
+        <Spin spinning={loading}>
+          <Table 
+            columns={columns} 
+            dataSource={inventory} 
+            rowKey="id"
+            pagination={{
+              current: currentPage,
+              pageSize: pageSize,
+              total: totalItems,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total, range) => 
+                `${range[0]}-${range[1]} de ${total} elementos`,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                if (size !== pageSize) {
+                  setPageSize(size);
+                }
+              },
+            }}
+          />
+        </Spin>
       </Card>
     </div>
   );

@@ -50,11 +50,16 @@ export interface Sale {
 
 export interface InventoryItem {
   id: number;
-  product_id: number;
-  product_name: string;
+  product_id: [number, string]; // [id, name] del producto
+  location_id: [number, string]; // [id, name] de la ubicación
   quantity: number;
-  location: string;
-  last_updated: string;
+  lot_id?: [number, string] | null; // [id, name] del lote (opcional)
+  package_id?: [number, string] | null; // [id, name] del paquete (opcional)
+  owner_id?: [number, string] | null; // [id, name] del propietario (opcional)
+  // Campos de compatibilidad
+  product_name?: string; // Nombre del producto
+  location?: string; // Nombre de la ubicación
+  last_updated?: string; // Campo calculado
 }
 
 export interface CategoryData {
@@ -63,20 +68,98 @@ export interface CategoryData {
 }
 
 export interface DashboardStats {
-  total_products: number;
-  total_sales: number;
-  total_customers: number;
-  pending_orders: number;
-  low_stock_products: number;
-  monthly_revenue: number;
-  top_selling_product: string;
-  topCategories: CategoryData[];
-  recent_sales: Array<{
+  // Estadísticas básicas
+  totalProducts: number;
+  totalSales: number;
+  totalCustomers: number;
+  totalProviders: number;
+  pendingOrders: number;
+  monthlyRevenue: number;
+  
+  // Estadísticas de productos
+  productStats: {
+    totalActive: number;
+    totalInactive: number;
+    totalCategories: number;
+    averagePrice: number;
+    totalValue: number;
+  };
+  
+  // Estadísticas de ventas
+  salesStats: {
+    todaySales: number;
+    weekSales: number;
+    monthSales: number;
+    yearSales: number;
+    averageOrderValue: number;
+  };
+  
+  // Estadísticas de stock
+  stockStats: {
+    lowStockProducts: number;
+    outOfStockProducts: number;
+    totalStockValue: number;
+    averageStockLevel: number;
+  };
+  
+  // Estadísticas de proveedores
+  providerStats: {
+    totalActive: number;
+    totalInactive: number;
+    averagePaymentTerm: number;
+  };
+  
+  // Listas detalladas
+  topCategories: Array<{
     id: number;
-    customer_name: string;
-    product_name: string;
+    name: string;
+    productCount: number;
+    totalValue: number;
+    percentage: number;
+  }>;
+  
+  recentSales: Array<{
+    id: number;
+    customerName: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
     total: number;
     date: string;
+    status: string;
+  }>;
+  
+  lowStockProducts: Array<{
+    id: number;
+    name: string;
+    currentStock: number;
+    minimumStock: number;
+    category: string;
+    price: number;
+  }>;
+  
+  topSellingProducts: Array<{
+    id: number;
+    name: string;
+    totalSold: number;
+    revenue: number;
+    category: string;
+  }>;
+  
+  recentCustomers: Array<{
+    id: number;
+    name: string;
+    email: string;
+    totalPurchases: number;
+    lastPurchase: string;
+  }>;
+  
+  recentProviders: Array<{
+    id: number;
+    name: string;
+    email: string;
+    totalProducts: number;
+    lastUpdate: string;
   }>;
 }
 
@@ -241,9 +324,34 @@ class OdooService {
   }
 
   private async performTokenRefresh(): Promise<string> {
-    // En una implementación real, aquí se haría el refresh del token
-    // Por ahora, simplemente lanzamos un error para forzar re-login
-    throw new Error('Token refresh not implemented');
+    // En lugar de refresh token, hacemos login automático con credenciales por defecto
+    try {
+      const loginData = {
+        username: 'admin',
+        password: 'admin_password_secure'
+      };
+      
+      const response = await axios.post(`${this.apiClient.defaults.baseURL}/token`, 
+        new URLSearchParams({
+          username: loginData.username,
+          password: loginData.password
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+      
+      const { access_token } = response.data;
+       this.token = access_token;
+       this.isAuthenticated = true;
+       this.saveTokenToStorage(access_token);
+       return access_token;
+    } catch (error) {
+      console.error('Error en performTokenRefresh:', error);
+      throw new Error('Failed to refresh token');
+    }
   }
 
   // Métodos públicos
@@ -347,7 +455,22 @@ class OdooService {
   }
 
   async updateProvider(id: number, provider: Partial<Provider>): Promise<Provider> {
-    const response = await this.apiClient.put<Provider>(`/api/v1/providers/${id}`, provider);
+    // Filtrar sólo los campos permitidos por ProviderUpdate
+    const allowedFields = [
+      'name',
+      'tax_calculation_method',
+      'discount_type',
+      'payment_term',
+      'incentive_rules',
+      'status'
+    ];
+    const filteredProvider: any = {};
+    for (const key of allowedFields) {
+      if (provider[key as keyof Provider] !== undefined) {
+        filteredProvider[key] = provider[key as keyof Provider];
+      }
+    }
+    const response = await this.apiClient.put<Provider>(`/api/v1/providers/${id}`, filteredProvider);
     return response.data;
   }
 
