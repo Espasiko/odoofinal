@@ -6,13 +6,9 @@ import {
   InboxOutlined,
   ShoppingCartOutlined,
   UserOutlined,
-  BarChartOutlined,
   SettingOutlined,
   TeamOutlined,
-  ShopOutlined,
-  ProjectOutlined,
-  ContactsOutlined,
-  CustomerServiceOutlined,
+
 } from '@ant-design/icons';
 import { useMenu } from '@refinedev/core';
 import { Link } from 'react-router-dom';
@@ -72,38 +68,13 @@ const Sider: React.FC = () => {
             icon: <UserOutlined />,
             label: <Link to="/customers">Clientes</Link>,
           },
-          {
-            key: 'reports',
-            icon: <BarChartOutlined />,
-            label: <Link to="/reports">Informes</Link>,
-          },
+
           {
             key: 'providers',
             icon: <TeamOutlined />,
             label: <Link to="/providers">Proveedores</Link>,
           },
-          {
-            key: 'crm',
-            icon: <CustomerServiceOutlined />,
-            label: 'CRM',
-            children: [
-              {
-                key: 'companies',
-                icon: <ShopOutlined />,
-                label: <Link to="/crm/companies">Empresas</Link>,
-              },
-              {
-                key: 'contacts',
-                icon: <ContactsOutlined />,
-                label: <Link to="/crm/contacts">Contactos</Link>,
-              },
-              {
-                key: 'tasks',
-                icon: <ProjectOutlined />,
-                label: <Link to="/crm/tasks">Tareas</Link>,
-              },
-            ],
-          },
+
           {
             key: 'settings',
             icon: <SettingOutlined />,

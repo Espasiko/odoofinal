@@ -18,11 +18,27 @@ export interface Customer {
 export interface Provider {
   id: number;
   name: string;
-  tax_calculation_method: string;
-  discount_type: string;
-  payment_term: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  vat?: string;  // NIF/CIF
+  website?: string;
+  street?: string;
+  street2?: string;
+  city?: string;
+  zip?: string;
+  country?: string;
+  supplier_rank: number;
+  is_company: boolean;
+  active: boolean;
+  ref?: string;  // Referencia interna
+  comment?: string;  // Notas internas
+  // Campos legacy para compatibilidad
+  tax_calculation_method?: string;
+  discount_type?: string;
+  payment_term?: string;
   incentive_rules?: string;
-  status: string;
+  status?: string;
 }
 
 export interface Product {

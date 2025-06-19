@@ -130,20 +130,21 @@ const Products: React.FC = () => {
       title: 'Precio',
       dataIndex: 'price',
       key: 'price',
-      render: (price: number) => `€${price.toFixed(2)}`,
+      render: (price: number) => `€${price ? price.toFixed(2) : '0.00'}`,
     },
     {
       title: 'Stock',
       dataIndex: 'stock',
       key: 'stock',
       render: (stock: number) => {
+        const stockValue = stock || 0;
         let color = 'green';
-        if (stock < 5) {
+        if (stockValue < 5) {
           color = 'red';
-        } else if (stock < 10) {
+        } else if (stockValue < 10) {
           color = 'orange';
         }
-        return <Tag color={color}>{stock} unidades</Tag>;
+        return <Tag color={color}>{stockValue} unidades</Tag>;
       },
     },
     {

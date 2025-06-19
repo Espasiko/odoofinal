@@ -1,12 +1,65 @@
-venv/
-*.pyc
-__pycache__/
-.env
-*.log
-node_modules/
+# Carpetas y archivos a ignorar
+
+# Carpetas del backend y otras especificadas
+backend
+tiendafotos
+custom_addons
+jsons
+main
+plantillasodoo
+/mcp-odoo-yourtechtribe
+de_manus
+
+# Archivos y carpetas comunes de Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
 dist/
-.trae/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Archivos de entorno y configuración local
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de IDE y editores
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Carpetas de logs y temporales
+logs/
+tmp/
+temp/
+
+# Otros
+*.bak
+*.log
+*.tar.gz
+*.zip
+node_modules/
 ejemplos/
-jsons/
-tiendafotos/
+.trae/
 backups/

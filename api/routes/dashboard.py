@@ -22,9 +22,39 @@ async def get_dashboard_stats(
         total_products = len(products)
         
         # Calcular productos con stock bajo (menos de 5 unidades)
-        low_stock_products = [p for p in products if hasattr(p, 'stock') and p.stock < 5]
-        out_of_stock_products = [p for p in products if hasattr(p, 'stock') and p.stock == 0]
-        total_stock = sum(getattr(p, 'stock', 0) for p in products)
+        print(f"DEBUG: Analizando {len(products)} productos para stock")
+        for i, p in enumerate(products[:3]):  # Solo los primeros 3 para debug
+            print(f"DEBUG: Producto {i}: stock={getattr(p, 'stock', 'NO_ATTR')}, type={type(getattr(p, 'stock', None))}")
+        
+        low_stock_products = []
+        out_of_stock_products = []
+        
+        for p in products:
+            try:
+                if hasattr(p, 'stock'):
+                    stock_value = getattr(p, 'stock')
+                    if stock_value is not None:
+                        # Convertir a int si es necesario y validar que sea un número
+                        try:
+                            stock_int = int(stock_value) if stock_value is not None else 0
+                            if stock_int < 5:
+                                low_stock_products.append(p)
+                            if stock_int == 0:
+                                out_of_stock_products.append(p)
+                        except (ValueError, TypeError):
+                            print(f"DEBUG: No se pudo convertir stock a int: {stock_value}")
+            except Exception as e:
+                print(f"DEBUG: Error procesando producto {getattr(p, 'name', 'UNKNOWN')}: {e}")
+        
+        # Calcular total de stock de forma segura
+        total_stock = 0
+        for p in products:
+            try:
+                stock_value = getattr(p, 'stock', 0)
+                if stock_value is not None:
+                    total_stock += int(stock_value)
+            except (ValueError, TypeError):
+                continue
         
         # Obtener clientes desde Odoo
         customers = odoo_service.get_customers()

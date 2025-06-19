@@ -9,9 +9,7 @@ from ..utils.config import config
 router = APIRouter(prefix="/api/v1", tags=["products"])
 
 @router.get("/products/all", response_model=List[Product])
-async def get_all_products(
-    current_user: User = Depends(auth_service.get_current_active_user)
-):
+async def get_all_products():
     """Obtiene todos los productos sin paginación"""
     try:
         # Obtener todos los productos desde Odoo
@@ -23,8 +21,7 @@ async def get_all_products(
 @router.get("/products", response_model=PaginatedResponse[Product])
 async def get_products(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(auth_service.get_current_active_user)
+    limit: int = Query(10, ge=1, le=100)
 ):
     """Obtiene lista paginada de productos"""
     try:
@@ -80,49 +77,34 @@ async def create_product(
     # Simulación anterior:
     # return Product(id=999, name=product.name, code=product.code, category=product.category, price=product.price, stock_quantity=product.stock, image_url=product.image_url, is_active=True)
 
-@router.put("/products/{product_id}")
-async def update_product(product_id: int, product: ProductCreate):
-    """Actualizar un producto existente"""
-    try:
-        print(f"PRODUCTS_ROUTE: Actualizando producto ID: {product_id}")
-        print(f"PRODUCTS_ROUTE: Datos recibidos: {product.dict()}")
-        
-        # Usar el servicio de Odoo para actualizar el producto
-        updated_product = odoo_service.update_product(product_id, product.dict())
-        
-        if updated_product:
-            print(f"PRODUCTS_ROUTE: Producto actualizado exitosamente: {updated_product.name}")
-            return {
-                "message": "Producto actualizado exitosamente",
-                "product": updated_product
-            }
-        else:
-            print(f"PRODUCTS_ROUTE: Error actualizando producto {product_id}")
-            raise HTTPException(status_code=404, detail="Producto no encontrado o error en la actualización")
-            
-    except Exception as e:
-        print(f"PRODUCTS_ROUTE: Excepción actualizando producto: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+@router.put("/products/{product_id}", response_model=Product)
+async def update_product(
+    product_id: int,
+    product: Product,
+    current_user: User = Depends(auth_service.get_current_active_user)
+):
+    """Actualiza un producto existente (simulado)"""
+    # Verificar que el producto existe
+    existing_product = odoo_service.get_product_by_id(product_id)
+    if not existing_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Por ahora retornamos el producto actualizado
+    # En una implementación real, se actualizaría en Odoo
+    product.id = product_id
+    return product
 
 @router.delete("/products/{product_id}")
 async def delete_product(
     product_id: int,
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
-    """Eliminar un producto (marcar como inactivo en Odoo)"""
-    try:
-        print(f"PRODUCTS_ROUTE: Eliminando producto ID: {product_id}")
-        
-        # Usar el servicio de Odoo para eliminar (marcar como inactivo) el producto
-        success = odoo_service.delete_product(product_id)
-        
-        if success:
-            print(f"PRODUCTS_ROUTE: Producto {product_id} eliminado exitosamente")
-            return {"message": "Producto eliminado exitosamente"}
-        else:
-            print(f"PRODUCTS_ROUTE: Error eliminando producto {product_id}")
-            raise HTTPException(status_code=404, detail="Producto no encontrado o error en la eliminación")
-            
-    except Exception as e:
-        print(f"PRODUCTS_ROUTE: Excepción eliminando producto: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    """Elimina un producto (simulado)"""
+    # Verificar que el producto existe
+    existing_product = odoo_service.get_product_by_id(product_id)
+    if not existing_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Por ahora solo retornamos éxito
+    # En una implementación real, se eliminaría de Odoo
+    return {"message": "Producto eliminado correctamente"}

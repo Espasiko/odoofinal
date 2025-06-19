@@ -1,0 +1,11 @@
+* [33mc34ea2d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfastmal[m[33m, [m[1;31morigin/fastmal[m[33m)[m Limpieza de productos y servicios legacy, eliminación de informes redundantes, mejoras en dashboard y organización del código. Ref: 18.06-productosLimpieza
+* [33m358d183[m Connect dashboard with real Odoo data
+* [33mde5e6ed[m add-mcp-odoo-directory
+* [33m3907b0c[m cleanup
+* [33meb6189c[m Actualizacion modulos personalizados y memoria del proyecto
+* [33m870d102[m[33m ([m[1;31morigin/fasbien[m[33m, [m[1;32mfasbien[m[33m)[m Desarrollo_modulos_Odoo18_memoria_completa
+* [33m966722f[m Limpieza de archivos duplicados en docs/docs-main
+*   [33m92185ed[m Merge branch 'fastmal' of https://github.com/Espasiko/odoofinal into fastmal # Please enter a commit message to explain why this merge is necessary, # especially if it merges an updated upstream into a topic branch. # # Lines starting with '#' will be ignored, and an empty message aborts # the commit.
+[32m|[m[33m\[m  
+[32m|[m * [33m6ff4ba0[m Delete replica/hostinger-api.json:Zone.Identifier
+[32m|[m * [33mb9cd8d3[m Delete replica/hostinger-api.yaml:Zone.Identifier

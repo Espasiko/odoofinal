@@ -159,15 +159,15 @@ def procesar_csv_productos(archivo_csv, models, uid, referencias):
                     # Procesar datos del producto desde CSV (corrección indentación)
                     tipo = row['type'].strip().lower()
                     if tipo in ['product', 'consu', 'service']:
-                        tipo_final = tipo
+                        tipo_final = 'storable' if tipo == 'product' else tipo  # Usar 'storable' para goods en Odoo 18
                     else:
-                        tipo_final = 'product'
+                        tipo_final = 'storable'  # Por defecto, productos almacenables
                     producto_data = {
                         'name': row['name'],
                         'default_code': row['default_code'],
                         'list_price': float(row['list_price']),
                         'standard_price': float(row['standard_price']),
-                        'type': tipo_final,
+                        'type': tipo_final,  
                         'sale_ok': row['sale_ok'].lower() == 'true',
                         'purchase_ok': row['purchase_ok'].lower() == 'true',
                         'active': row['active'].lower() == 'true',

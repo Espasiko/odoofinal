@@ -67,7 +67,11 @@ const Providers: React.FC = () => {
         // Crear nuevo proveedor
         const providerData = {
           ...values,
-          status: 'Activo',
+          is_company: true,
+          supplier_rank: 1,
+          active: values.active !== undefined ? values.active : true,
+          // Campos legacy para compatibilidad
+          status: values.active !== false ? 'Activo' : 'Inactivo',
         };
         const result = await odooService.createProvider(providerData);
         if (result) {
@@ -105,32 +109,7 @@ const Providers: React.FC = () => {
     });
   };
 
-  const getTaxMethodLabel = (method: string) => {
-    switch (method) {
-      case 'standard': return 'IVA Estándar (21%)';
-      case 'recargo': return 'IVA + Recargo (26.2%)';
-      default: return method;
-    }
-  };
-
-  const getDiscountTypeLabel = (type: string) => {
-    switch (type) {
-      case 'fixed': return 'Descuento Fijo';
-      case 'volume': return 'Por Volumen';
-      case 'seasonal': return 'Temporal';
-      default: return type;
-    }
-  };
-
-  const getPaymentTermLabel = (term: string) => {
-    switch (term) {
-      case 'immediate': return 'Inmediato';
-      case '30_days': return '30 Días';
-      case '45_days': return '45 Días';
-      case '60_days': return '60 Días';
-      default: return term;
-    }
-  };
+  // Funciones helper eliminadas - ahora usamos campos estándar de Odoo
 
   const columns = [
     {
@@ -146,30 +125,37 @@ const Providers: React.FC = () => {
       render: (text: string) => <strong>{text}</strong>,
     },
     {
-      title: 'Método de Cálculo IVA',
-      dataIndex: 'tax_calculation_method',
-      key: 'tax_calculation_method',
-      render: (method: string) => getTaxMethodLabel(method),
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      render: (email: string) => email || '-',
     },
     {
-      title: 'Tipo de Descuento',
-      dataIndex: 'discount_type',
-      key: 'discount_type',
-      render: (type: string) => getDiscountTypeLabel(type),
+      title: 'Teléfono',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (phone: string) => phone || '-',
     },
     {
-      title: 'Términos de Pago',
-      dataIndex: 'payment_term',
-      key: 'payment_term',
-      render: (term: string) => getPaymentTermLabel(term),
+      title: 'NIF/CIF',
+      dataIndex: 'vat',
+      key: 'vat',
+      render: (vat: string) => vat || '-',
+    },
+    {
+      title: 'Ciudad',
+      dataIndex: 'city',
+      key: 'city',
+      render: (city: string) => city || '-',
     },
     {
       title: 'Estado',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const color = status === 'Activo' ? 'green' : 'red';
-        return <Tag color={color}>{status}</Tag>;
+      dataIndex: 'active',
+      key: 'active',
+      render: (active: boolean) => {
+        const color = active ? 'green' : 'red';
+        const text = active ? 'Activo' : 'Inactivo';
+        return <Tag color={color}>{text}</Tag>;
       },
     },
     {
@@ -246,6 +232,11 @@ const Providers: React.FC = () => {
           layout="vertical"
           onFinish={handleSubmit}
           style={{ marginTop: '20px' }}
+          initialValues={{
+            is_company: true,
+            supplier_rank: 1,
+            active: true
+          }}
         >
           <Form.Item
             label="Nombre"
@@ -256,47 +247,102 @@ const Providers: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="Método de Cálculo IVA"
-            name="tax_calculation_method"
-            rules={[{ required: true, message: 'Por favor selecciona el método de cálculo IVA' }]}
+            label="Email"
+            name="email"
+            rules={[{ type: 'email', message: 'Por favor ingresa un email válido' }]}
           >
-            <Select placeholder="Selecciona el método de cálculo">
-              <Option value="standard">IVA Estándar (21%)</Option>
-              <Option value="recargo">IVA + Recargo (26.2%)</Option>
-            </Select>
+            <Input placeholder="email@proveedor.com" />
           </Form.Item>
 
           <Form.Item
-            label="Tipo de Descuento"
-            name="discount_type"
+            label="Teléfono"
+            name="phone"
           >
-            <Select placeholder="Selecciona el tipo de descuento">
-              <Option value="fixed">Descuento Fijo</Option>
-              <Option value="volume">Por Volumen</Option>
-              <Option value="seasonal">Temporal</Option>
-            </Select>
+            <Input placeholder="+34 123 456 789" />
           </Form.Item>
 
           <Form.Item
-            label="Términos de Pago"
-            name="payment_term"
+            label="Teléfono Móvil"
+            name="mobile"
           >
-            <Select placeholder="Selecciona los términos de pago">
-              <Option value="immediate">Inmediato</Option>
-              <Option value="30_days">30 Días</Option>
-              <Option value="45_days">45 Días</Option>
-              <Option value="60_days">60 Días</Option>
-            </Select>
+            <Input placeholder="+34 600 123 456" />
           </Form.Item>
 
           <Form.Item
-            label="Reglas de Incentivos"
-            name="incentive_rules"
+            label="NIF/CIF"
+            name="vat"
+          >
+            <Input placeholder="A12345678" />
+          </Form.Item>
+
+          <Form.Item
+            label="Sitio Web"
+            name="website"
+          >
+            <Input placeholder="https://www.proveedor.com" />
+          </Form.Item>
+
+          <Form.Item
+            label="Dirección"
+            name="street"
+          >
+            <Input placeholder="Calle Principal, 123" />
+          </Form.Item>
+
+          <Form.Item
+            label="Dirección 2"
+            name="street2"
+          >
+            <Input placeholder="Piso, puerta, etc." />
+          </Form.Item>
+
+          <Form.Item
+            label="Ciudad"
+            name="city"
+          >
+            <Input placeholder="Madrid" />
+          </Form.Item>
+
+          <Form.Item
+            label="Código Postal"
+            name="zip"
+          >
+            <Input placeholder="28001" />
+          </Form.Item>
+
+          <Form.Item
+            label="País"
+            name="country"
+          >
+            <Input placeholder="España" />
+          </Form.Item>
+
+          <Form.Item
+            label="Referencia Interna"
+            name="ref"
+          >
+            <Input placeholder="REF-PROV-001" />
+          </Form.Item>
+
+          <Form.Item
+            label="Notas Internas"
+            name="comment"
           >
             <Input.TextArea 
-              rows={4} 
-              placeholder="Descripción de reglas de incentivos y descuentos especiales" 
+              rows={3} 
+              placeholder="Notas adicionales sobre el proveedor" 
             />
+          </Form.Item>
+
+          <Form.Item
+            label="Estado"
+            name="active"
+            valuePropName="checked"
+          >
+            <Select defaultValue={true}>
+              <Option value={true}>Activo</Option>
+              <Option value={false}>Inactivo</Option>
+            </Select>
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>

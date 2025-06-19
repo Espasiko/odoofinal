@@ -1,16 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-from typing import Dict, Any
+from typing import Dict, Any, Annotated
 
 from ..models.schemas import Token, User, SessionResponse
-from ..services.auth_service import auth_service, fake_users_db
+from ..services.auth_service import AuthService, fake_users_db
 from ..utils.config import config
 
-router = APIRouter(prefix="", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
+
+auth_service = AuthService()
 
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     """Endpoint para autenticación y obtención de token"""
     user = auth_service.authenticate_user(fake_users_db, form_data.username, form_data.password)
     if not user:
@@ -25,13 +27,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/api/v1/auth/session", response_model=SessionResponse)
-async def get_session(current_user: User = Depends(auth_service.get_current_active_user)):
+@router.get("/session", response_model=SessionResponse)
+async def get_session(current_user: Dict[str, Any] = Depends(auth_service.get_current_active_user)):
     """Obtiene información de la sesión actual"""
     return SessionResponse(
-        uid=1,
-        username=current_user.username,
-        name=current_user.full_name or current_user.username,
-        session_id=auth_service.generate_session_id(),
-        db=config.ODOO_DB
+        access_token=auth_service.create_access_token(data={"sub": current_user["username"]}),
+        token_type="bearer",
+        user=current_user
     )

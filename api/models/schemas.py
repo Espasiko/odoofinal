@@ -28,7 +28,7 @@ class Product(BaseModel):
     name: str  # Campo obligatorio en product.template
     default_code: Optional[str] = None  # Código del producto (opcional)
     list_price: Optional[float] = None  # Precio de venta (opcional)
-    categ_id: Optional[List[int]] = None  # ID de categoría [id, name] (opcional)
+    categ_id: Optional[int] = None  # ID de categoría (opcional)
     active: bool = True  # Estado activo/inactivo
     type: Optional[str] = "consu"  # Tipo de producto: consu, service, product
     
@@ -62,11 +62,15 @@ class Product(BaseModel):
     supplier_taxes_id: Optional[List[int]] = []  # Impuestos de compra
     
     # Campos calculados para compatibilidad con frontend
+    qty_available: Optional[float] = None  # Stock disponible de Odoo
     code: Optional[str] = None  # Alias para default_code
     price: Optional[float] = None  # Alias para list_price
     category: Optional[str] = None  # Nombre de categoría para mostrar
     stock: Optional[int] = None  # Stock calculado
     image_url: Optional[str] = None  # URL de imagen
+    product_name: Optional[str] = None  # Nombre del producto para frontend
+    location: Optional[str] = None  # Ubicación del producto
+    last_updated: Optional[str] = None  # Última actualización
 
 class ProductCreate(BaseModel):
     name: str  # Campo obligatorio
@@ -219,8 +223,8 @@ class CustomerCreate(BaseModel):
 class Provider(BaseModel):
     id: int
     name: str  # Campo obligatorio en res.partner
-    email: Optional[str] = None  # Email del proveedor
-    phone: Optional[str] = None  # Teléfono del proveedor
+    email: Optional[str] = ""  # Email del proveedor
+    phone: Optional[str] = ""  # Teléfono del proveedor
     is_company: bool = True  # Es empresa (True para proveedores)
     supplier_rank: int = 1  # Rango de proveedor (>0 para ser proveedor)
     
@@ -232,7 +236,7 @@ class Provider(BaseModel):
     
     # CAMPOS DE CONTACTO AMPLIADOS
     mobile: Optional[str] = None  # Teléfono móvil
-    fax: Optional[str] = None  # Fax
+
     function: Optional[str] = None  # Cargo/función
     title: Optional[int] = None  # Título (Sr., Sra., etc.)
     
@@ -266,6 +270,9 @@ class Provider(BaseModel):
     country: Optional[str] = None  # Nombre del país para mostrar
     customer: bool = False  # Calculado desde customer_rank
     supplier: bool = True  # Calculado desde supplier_rank
+
+    class Config:
+        orm_mode = True
 
 class ProviderCreate(BaseModel):
     name: str  # Campo obligatorio
