@@ -124,8 +124,8 @@ product_count = 0
 # Buscar todos los archivos Excel que empiezan con PVP
 excel_files = glob.glob(os.path.join(INPUT_DIR, "PVP*.xlsx"))
 for file_path in excel_files:
-    supplier = extract_supplier_from_filename(file_path)
-    print(f"Procesando archivo: {file_path} (Proveedor: {supplier})")
+    supplier_name = extract_supplier_from_filename(file_path)
+    print(f"Procesando archivo: {file_path} (Proveedor: {supplier_name})")
     try:
         # Leer todas las hojas del archivo Excel
         xls = pd.ExcelFile(file_path)
@@ -160,21 +160,21 @@ for file_path in excel_files:
 
                 # Mapear a campos de Odoo
                 odoo_data = []
-                for _, row in df.iterrows():
+                for index, row in df.iterrows():
                     product = {
-                        'default_code': str(row.get('CODIGO', '')) if pd.notna(row.get('CODIGO', '')) else '',
-                        'name': str(row.get('DESCRIPCION', '')) if pd.notna(row.get('DESCRIPCION', '')) else '',
-                        'type': 'consu',  # Consumable, según Odoo 18
-                        'standard_price': clean_price(row.get('IMPORTE_BRUTO', 0.0)),
-                        'list_price': clean_price(row.get('PVP_FINAL_CLIENTE', 0.0)),
-                        'categ_id': infer_category_from_description(row.get('DESCRIPCION', '')),
-                        'supplier_id': supplier,
-                        'active': True,
-                        'sale_ok': True,
-                        'purchase_ok': True
+                        'Name': str(row.get('DESCRIPCION', '')) if pd.notna(row.get('DESCRIPCION', '')) else '',
+                        'Internal Reference': str(row.get('CODIGO', '')) if pd.notna(row.get('CODIGO', '')) else '',
+                        'Sales Price': clean_price(row.get('PVP_FINAL_CLIENTE', 0.0)),
+                        'Cost': clean_price(row.get('IMPORTE_BRUTO', 0.0)),
+                        'Product Category': infer_category_from_description(row.get('DESCRIPCION', '')),
+                        'Vendor': supplier_name,
+                        'Description': '',
+                        'Barcode': '',
+                        'Product Type': 'Storable Product',
+                        'External ID': f"{supplier_name.upper()}_{row['CODIGO']}" if row['CODIGO'] else f"{supplier_name.upper()}_{index}"
                     }
                     # Solo añadir si hay un código y un nombre
-                    if product['default_code'] and product['name']:
+                    if product['Internal Reference'] and product['Name']:
                         odoo_data.append(product)
                         product_count += 1
 
@@ -189,9 +189,33 @@ if all_data:
     final_df = pd.DataFrame(all_data)
     # Eliminar duplicados basados en código y proveedor
     initial_count = len(final_df)
-    final_df = final_df.drop_duplicates(subset=['default_code', 'supplier_id'])
+    final_df = final_df.drop_duplicates(subset=['Internal Reference', 'Vendor'])
     deduped_count = initial_count - len(final_df)
     print(f"Eliminados {deduped_count} productos duplicados.")
+
+    # Validación de datos
+    required_fields = ['Name', 'Internal Reference']
+    for idx, row in final_df.iterrows():
+        for field in required_fields:
+            if pd.isna(row[field]) or row[field] == '':
+                print(f"Fila {idx} tiene el campo obligatorio {field} vacío. Se eliminará.")
+                final_df.drop(idx, inplace=True)
+                break
+        else:
+            # Validar tipos de datos
+            if not pd.isna(row['Sales Price']) and not isinstance(row['Sales Price'], (int, float)):
+                try:
+                    final_df.at[idx, 'Sales Price'] = float(row['Sales Price'])
+                except (ValueError, TypeError):
+                    print(f"Fila {idx} tiene un valor inválido en Sales Price: {row['Sales Price']}. Se establecerá a 0.")
+                    final_df.at[idx, 'Sales Price'] = 0.0
+            if not pd.isna(row['Cost']) and not isinstance(row['Cost'], (int, float)):
+                try:
+                    final_df.at[idx, 'Cost'] = float(row['Cost'])
+                except (ValueError, TypeError):
+                    print(f"Fila {idx} tiene un valor inválido en Cost: {row['Cost']}. Se establecerá a 0.")
+                    final_df.at[idx, 'Cost'] = 0.0
+
     final_df.to_csv(OUTPUT_FILE, index=False)
     print(f"Datos normalizados guardados en {OUTPUT_FILE}")
     print(f"Total de productos procesados: {len(final_df)}")

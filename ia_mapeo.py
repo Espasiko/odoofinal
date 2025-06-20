@@ -332,6 +332,37 @@ def analizar_archivo(ruta_archivo):
         print("No se encontraron productos en el archivo")
         return None
 
+def mapear_a_formato_odoo(df_enriquecido, proveedor):
+    """Mapea los datos enriquecidos al formato esperado por Odoo"""
+    if df_enriquecido is None or len(df_enriquecido) == 0:
+        return None
+    
+    # Función para convertir valores False o NaN a cadenas vacías
+    def safe_str(value, default=""):
+        return str(value) if value is not False and pd.notna(value) else default
+    
+    # Crear DataFrame para Odoo
+    datos_odoo = []
+    
+    # Mapear campos según el tipo de dato (proveedor o producto)
+    # Para este ejemplo, asumimos que estamos mapeando productos
+    for idx, row in df_enriquecido.iterrows():
+        datos_odoo.append({
+            'name': safe_str(row['nombre_normalizado'], row['nombre']),
+            'default_code': safe_str(row.get('codigo', f"PROD-{idx}"), f"PROD-{idx}"),
+            'categ_id': safe_str(row.get('categoria', '')),
+            'list_price': row.get('precio_venta', 0.0) if pd.notna(row.get('precio_venta')) else 0.0,
+            'standard_price': row.get('precio', 0.0) if pd.notna(row.get('precio')) else 0.0,
+            # Campos adicionales para Odoo
+            'type': 'product',
+            'sale_ok': True,
+            'purchase_ok': True,
+            'active': True
+        })
+    
+    df_odoo = pd.DataFrame(datos_odoo)
+    return df_odoo
+
 def main():
     print("ASISTENTE DE MAPEO CON IA PARA DATOS DE PROVEEDORES")
     print("=" * 50)
@@ -358,6 +389,13 @@ def main():
             df_enriquecido = analizar_archivo(archivo_seleccionado)
             
             if df_enriquecido is not None:
+                # Mapear a formato Odoo
+                proveedor = detectar_proveedor(os.path.basename(archivo_seleccionado))
+                df_odoo = mapear_a_formato_odoo(df_enriquecido, proveedor)
+                
+                if df_odoo is not None and len(df_odoo) > 0:
+                    print(f"\nDatos mapeados al formato Odoo: {len(df_odoo)} productos listos para importar")
+                
                 # Preguntar si desea guardar el análisis
                 if input("\n¿Desea guardar el análisis enriquecido? (s/n): ").lower() == 's':
                     if not os.path.exists(DIR_SALIDA):
@@ -367,6 +405,11 @@ def main():
                     ruta_salida = os.path.join(DIR_SALIDA, f"{nombre_base}_enriquecido.csv")
                     df_enriquecido.to_csv(ruta_salida, index=False)
                     print(f"Análisis guardado en: {ruta_salida}")
+                    
+                    if df_odoo is not None and len(df_odoo) > 0:
+                        ruta_odoo = os.path.join(DIR_SALIDA, f"{nombre_base}_odoo.csv")
+                        df_odoo.to_csv(ruta_odoo, index=False)
+                        print(f"Archivo para Odoo guardado en: {ruta_odoo}")
         else:
             print("Selección no válida")
     except ValueError:
