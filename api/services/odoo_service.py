@@ -120,28 +120,28 @@ class OdooService:
                     elif isinstance(p['categ_id'], int):
                         categ_id_value = p['categ_id']
                 
-                # Asegurarse de que default_code sea string
+                # Asegurar que default_code sea string
                 default_code = p.get('default_code')
                 if default_code is False or default_code is None:
                     default_code = ''
                 elif not isinstance(default_code, str):
                     default_code = str(default_code)
                 
-                # Asegurarse de que description_sale sea string
+                # Asegurar que description_sale sea string
                 description_sale = p.get('description_sale')
                 if description_sale is False or description_sale is None:
                     description_sale = ''
                 elif not isinstance(description_sale, str):
                     description_sale = str(description_sale)
                 
-                # Asegurarse de que description_purchase sea string
+                # Asegurar que description_purchase sea string
                 description_purchase = p.get('description_purchase')
                 if description_purchase is False or description_purchase is None:
                     description_purchase = ''
                 elif not isinstance(description_purchase, str):
                     description_purchase = str(description_purchase)
                 
-                # Asegurarse de que barcode sea string o None
+                # Asegurar que barcode sea string o None
                 barcode = p.get('barcode')
                 if barcode is False:
                     barcode = None
@@ -239,109 +239,118 @@ class OdooService:
     
     def get_providers(self) -> List[Provider]:
         """Obtiene proveedores desde Odoo"""
+        print("ODOO_SERVICE: Iniciando get_providers()")
         try:
-            print("Iniciando obtención de proveedores desde Odoo...")
-            
-            if not self._get_connection():
-                print("Error: No se pudo establecer conexión con Odoo")
-                return self._get_fallback_providers()
-            
-            # Buscar partners que sean proveedores
-            print("Buscando proveedores en Odoo...")
+            # Buscar proveedores (partners que son suppliers)
+            print("ODOO_SERVICE: Buscando proveedores...")
             provider_ids = self._execute_kw(
-                "res.partner", "search",
-                [[["supplier_rank", ">", 0]]],
-                {"limit": 100}
+                'res.partner',
+                'search',
+                [['&', ('is_company', '=', True), ('supplier_rank', '>', 0)]]
             )
+            print(f"ODOO_SERVICE: Proveedores encontrados: {len(provider_ids) if provider_ids else 0}")
             
             if not provider_ids:
-                print("No se encontraron proveedores en Odoo")
+                print("ODOO_SERVICE: No se encontraron proveedores, usando fallback")
                 return self._get_fallback_providers()
             
-            print(f"Se encontraron {len(provider_ids)} proveedores en Odoo")
-            
-            # Obtener datos de los proveedores
-            print("Obteniendo detalles de los proveedores...")
-            provider_data = self._execute_kw(
-                "res.partner", "read",
+            # Obtener datos de proveedores con todos los campos necesarios
+            print("ODOO_SERVICE: Leyendo datos de proveedores...")
+            odoo_providers = self._execute_kw(
+                'res.partner',
+                'read',
                 [provider_ids],
-                {"fields": ["id", "name", "email", "phone", "street", "city", "country_id", "supplier_rank", "is_company", "ref", "vat", "website", "mobile", "zip", "comment"]}
+                {'fields': [
+                    # Campos básicos obligatorios
+                    'id', 'name', 'email', 'phone', 'is_company', 'supplier_rank',
+                    # Campos obligatorios de Odoo
+                    'ref', 'vat', 'website',
+                    # Campos de contacto ampliados
+                    'mobile', 'fax', 'function', 'title',
+                    # Campos de dirección completos
+                    'street', 'street2', 'city', 'zip', 'country_id', 'state_id',
+                    # Campos de configuración comercial
+                    'customer_rank', 'category_id', 'user_id', 'team_id',
+                    # Campos financieros
+                    'property_payment_term_id', 'property_supplier_payment_term_id',
+                    'property_account_payable_id', 'property_account_receivable_id',
+                    # Campos de configuración
+                    'active', 'lang', 'tz', 'comment'
+                ]}
             )
             
-            if not provider_data:
-                print("No se pudieron obtener los detalles de los proveedores")
+            if not odoo_providers:
+                print("ODOO_SERVICE: No se pudieron leer datos de proveedores, usando fallback")
                 return self._get_fallback_providers()
             
-            print("Procesando datos de proveedores...")
-            providers = []
-            for data in provider_data:
-                print(f"Procesando proveedor ID: {data.get('id')}")
-                print(f"Datos recibidos de Odoo: {data}")
-                country_name = data.get("country_id", [False, ""])[1] if data.get("country_id") else ""
-                country_id = data.get('country_id', [False, ''])[0] if data.get('country_id') else 0
+            # Transformar a formato esperado
+            transformed_providers = []
+            for p in odoo_providers:
+                # Obtener nombre del país si existe
+                country_name = None
+                if p.get('country_id'):
+                    country_name = p['country_id'][1] if isinstance(p['country_id'], list) else None
                 
-                # Convertir False a cadenas vacías para todos los campos relevantes
-                def safe_str(value, default=""):
-                    return str(value) if value is not False else default
-                
-                email = safe_str(data.get("email", ""))
-                phone = safe_str(data.get("phone", ""))
-                vat = safe_str(data.get("vat", ""))
-                website = safe_str(data.get("website", ""))
-                mobile = safe_str(data.get("mobile", ""))
-                street = safe_str(data.get("street", ""))
-                city = safe_str(data.get("city", ""))
-                zip_code = safe_str(data.get("zip", ""))
-                comment = safe_str(data.get("comment", ""))
-                name = safe_str(data.get("name", ""), "Sin Nombre")
-                ref = safe_str(data.get("ref", f"PROV{data.get('id', 'N/A')}"), f"PROV{data.get('id', 'N/A')}")
-                
-                try:
-                    provider = Provider(
-                        id=data['id'],
-                        name=name,
-                        email=email,
-                        phone=phone,
-                        address=street,
-                        city=city,
-                        country=country_name,
-                        is_company=data.get('is_company', True),
-                        supplier_rank=data.get('supplier_rank', 1),
-                        external_id=f"provider_{data['id']}",
-                        ref=ref,
-                        vat=vat,
-                        website=website,
-                        mobile=mobile,
-                        function="",
-                        street=street,
-                        zip=zip_code,
-                        country_id=country_id,
-                        customer_rank=0,
-                        category_id=[],
-                        active=True,
-                        lang="es_ES",
-                        tz="Europe/Madrid",
-                        comment=comment,
-                        customer=False,
-                        supplier=True
-                    )
-                    providers.append(provider)
-                    print(f"Proveedor {name} (ID: {data['id']}) procesado correctamente")
-                except Exception as e:
-                    print(f"Error de validación al procesar proveedor ID {data.get('id')}: {str(e)}")
-                    print(f"Datos problemáticos: {data}")
-                    # Mostrar detalles específicos del error de validación
-                    if hasattr(e, 'errors'):
-                        for error in e.errors():
-                            print(f"Campo: {error['loc'][0]}, Error: {error['msg']}, Tipo: {error['type']}")
-        
-            print(f"Se procesaron {len(providers)} proveedores correctamente")
-            return providers
+                transformed_providers.append(Provider(
+                    id=p['id'],
+                    name=p['name'],
+                    email=p.get('email'),
+                    phone=p.get('phone'),
+                    is_company=p.get('is_company', True),
+                    supplier_rank=p.get('supplier_rank', 1),
+                    
+                    # Campos obligatorios de Odoo
+                    external_id=f"provider_{p['id']}",  # Generar external_id
+                    ref=p.get('ref'),
+                    vat=p.get('vat'),
+                    website=p.get('website'),
+                    
+                    # Campos de contacto ampliados
+                    mobile=p.get('mobile'),
+                    fax=p.get('fax'),
+                    function=p.get('function'),
+                    title=p.get('title'),
+                    
+                    # Campos de dirección completos
+                    street=p.get('street'),
+                    street2=p.get('street2'),
+                    city=p.get('city'),
+                    zip=p.get('zip'),
+                    country_id=p.get('country_id')[0] if p.get('country_id') and isinstance(p['country_id'], list) else p.get('country_id'),
+                    state_id=p.get('state_id')[0] if p.get('state_id') and isinstance(p['state_id'], list) else p.get('state_id'),
+                    
+                    # Campos de configuración comercial
+                    customer_rank=p.get('customer_rank', 0),
+                    category_id=p.get('category_id', []),
+                    user_id=p.get('user_id')[0] if p.get('user_id') and isinstance(p['user_id'], list) else p.get('user_id'),
+                    team_id=p.get('team_id')[0] if p.get('team_id') and isinstance(p['team_id'], list) else p.get('team_id'),
+                    
+                    # Campos financieros
+                    property_payment_term_id=p.get('property_payment_term_id')[0] if p.get('property_payment_term_id') and isinstance(p['property_payment_term_id'], list) else p.get('property_payment_term_id'),
+                    property_supplier_payment_term_id=p.get('property_supplier_payment_term_id')[0] if p.get('property_supplier_payment_term_id') and isinstance(p['property_supplier_payment_term_id'], list) else p.get('property_supplier_payment_term_id'),
+                    property_account_payable_id=p.get('property_account_payable_id')[0] if p.get('property_account_payable_id') and isinstance(p['property_account_payable_id'], list) else p.get('property_account_payable_id'),
+                    property_account_receivable_id=p.get('property_account_receivable_id')[0] if p.get('property_account_receivable_id') and isinstance(p['property_account_receivable_id'], list) else p.get('property_account_receivable_id'),
+                    
+                    # Campos de configuración
+                    active=p.get('active', True),
+                    lang=p.get('lang', 'es_ES'),
+                    tz=p.get('tz', 'Europe/Madrid'),
+                    comment=p.get('comment'),
+                    
+                    # Campos de compatibilidad
+                    country=country_name,
+                    customer=p.get('customer_rank', 0) > 0,
+                    supplier=p.get('supplier_rank', 0) > 0
+                ))
+            
+            print(f"ODOO_SERVICE: Proveedores transformados: {len(transformed_providers)}")
+            return transformed_providers
+            
         except Exception as e:
-            print(f"Error al obtener proveedores de Odoo: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            print(f"Error obteniendo proveedores: {e}")
             return self._get_fallback_providers()
+        finally:
+            self._cleanup_connection()
 
     def get_customers(self) -> List[Customer]:
         """Obtiene clientes desde Odoo"""
@@ -508,7 +517,7 @@ class OdooService:
                 category=created_category_name,
                 price=p.get('list_price', 0.0),
                 stock=int(p.get('qty_available') or 0), # qty_available en product.template puede no ser lo mismo que stock real
-                image_url=f"/web/image/product.template/{p['id']}/image_1920/" if p.get('image_1920') else None,
+                image_url=f"https://example.com/images/product_{p['id']}.jpg",
                 is_active=True # Asumimos que si se crea, está activo
             )
 
@@ -518,7 +527,62 @@ class OdooService:
         finally:
             print("ODOO_SERVICE: Finalizando create_product y limpiando conexión")
             self._cleanup_connection()
-    
+
+    def create_invoice(self, supplier_id, invoice_data):
+        try:
+            invoice_date = invoice_data.get('date', '')
+            # Validate and convert date format before passing to Odoo
+            if invoice_date:
+                import re
+                from datetime import datetime
+                # Check if date matches expected formats like DD/MM/YYYY, DD-MM-YYYY, etc.
+                match = re.match(r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})', invoice_date)
+                if match:
+                    day, month, year = match.groups()
+                    # Handle 2-digit year
+                    if len(year) == 2:
+                        year = '20' + year  # Assume 20XX for recent dates
+                    try:
+                        # Convert to YYYY-MM-DD format for Odoo
+                        invoice_date = datetime(int(year), int(month), int(day)).strftime('%Y-%m-%d')
+                    except ValueError:
+                        print(f"Invalid date components: day={day}, month={month}, year={year}")
+                        invoice_date = False  # Set to False if date is invalid
+                else:
+                    print(f"Date format not matched: {invoice_date}")
+                    invoice_date = False  # Set to False if not a valid date format
+            else:
+                invoice_date = False  # Set to False if empty
+
+            invoice_vals = {
+                'partner_id': supplier_id,
+                'move_type': 'in_invoice',
+                'ref': invoice_data.get('number', ''),
+                'invoice_date': invoice_date if invoice_date else False,
+            }
+            invoice_id = self._execute_kw(
+                'account.move',
+                'create',
+                [invoice_vals]
+            )
+            return invoice_id
+        except Exception as e:
+            print(f"Error ejecutando create en account.move: {str(e)}")
+            return None
+
+    def get_supplier_by_name(self, name):
+        try:
+            supplier = self._execute_kw(
+                'res.partner',
+                'search_read',
+                [[['name', 'ilike', name]]],
+                {'fields': ['id', 'name']}
+            )
+            return supplier[0] if supplier else None
+        except Exception as e:
+            print(f"Error searching supplier by name {name}: {str(e)}")
+            return None
+
     def _get_category_name(self, categ_id) -> str:
         """Obtiene el nombre de una categoría"""
         if not categ_id:

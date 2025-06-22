@@ -223,8 +223,8 @@ class CustomerCreate(BaseModel):
 class Provider(BaseModel):
     id: int
     name: str  # Campo obligatorio en res.partner
-    email: Optional[str] = ""  # Email del proveedor
-    phone: Optional[str] = ""  # Teléfono del proveedor
+    email: Optional[str] = None  # Email del proveedor
+    phone: Optional[str] = None  # Teléfono del proveedor
     is_company: bool = True  # Es empresa (True para proveedores)
     supplier_rank: int = 1  # Rango de proveedor (>0 para ser proveedor)
     
@@ -236,7 +236,7 @@ class Provider(BaseModel):
     
     # CAMPOS DE CONTACTO AMPLIADOS
     mobile: Optional[str] = None  # Teléfono móvil
-
+    fax: Optional[str] = None  # Fax
     function: Optional[str] = None  # Cargo/función
     title: Optional[int] = None  # Título (Sr., Sra., etc.)
     
@@ -270,9 +270,6 @@ class Provider(BaseModel):
     country: Optional[str] = None  # Nombre del país para mostrar
     customer: bool = False  # Calculado desde customer_rank
     supplier: bool = True  # Calculado desde supplier_rank
-
-    class Config:
-        orm_mode = True
 
 class ProviderCreate(BaseModel):
     name: str  # Campo obligatorio
