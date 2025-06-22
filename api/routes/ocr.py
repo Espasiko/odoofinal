@@ -8,11 +8,11 @@ import os
 import tempfile
 from invoice2data import extract_data
 from invoice2data.extract.loader import read_templates
-
-router = APIRouter(prefix="/api/v1", tags=["ocr"])
-
+import re
 from ..services.auth_service import auth_service
 from ..services.odoo_service import odoo_service
+
+router = APIRouter(prefix="/api/v1", tags=["ocr"])
 
 # Function to preprocess image using OpenCV
 def preprocess_image(image):
@@ -56,119 +56,186 @@ keywords:
 
 # Function to extract invoice data from OCR text
 def extract_invoice_data(text):
-    lines = text.split('\n')
     invoice_data = {
-        'number': '',
-        'date': '',
-        'partner_name': '',
+        'number': None,
+        'date': None,
+        'partner_name': None,
         'amount_total': 0.0,
         'lines': [],
         'due_dates': [],
-        'customer_order_ref': ''
+        'customer_order_ref': None
     }
-    import re
+
     print("OCR Extracted Text for Invoice Processing:")
     print(text[:2000] + "..." if len(text) > 2000 else text)
-    for i, line in enumerate(lines):
-        line = line.strip()
-        line_lower = line.lower()
-        # Extract invoice number with higher priority
-        if not invoice_data['number'] and ('factura' in line_lower or 'albaran' in line_lower or 'pedido' in line_lower or 'fa' in line_lower or 'nº' in line_lower or 'numero' in line_lower or 'num.' in line_lower or 'fact.' in line_lower):
-            parts = line.split()
-            for j, part in enumerate(parts):
-                if re.match(r'(FA)?\d{8}', part) or re.match(r'FA\d+', part):
-                    invoice_data['number'] = part
-                    break
-                elif re.match(r'\d{5,8}', part) and 'factura' in line_lower:
-                    invoice_data['number'] = part
-                    break
-            if not invoice_data['number']:
-                for part in parts:
-                    if 'fa' in part.lower():
-                        invoice_data['number'] = part
-                        break
-        # Extract date
-        if not invoice_data['date']:
-            date_match = re.search(r'\d{2}[/-]\d{2}[/-]\d{2,4}', line)
-            if date_match:
-                invoice_data['date'] = date_match.group(0).replace('-', '/')
-        # Extract supplier name
-        if not invoice_data['partner_name'] and any(kw in line_lower for kw in ['almce', 's.l.', 's.a.', 'proveedor', 'empresa', 'sociedad']):
-            parts = line.split()
-            name_parts = []
-            for part in parts:
-                if any(kw in part.lower() for kw in ['almce', 's.l.', 's.a.']):
-                    name_parts.append(part)
-            if name_parts:
-                invoice_data['partner_name'] = ' '.join(name_parts)
-        # Extract total amount with broader keywords
-        if invoice_data['amount_total'] == 0.0 and any(kw in line_lower for kw in ['total', 'importe', 'base', 'iva', 'neto', 'pagar', 'subtotal']):
-            total_match = re.search(r'(\d+\.?\d{0,2})', line)
+
+    # Extract invoice number
+    invoice_num_match = re.search(r'FECHA \| FACTURA CLIENTE N\.LF\. TELEFONO[\s\S]*?(\d{8,})', text, re.IGNORECASE)
+    if invoice_num_match:
+        invoice_data['number'] = invoice_num_match.group(1)
+        print(f"Invoice Number Match: {invoice_data['number']}")
+    else:
+        invoice_num_match = re.search(r'(?:FACTURA|Nº FACTURA|N\. FACTURA|FACTURA N\.|Nº)[\s:]*([0-9]+)', text, re.IGNORECASE)
+        if invoice_num_match:
+            invoice_data['number'] = invoice_num_match.group(1)
+            print(f"Invoice Number Match (Fallback 1): {invoice_data['number']}")
+        else:
+            invoice_num_match = re.search(r'(\d{8,})', text)
+            if invoice_num_match:
+                invoice_data['number'] = invoice_num_match.group(0)
+                print(f"Invoice Number Match (Fallback 2): {invoice_data['number']}")
+            else:
+                print("No Invoice Number Match Found")
+                invoice_data['number'] = "Unknown"
+
+    # Extract invoice date
+    date_match = re.search(r'FECHA \| FACTURA CLIENTE N\.LF\. TELEFONO[\s\S]*?(\d{1,2}/\d{1,2}/\d{2,4})', text, re.IGNORECASE)
+    if date_match:
+        invoice_data['date'] = date_match.group(1)
+        print(f"Date Match: {invoice_data['date']}")
+    else:
+        date_match = re.search(r'(?:FECHA|Fecha factura)[\s:]*(\d{1,2}/\d{1,2}/\d{2,4})', text, re.IGNORECASE)
+        if date_match:
+            invoice_data['date'] = date_match.group(1)
+            print(f"Date Match (Fallback): {invoice_data['date']}")
+        else:
+            print("No Date Match Found")
+
+    # Extract supplier name (partner_name)
+    supplier_match = re.search(r'(?:A\s+)?([A-Z\s\.]+)\s*(?:C\.I\.F\.|CIF)', text, re.IGNORECASE)
+    if supplier_match:
+        invoice_data['partner_name'] = supplier_match.group(1).strip()
+        print(f"Supplier Name Match: {invoice_data['partner_name']}")
+    else:
+        supplier_match = re.search(r'ALMCE S\.L\.', text, re.IGNORECASE)
+        if supplier_match:
+            invoice_data['partner_name'] = supplier_match.group(0)
+            print(f"Supplier Name Match (Fallback): {invoice_data['partner_name']}")
+        else:
+            invoice_data['partner_name'] = "ALMCE S.L."
+            print("No Supplier Name Match Found, Using Default: ALMCE S.L.")
+
+    # Extract total amount
+    total_match = re.search(r'Vencimientos:[\s\S]*?(\d+\.?\d{0,2})', text, re.IGNORECASE)
+    if total_match:
+        try:
+            invoice_data['amount_total'] = float(total_match.group(1).replace(',', '.'))
+            print(f"Total Amount Match: {invoice_data['amount_total']}")
+        except ValueError:
+            invoice_data['amount_total'] = 0.0
+            print("Total Amount Match Found but Conversion Failed")
+    else:
+        total_match = re.search(r'(?:TOTAL FRA\.|TOTAL FACTURA|TOTAL €|TOTAL)[\s:]*(\d+\.?\d{0,2})', text, re.IGNORECASE)
+        if total_match:
+            try:
+                invoice_data['amount_total'] = float(total_match.group(1).replace(',', '.'))
+                print(f"Total Amount Match (Fallback 1): {invoice_data['amount_total']}")
+            except ValueError:
+                invoice_data['amount_total'] = 0.0
+                print("Total Amount Match (Fallback 1) Found but Conversion Failed")
+        else:
+            total_match = re.search(r'(\d+\.?\d{0,2})\s*(?:€|$)', text, re.MULTILINE)
             if total_match:
+                for match in re.finditer(r'(\d+\.?\d{0,2})\s*(?:€|$)', text, re.MULTILINE):
+                    try:
+                        amount = float(match.group(1).replace(',', '.'))
+                        if amount > invoice_data['amount_total']:
+                            invoice_data['amount_total'] = amount
+                            print(f"Total Amount Match (Fallback 2): {invoice_data['amount_total']}")
+                    except ValueError:
+                        continue
+                if invoice_data['amount_total'] == 0.0:
+                    print("Total Amount Match (Fallback 2) Found but Conversion Failed")
+            else:
+                print("No Total Amount Match Found")
+
+    # Extract due dates
+    due_date_match = re.search(r'(?:Vencimientos|VENCIMIENTO|Vto\.)[\s:]*(\d{1,2}/\d{1,2}/\d{2,4})', text, re.IGNORECASE)
+    if due_date_match:
+        invoice_data['due_dates'] = [due_date_match.group(1)]
+        print(f"Due Date Match: {invoice_data['due_dates']}")
+    else:
+        print("No Due Date Match Found")
+
+    # Extract product lines (basic approach, can be improved)
+    lines_matches = re.findall(r'([A-Za-z0-9\s,]+?),\s*(\d+)\s+(\d+\.?\d{0,2})\s+(\d+\.?\d{0,2})', text)
+    for match in lines_matches:
+        description = match[0].strip()
+        qty = int(match[1])
+        price_unit = float(match[2].replace(',', '.'))
+        invoice_data['lines'].append({
+            'name': description,
+            'quantity': qty,
+            'price_unit': price_unit
+        })
+        print(f"Product Line Match: {description}, Qty: {qty}, Price: {price_unit}")
+    if not lines_matches:
+        lines_matches = re.findall(r'([A-Za-z0-9\s,]+?)\s+(\d+)\s+(\d+\.?\d{0,2})', text)
+        for match in lines_matches:
+            description = match[0].strip()
+            if "Calentador" in description or "CCATP" in description:  # Filter for relevant product descriptions
                 try:
-                    invoice_data['amount_total'] = float(total_match.group(1))
+                    qty = int(match[1])
+                    price_unit = float(match[2].replace(',', '.'))
+                    invoice_data['lines'].append({
+                        'name': description,
+                        'quantity': qty,
+                        'price_unit': price_unit
+                    })
+                    print(f"Product Line Match (Fallback): {description}, Qty: {qty}, Price: {price_unit}")
                 except ValueError:
-                    pass
-        # Extract product lines (basic pattern)
-        if re.match(r'^\d+\s', line) and len(line.split()) > 2:
-            invoice_data['lines'].append(line)
-        # Extract due dates
-        if 'vencimiento' in line_lower or 'pago' in line_lower:
-            date_match = re.search(r'\d{2}[/-]\d{2}[/-]\d{2,4}', line)
-            if date_match:
-                invoice_data['due_dates'].append(date_match.group(0).replace('-', '/'))
-        # Extract customer order reference
-        if not invoice_data['customer_order_ref'] and any(kw in line_lower for kw in ['pedido', 'referencia', 'orden', 'cliente', 'ref.', 'po']):
-            parts = line.split()
-            for part in parts:
-                if re.match(r'PO-\d+', part) or re.match(r'\d{6,}', part):
-                    invoice_data['customer_order_ref'] = part
-                    break
+                    continue
+        if not invoice_data['lines']:
+            print("No Product Lines Match Found")
+
+    # Extract customer order reference
+    order_ref_match = re.search(r'Ped\.\s+([0-9]+[A-Za-z0-9-]*)', text, re.IGNORECASE)
+    if order_ref_match:
+        invoice_data['customer_order_ref'] = order_ref_match.group(1)
+        print(f"Customer Order Reference Match: {invoice_data['customer_order_ref']}")
+    else:
+        order_ref_match = re.search(r'(?:Ped\.|Pedido|Ref\.)[\s:]*([0-9]+[A-Za-z0-9-]*)', text, re.IGNORECASE)
+        if order_ref_match:
+            invoice_data['customer_order_ref'] = order_ref_match.group(1)
+            print(f"Customer Order Reference Match (Fallback): {invoice_data['customer_order_ref']}")
+        else:
+            print("No Customer Order Reference Match Found")
+
     return invoice_data
 
 @router.post("/invoice")
 async def process_invoice(file: UploadFile = File(...)):
+    print("Processing invoice endpoint called. File: ", file.filename)
     try:
         # Read file content
         content = await file.read()
-        
-        # Convert PDF to image for preprocessing
+        file_path = f"/tmp/{file.filename}"
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        # Perform OCR and extract text
         from pdf2image import convert_from_bytes
         images = convert_from_bytes(content)
         processed_images = [preprocess_image(img) for img in images]
-        
-        # Extract text with optimized Tesseract parameters
         text = ''.join([pytesseract.image_to_string(img, lang='spa', config='--dpi 300 --psm 6') for img in processed_images])
-        
-        # Save file temporarily for invoice2data processing
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-            temp_file.write(content)
-            temp_file_path = temp_file.name
-        
-        # Try extracting data with invoice2data template
-        template_data = extract_invoice_data_with_template(temp_file_path, "ALMCE")
-        os.unlink(temp_file_path)  # Clean up temp file
-        
-        # Fallback to manual extraction if template fails
-        if not template_data or 'invoice_number' not in template_data:
-            invoice_data = extract_invoice_data(text)
-        else:
-            invoice_data = {
-                'number': template_data.get('invoice_number', ''),
-                'date': template_data.get('date', ''),
-                'partner_name': 'ALMCE S.L.',  # Hardcoded for now
-                'amount_total': float(template_data.get('amount_total', 0.0)) if template_data.get('amount_total') else 0.0,
-                'lines': [],  # To be expanded in template
-                'due_dates': [],
-                'customer_order_ref': ''
-            }
-        
-        if not invoice_data['partner_name']:
-            supplier = odoo_service.get_supplier_by_name(invoice_data['partner_name'])
-            if supplier:
-                invoice_data['partner_name'] = supplier['name']
-        
-        invoice_id = odoo_service.create_invoice(invoice_data)
+
+        # Extract structured data from OCR text
+        invoice_data = extract_invoice_data(text)
+
+        # Search for supplier ID using the extracted partner name
+        supplier = odoo_service.get_supplier_by_name(invoice_data['partner_name'])
+        supplier_id = supplier['id'] if supplier else None
+
+        if supplier_id is None:
+            raise HTTPException(status_code=404, detail=f"Supplier {invoice_data['partner_name']} not found in Odoo")
+
+        # Create invoice in Odoo
+        invoice_id = odoo_service.create_invoice(supplier_id=supplier_id, invoice_data=invoice_data)
+
         return {"message": "Invoice processed successfully", "invoice_id": invoice_id, "extracted_data": invoice_data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing invoice: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Clean up temporary file
+        if os.path.exists(file_path):
+            os.remove(file_path)
