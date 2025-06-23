@@ -966,13 +966,5 @@ class OdooService:
             print(f"ODOO_SERVICE: Error contando productos: {str(e)}")
             return 0
 
-# Importar servicios refactorizados
-from .odoo_service_refactored import OdooServiceRefactored
-
-# Crear alias para mantener compatibilidad
-class OdooServiceCompatible(OdooServiceRefactored):
-    """Clase de compatibilidad que mantiene la interfaz original"""
-    pass
-
-# Instancia del servicio (ahora usando la versión refactorizada)
-odoo_service = OdooServiceCompatible()
+# Instancia del servicio
+odoo_service = OdooService()

@@ -49,63 +49,45 @@ if docker ps | grep -q "manusodoo-roto_odoo_1\|manusodoo-roto_db_1\|manusodoo-ro
     print_warning "Algunos contenedores ya están ejecutándose"
     docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|manusodoo-roto_|fastapi"
 else
-    # Iniciar contenedores principales (Odoo, PostgreSQL, Adminer)
-    print_status "Iniciando contenedores Odoo, PostgreSQL y Adminer..."
-    docker-compose up -d db odoo adminer
-    
-    if [ $? -ne 0 ]; then
-        print_error "Error al iniciar los contenedores principales"
-        exit 1
-    fi
+    print_status "Algunos contenedores ya están ejecutándose. Verificando estado..."
 fi
 
-# Verificar y construir FastAPI si es necesario
-print_status "Verificando contenedor FastAPI..."
-if ! docker ps | grep -q "fastapi"; then
-    # Eliminar contenedor FastAPI anterior si existe
-    docker rm -f fastapi 2>/dev/null || true
-    
-    # Construir imagen FastAPI
-    print_status "Construyendo imagen FastAPI..."
-    docker build -f Dockerfile.fastapi -t manusodoo-roto_fastapi:latest .
-    
-    if [ $? -ne 0 ]; then
-        print_error "Error al construir la imagen FastAPI"
-        exit 1
-    fi
-    
-    # Iniciar contenedor FastAPI
-    print_status "Iniciando contenedor FastAPI..."
-    docker run -d --name fastapi \
-        --network manusodoo-roto_default \
-        -p 8000:8000 \
-        -v "$(pwd):/app" \
-        -e ODOO_URL="http://odoo:8069" \
-        -e ODOO_DB="manus_odoo-bd" \
-        -e ODOO_USERNAME="yo@mail.com" \
-        -e ODOO_PASSWORD="admin" \
-        --restart unless-stopped \
-        manusodoo-roto_fastapi:latest
-    
-    if [ $? -ne 0 ]; then
-        print_error "Error al iniciar el contenedor FastAPI"
-        exit 1
-    fi
-else
-    print_status "✅ Contenedor FastAPI ya está ejecutándose"
+# Detener contenedores existentes para evitar conflictos
+print_status "Deteniendo contenedores existentes..."
+docker-compose down 2>/dev/null || true
+
+# Iniciar todos los contenedores usando docker-compose
+print_status "Iniciando todos los contenedores con docker-compose..."
+docker-compose up -d
+
+if [ $? -ne 0 ]; then
+    print_error "Error al iniciar los contenedores con docker-compose"
+    print_error "Verificando logs de docker-compose..."
+    docker-compose logs --tail 20
+    exit 1
 fi
+
+print_status "✅ Contenedores iniciados correctamente"
 
 # Esperar a que PostgreSQL esté listo
 print_status "Esperando a que PostgreSQL esté disponible..."
 retries=0
 max_retries=30
-while ! docker exec manusodoo-roto_db_1 pg_isready -U odoo &> /dev/null; do
+
+# Obtener el nombre real del contenedor de la base de datos
+DB_CONTAINER=$(docker-compose ps -q db)
+if [ -z "$DB_CONTAINER" ]; then
+    print_error "No se pudo encontrar el contenedor de la base de datos"
+    exit 1
+fi
+
+while ! docker exec $DB_CONTAINER pg_isready -U odoo &> /dev/null; do
     echo -n "."
     sleep 2
     retries=$((retries + 1))
     if [ $retries -ge $max_retries ]; then
         print_error "Timeout esperando a PostgreSQL. Verificando logs..."
-        docker logs --tail 20 manusodoo-roto_db_1
+        docker logs --tail 20 $DB_CONTAINER
         exit 1
     fi
 done
@@ -116,13 +98,21 @@ print_status "✅ PostgreSQL está listo"
 print_status "Esperando a que Odoo esté disponible..."
 retries=0
 max_retries=30
+
+# Obtener el nombre real del contenedor de Odoo
+ODOO_CONTAINER=$(docker-compose ps -q odoo)
+if [ -z "$ODOO_CONTAINER" ]; then
+    print_error "No se pudo encontrar el contenedor de Odoo"
+    exit 1
+fi
+
 while ! curl -s http://localhost:8069 > /dev/null; do
     echo -n "."
     sleep 5
     retries=$((retries + 1))
     if [ $retries -ge $max_retries ]; then
         print_error "Timeout esperando a Odoo. Verificando logs..."
-        docker logs --tail 20 manusodoo-roto_odoo_1
+        docker logs --tail 20 $ODOO_CONTAINER
         exit 1
     fi
 done
@@ -133,13 +123,21 @@ print_status "✅ Odoo está ejecutándose"
 print_status "Esperando a que FastAPI esté disponible..."
 retries=0
 max_retries=15
+
+# Obtener el nombre real del contenedor de FastAPI
+FASTAPI_CONTAINER=$(docker-compose ps -q fastapi)
+if [ -z "$FASTAPI_CONTAINER" ]; then
+    print_error "No se pudo encontrar el contenedor de FastAPI"
+    exit 1
+fi
+
 while ! curl -s http://localhost:8000/docs > /dev/null; do
     echo -n "."
     sleep 3
     retries=$((retries + 1))
     if [ $retries -ge $max_retries ]; then
         print_error "Timeout esperando a FastAPI. Verificando logs..."
-        docker logs --tail 20 fastapi
+        docker logs --tail 20 $FASTAPI_CONTAINER
         exit 1
     fi
 done
@@ -192,7 +190,7 @@ fi
 echo ""
 print_info "=== Estado del Sistema ==="
 echo "Contenedores en ejecución:"
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|manusodoo-roto_|fastapi"
+docker-compose ps
 
 echo ""
 print_status "🎉 Sistema iniciado correctamente"
@@ -213,7 +211,8 @@ echo "   ./start.sh --with-frontend  - Iniciar todo el sistema incluyendo fronte
 echo "   ./dev-dashboard.sh         - Iniciar dashboard en modo desarrollo"
 echo "   ./stop.sh                  - Detener todos los servicios"
 echo "   ./backup.sh                - Crear backup del sistema"
-echo "   docker logs manusodoo-roto_odoo_1    - Ver logs de Odoo"
-echo "   docker logs manusodoo-roto_db_1      - Ver logs de PostgreSQL"
-echo "   docker logs fastapi                  - Ver logs de FastAPI"
+echo "   docker-compose logs odoo   - Ver logs de Odoo"
+echo "   docker-compose logs db     - Ver logs de PostgreSQL"
+echo "   docker-compose logs fastapi - Ver logs de FastAPI"
+echo "   docker-compose ps          - Ver estado de contenedores"
 echo ""

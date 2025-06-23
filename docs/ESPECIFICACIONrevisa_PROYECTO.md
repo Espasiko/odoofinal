@@ -32,7 +32,7 @@ ManusOdoo -roto es una plataforma avanzada de gestión empresarial que integra O
 ## Configuración y Puertos
 - **Odoo:**
   - Imagen: odoo:18.0
-  - Puerto host: 8070 → contenedor: 8069
+  - Puerto host: 8069 → contenedor: 8069
   - Configuración en config/odoo.conf:
     - db_host = db
     - db_port = 5432 (interno Docker)
@@ -41,7 +41,7 @@ ManusOdoo -roto es una plataforma avanzada de gestión empresarial que integra O
     - admin_passwd = admin
 - **PostgreSQL:**
   - Imagen: postgres:15
-  - Puerto host: 5434 → contenedor: 5432
+  - Puerto host: 5432 → contenedor: 5432
   - Base de datos principal: manus_odoo-bd
   - Usuario: odoo
   - Contraseña: odoo
@@ -51,7 +51,7 @@ ManusOdoo -roto es una plataforma avanzada de gestión empresarial que integra O
 - **Frontend:**
   - React 18, Vite, Refine 4.x, Ant Design 5.x
   - Variables en .env:
-    - VITE_ODOO_URL=http://localhost:8070
+    - VITE_ODOO_URL=http://localhost:8069
     - VITE_API_URL=http://localhost:8000
     - VITE_APP_TITLE=ManusOdoo Dashboard
     - VITE_COMPANY_NAME=El Pelotazo
@@ -72,7 +72,7 @@ ManusOdoo -roto es una plataforma avanzada de gestión empresarial que integra O
 - **Odoo:** 18.0
 - **PostgreSQL:** 15
 - **Python:** >=3.10 (verificar en venv)
-- **Node.js:** >=18.x
+- **Node.js:** >=20.x
 - **React:** 18.2.0
 - **Refine:** 4.x
 - **Ant Design:** 5.x
@@ -100,4 +100,5 @@ ManusOdoo -roto es una plataforma avanzada de gestión empresarial que integra O
 
 ---
 
-*Este archivo ha sido generado automáticamente para documentar el estado y configuración actual del proyecto ManusOdoo versión -roto.*
+*Este archivo ha sido generado automáticamente para documentar el estado y c
+onfiguración actual del proyecto ManusOdoo versión -roto.*
