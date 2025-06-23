@@ -66,47 +66,33 @@ class OdooService:
             print(f"Error ejecutando {method} en {model}: {e}")
             return None
     
-    def get_products(self) -> List[Product]:
+    def get_products(self, offset=0, limit=100):
         """Obtiene productos desde Odoo"""
-        print("ODOO_SERVICE: Iniciando get_products()")
         try:
-            # Buscar productos
-            print("ODOO_SERVICE: Buscando productos...")
-            product_ids = self._execute_kw('product.template', 'search', [[]])
-            print(f"ODOO_SERVICE: Productos encontrados: {len(product_ids) if product_ids else 0}")
-            
-            if not product_ids:
-                print("ODOO_SERVICE: No se encontraron productos, usando fallback")
-                return self._get_fallback_products()
-            
-            # Obtener datos de productos
-            print("ODOO_SERVICE: Leyendo datos de productos...")
+            if not self._models:
+                self._get_connection()
+        
+            print(f"ODOO_SERVICE: Obteniendo productos de Odoo con offset {offset} y límite {limit}...")
             odoo_products = self._execute_kw(
-                'product.template', 
-                'read', 
-                [product_ids],
-                {'fields': [
-                    # Campos básicos obligatorios
-                    'id', 'name', 'default_code', 'list_price', 'standard_price', 'type',
-                    # Campos básicos opcionales
-                    'barcode', 'weight', 'active', 'categ_id', 'qty_available',
-                    # Campos avanzados de configuración
-                    'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight', 
-                    'is_published', 'website_sequence',
-                    # Campos de descripción
-                    'description_sale', 'description_purchase',
-                    # Campos de categorización
-                    'seller_ids', 'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
-                    # Campos de impuestos
+                'product.product',
+                'search_read',
+                [[]],
+                {'offset': offset, 'limit': limit, 'fields': [
+                    'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
+                    'type', 'standard_price', 'barcode', 'weight',
+                    'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
+                    'is_published', 'website_sequence', 'description_sale',
+                    'description_purchase', 'seller_ids',
+                    'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
                     'taxes_id', 'supplier_taxes_id'
                 ]}
             )
             print(f"ODOO_SERVICE: Datos obtenidos: {len(odoo_products) if odoo_products else 0} productos")
-            
+        
             if not odoo_products:
                 print("ODOO_SERVICE: No se pudieron leer datos, usando fallback")
                 return self._get_fallback_products()
-            
+        
             # Transformar a formato esperado
             print("ODOO_SERVICE: Transformando datos...")
             transformed_products = []
@@ -119,91 +105,175 @@ class OdooService:
                         categ_id_value = p['categ_id'][0]  # Solo el ID
                     elif isinstance(p['categ_id'], int):
                         categ_id_value = p['categ_id']
-                
+            
                 # Asegurar que default_code sea string
                 default_code = p.get('default_code')
                 if default_code is False or default_code is None:
                     default_code = ''
                 elif not isinstance(default_code, str):
                     default_code = str(default_code)
-                
+            
                 # Asegurar que description_sale sea string
                 description_sale = p.get('description_sale')
                 if description_sale is False or description_sale is None:
                     description_sale = ''
                 elif not isinstance(description_sale, str):
                     description_sale = str(description_sale)
-                
+            
                 # Asegurar que description_purchase sea string
                 description_purchase = p.get('description_purchase')
                 if description_purchase is False or description_purchase is None:
                     description_purchase = ''
                 elif not isinstance(description_purchase, str):
                     description_purchase = str(description_purchase)
-                
+            
                 # Asegurar que barcode sea string o None
                 barcode = p.get('barcode')
                 if barcode is False:
                     barcode = None
                 elif barcode is not None and not isinstance(barcode, str):
                     barcode = str(barcode)
-                
+            
                 transformed_products.append(Product(
-                    # Campos básicos obligatorios
-                    id=p['id'],
-                    name=p['name'],
+                    id=p.get('id'),
+                    name=p.get('name', ''),
                     default_code=default_code,
                     list_price=p.get('list_price', 0.0),
-                    standard_price=p.get('standard_price', 0.0),
-                    type=p.get('type', 'product'),
-                    
-                    # Campos básicos opcionales
-                    barcode=barcode,
-                    weight=p.get('weight'),
-                    active=p.get('active', True),
                     categ_id=categ_id_value,
-                    
-                    # Campos avanzados de configuración
+                    active=p.get('active', True),
+                    type=p.get('type', 'product'),
+                    standard_price=p.get('standard_price', 0.0),
+                    barcode=barcode,
+                    weight=p.get('weight', 0.0),
                     sale_ok=p.get('sale_ok', True),
                     purchase_ok=p.get('purchase_ok', True),
                     available_in_pos=p.get('available_in_pos', True),
                     to_weight=p.get('to_weight', False),
                     is_published=p.get('is_published', True),
-                    website_sequence=p.get('website_sequence', 10),
-                    
-                    # Campos de descripción
+                    website_sequence=p.get('website_sequence', 1),
                     description_sale=description_sale,
                     description_purchase=description_purchase,
-                    
-                    # Campos de categorización
                     seller_ids=p.get('seller_ids', []),
                     product_tag_ids=p.get('product_tag_ids', []),
                     public_categ_ids=p.get('public_categ_ids', []),
                     pos_categ_ids=p.get('pos_categ_ids', []),
-                    
-                    # Campos de impuestos
                     taxes_id=p.get('taxes_id', []),
                     supplier_taxes_id=p.get('supplier_taxes_id', []),
-                    
-                    # Campos calculados para compatibilidad
-                    stock=int(p.get('qty_available') or 0),
-                    category=category_name,
+                    qty_available=None,
                     code=default_code,
-                    price=p.get('list_price', 0.0)
+                    price=p.get('list_price', 0.0),
+                    category=category_name if category_name else 'Sin categoría',
+                    stock=0,
+                    image_url=None,
+                    product_name=None,
+                    location=None,
+                    last_updated=None
                 ))
-            
-            print(f"ODOO_SERVICE: ✓ Devolviendo {len(transformed_products)} productos REALES de Odoo")
+        
+            print(f"ODOO_SERVICE: Productos transformados: {len(transformed_products)}")
             return transformed_products
-            
         except Exception as e:
-            print(f"ODOO_SERVICE: ✗ Error obteniendo productos: {e}")
-            import traceback
-            print(f"ODOO_SERVICE: Traceback: {traceback.format_exc()}")
-            print("ODOO_SERVICE: Usando datos de fallback")
-            return self._get_fallback_products()
-        finally:
-            print("ODOO_SERVICE: Limpiando conexión")
-            self._cleanup_connection()
+            print(f"ODOO_SERVICE: Error obteniendo productos: {str(e)}")
+            # Forzar conexión a Odoo en caso de error
+            self._get_connection()
+            print("ODOO_SERVICE: Intentando obtener productos nuevamente después de reconectar...")
+            try:
+                odoo_products = self._execute_kw(
+                    'product.product',
+                    'search_read',
+                    [[]],
+                    {'offset': offset, 'limit': limit, 'fields': [
+                        'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
+                        'type', 'standard_price', 'barcode', 'weight',
+                        'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
+                        'is_published', 'website_sequence', 'description_sale',
+                        'description_purchase', 'seller_ids',
+                        'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
+                        'taxes_id', 'supplier_taxes_id'
+                    ]}
+                )
+                print(f"ODOO_SERVICE: Datos obtenidos en segundo intento: {len(odoo_products) if odoo_products else 0} productos")
+            
+                if not odoo_products:
+                    print("ODOO_SERVICE: No se pudieron leer datos en segundo intento, usando fallback")
+                    return self._get_fallback_products()
+            
+                # Transformar datos como antes
+                transformed_products = []
+                for p in odoo_products:
+                    category_name = self._get_category_name(p.get('categ_id'))
+                    categ_id_value = None
+                    if p.get('categ_id'):
+                        if isinstance(p['categ_id'], list) and len(p['categ_id']) > 0:
+                            categ_id_value = p['categ_id'][0]
+                        elif isinstance(p['categ_id'], int):
+                            categ_id_value = p['categ_id']
+                
+                    default_code = p.get('default_code')
+                    if default_code is False or default_code is None:
+                        default_code = ''
+                    elif not isinstance(default_code, str):
+                        default_code = str(default_code)
+                
+                    description_sale = p.get('description_sale')
+                    if description_sale is False or description_sale is None:
+                        description_sale = ''
+                    elif not isinstance(description_sale, str):
+                        description_sale = str(description_sale)
+                
+                    description_purchase = p.get('description_purchase')
+                    if description_purchase is False or description_purchase is None:
+                        description_purchase = ''
+                    elif not isinstance(description_purchase, str):
+                        description_purchase = str(description_purchase)
+                
+                    barcode = p.get('barcode')
+                    if barcode is False:
+                        barcode = None
+                    elif barcode is not None and not isinstance(barcode, str):
+                        barcode = str(barcode)
+                
+                    transformed_products.append(Product(
+                        id=p.get('id'),
+                        name=p.get('name', ''),
+                        default_code=default_code,
+                        list_price=p.get('list_price', 0.0),
+                        categ_id=categ_id_value,
+                        active=p.get('active', True),
+                        type=p.get('type', 'product'),
+                        standard_price=p.get('standard_price', 0.0),
+                        barcode=barcode,
+                        weight=p.get('weight', 0.0),
+                        sale_ok=p.get('sale_ok', True),
+                        purchase_ok=p.get('purchase_ok', True),
+                        available_in_pos=p.get('available_in_pos', True),
+                        to_weight=p.get('to_weight', False),
+                        is_published=p.get('is_published', True),
+                        website_sequence=p.get('website_sequence', 1),
+                        description_sale=description_sale,
+                        description_purchase=description_purchase,
+                        seller_ids=p.get('seller_ids', []),
+                        product_tag_ids=p.get('product_tag_ids', []),
+                        public_categ_ids=p.get('public_categ_ids', []),
+                        pos_categ_ids=p.get('pos_categ_ids', []),
+                        taxes_id=p.get('taxes_id', []),
+                        supplier_taxes_id=p.get('supplier_taxes_id', []),
+                        qty_available=None,
+                        code=default_code,
+                        price=p.get('list_price', 0.0),
+                        category=category_name if category_name else 'Sin categoría',
+                        stock=0,
+                        image_url=None,
+                        product_name=None,
+                        location=None,
+                        last_updated=None
+                    ))
+            
+                print(f"ODOO_SERVICE: Productos transformados en segundo intento: {len(transformed_products)}")
+                return transformed_products
+            except Exception as e2:
+                print(f"ODOO_SERVICE: Error en segundo intento: {str(e2)}")
+                return self._get_fallback_products()
     
     def get_product_by_id(self, product_id: int) -> Optional[Product]:
         """Obtiene un producto específico por ID"""
@@ -238,119 +308,72 @@ class OdooService:
             self._cleanup_connection()
     
     def get_providers(self) -> List[Provider]:
-        """Obtiene proveedores desde Odoo"""
+        """Obtiene todos los proveedores desde Odoo"""
         print("ODOO_SERVICE: Iniciando get_providers()")
         try:
-            # Buscar proveedores (partners que son suppliers)
+            # Buscar proveedores (contactos con supplier_rank > 0)
             print("ODOO_SERVICE: Buscando proveedores...")
             provider_ids = self._execute_kw(
                 'res.partner',
                 'search',
-                [['&', ('is_company', '=', True), ('supplier_rank', '>', 0)]]
+                [[['supplier_rank', '>', 0]]]
             )
-            print(f"ODOO_SERVICE: Proveedores encontrados: {len(provider_ids) if provider_ids else 0}")
+            print(f"ODOO_SERVICE: Proveedores encontrados: {len(provider_ids)}")
             
             if not provider_ids:
                 print("ODOO_SERVICE: No se encontraron proveedores, usando fallback")
                 return self._get_fallback_providers()
             
-            # Obtener datos de proveedores con todos los campos necesarios
+            # Leer datos de proveedores
             print("ODOO_SERVICE: Leyendo datos de proveedores...")
-            odoo_providers = self._execute_kw(
-                'res.partner',
-                'read',
-                [provider_ids],
-                {'fields': [
-                    # Campos básicos obligatorios
-                    'id', 'name', 'email', 'phone', 'is_company', 'supplier_rank',
-                    # Campos obligatorios de Odoo
-                    'ref', 'vat', 'website',
-                    # Campos de contacto ampliados
-                    'mobile', 'fax', 'function', 'title',
-                    # Campos de dirección completos
-                    'street', 'street2', 'city', 'zip', 'country_id', 'state_id',
-                    # Campos de configuración comercial
-                    'customer_rank', 'category_id', 'user_id', 'team_id',
-                    # Campos financieros
-                    'property_payment_term_id', 'property_supplier_payment_term_id',
-                    'property_account_payable_id', 'property_account_receivable_id',
-                    # Campos de configuración
-                    'active', 'lang', 'tz', 'comment'
-                ]}
-            )
-            
-            if not odoo_providers:
+            try:
+                providers_data = self._execute_kw(
+                    'res.partner',
+                    'read',
+                    [provider_ids],
+                    {'fields': ['id', 'name', 'email', 'phone', 'is_company', 'supplier_rank', 'street', 'city', 'zip', 'country_id', 'vat', 'website', 'mobile', 'active']}
+                )
+                print(f"ODOO_SERVICE: Datos de proveedores leídos: {len(providers_data)}")
+            except Exception as e:
+                print(f"Error ejecutando read en res.partner: {str(e)}")
                 print("ODOO_SERVICE: No se pudieron leer datos de proveedores, usando fallback")
                 return self._get_fallback_providers()
             
-            # Transformar a formato esperado
-            transformed_providers = []
-            for p in odoo_providers:
-                # Obtener nombre del país si existe
-                country_name = None
-                if p.get('country_id'):
-                    country_name = p['country_id'][1] if isinstance(p['country_id'], list) else None
-                
-                transformed_providers.append(Provider(
-                    id=p['id'],
-                    name=p['name'],
-                    email=p.get('email'),
-                    phone=p.get('phone'),
-                    is_company=p.get('is_company', True),
-                    supplier_rank=p.get('supplier_rank', 1),
+            # Convertir datos a objetos Provider
+            providers = []
+            for data in providers_data:
+                try:
+                    # Manejar country_id si es una lista [id, name]
+                    country_id = data.get('country_id')
+                    if isinstance(country_id, (list, tuple)) and len(country_id) > 0:
+                        country_id = country_id[0]
                     
-                    # Campos obligatorios de Odoo
-                    external_id=f"provider_{p['id']}",  # Generar external_id
-                    ref=p.get('ref'),
-                    vat=p.get('vat'),
-                    website=p.get('website'),
-                    
-                    # Campos de contacto ampliados
-                    mobile=p.get('mobile'),
-                    fax=p.get('fax'),
-                    function=p.get('function'),
-                    title=p.get('title'),
-                    
-                    # Campos de dirección completos
-                    street=p.get('street'),
-                    street2=p.get('street2'),
-                    city=p.get('city'),
-                    zip=p.get('zip'),
-                    country_id=p.get('country_id')[0] if p.get('country_id') and isinstance(p['country_id'], list) else p.get('country_id'),
-                    state_id=p.get('state_id')[0] if p.get('state_id') and isinstance(p['state_id'], list) else p.get('state_id'),
-                    
-                    # Campos de configuración comercial
-                    customer_rank=p.get('customer_rank', 0),
-                    category_id=p.get('category_id', []),
-                    user_id=p.get('user_id')[0] if p.get('user_id') and isinstance(p['user_id'], list) else p.get('user_id'),
-                    team_id=p.get('team_id')[0] if p.get('team_id') and isinstance(p['team_id'], list) else p.get('team_id'),
-                    
-                    # Campos financieros
-                    property_payment_term_id=p.get('property_payment_term_id')[0] if p.get('property_payment_term_id') and isinstance(p['property_payment_term_id'], list) else p.get('property_payment_term_id'),
-                    property_supplier_payment_term_id=p.get('property_supplier_payment_term_id')[0] if p.get('property_supplier_payment_term_id') and isinstance(p['property_supplier_payment_term_id'], list) else p.get('property_supplier_payment_term_id'),
-                    property_account_payable_id=p.get('property_account_payable_id')[0] if p.get('property_account_payable_id') and isinstance(p['property_account_payable_id'], list) else p.get('property_account_payable_id'),
-                    property_account_receivable_id=p.get('property_account_receivable_id')[0] if p.get('property_account_receivable_id') and isinstance(p['property_account_receivable_id'], list) else p.get('property_account_receivable_id'),
-                    
-                    # Campos de configuración
-                    active=p.get('active', True),
-                    lang=p.get('lang', 'es_ES'),
-                    tz=p.get('tz', 'Europe/Madrid'),
-                    comment=p.get('comment'),
-                    
-                    # Campos de compatibilidad
-                    country=country_name,
-                    customer=p.get('customer_rank', 0) > 0,
-                    supplier=p.get('supplier_rank', 0) > 0
-                ))
+                    provider_data = {
+                        'id': data.get('id', 0),
+                        'name': data.get('name', ''),
+                        'email': str(data.get('email', '')) if data.get('email') else '',
+                        'phone': str(data.get('phone', '')) if data.get('phone') else '',
+                        'vat': str(data.get('vat', '')) if data.get('vat') else '',
+                        'website': str(data.get('website', '')) if data.get('website') else '',
+                        'mobile': str(data.get('mobile', '')) if data.get('mobile') else '',
+                        'street': str(data.get('street', '')) if data.get('street') else '',
+                        'city': str(data.get('city', '')) if data.get('city') else '',
+                        'zip': str(data.get('zip', '')) if data.get('zip') else '',
+                        'country_id': country_id,
+                        'active': bool(data.get('active', False)),
+                        'company_type': data.get('company_type', '')
+                    }
+                    providers.append(Provider(**provider_data))
+                except Exception as e:
+                    print(f"Error convirtiendo proveedor ID {data.get('id')}: {str(e)}")
+                    continue
             
-            print(f"ODOO_SERVICE: Proveedores transformados: {len(transformed_providers)}")
-            return transformed_providers
-            
+            print(f"ODOO_SERVICE: Proveedores convertidos a objetos: {len(providers)}")
+            return providers
         except Exception as e:
-            print(f"Error obteniendo proveedores: {e}")
+            print(f"Error obteniendo proveedores desde Odoo: {str(e)}")
+            print("ODOO_SERVICE: Usando datos de respaldo")
             return self._get_fallback_providers()
-        finally:
-            self._cleanup_connection()
 
     def get_customers(self) -> List[Customer]:
         """Obtiene clientes desde Odoo"""
@@ -613,7 +636,6 @@ class OdooService:
                 active=True,
                 type="product",
                 # Campos opcionales de Odoo 18
-                external_id="REF-SAM-001",
                 standard_price=750.00,
                 barcode="1234567890123",
                 weight=45.5,
@@ -625,7 +647,6 @@ class OdooService:
                 website_sequence=10,
                 description_sale="Refrigerador de alta eficiencia energética",
                 description_purchase="Refrigerador Samsung con tecnología Twin Cooling Plus",
-                sales_description="Ideal para familias grandes",
                 # Campos de compatibilidad para frontend
                 code="REF-SAM-001",
                 category="Refrigeradores",
@@ -647,7 +668,6 @@ class OdooService:
                 active=True,
                 type="product",
                 # Campos opcionales de Odoo 18
-                external_id="LAV-LG-002",
                 standard_price=520.00,
                 barcode="2345678901234",
                 weight=65.0,
@@ -659,7 +679,6 @@ class OdooService:
                 website_sequence=20,
                 description_sale="Lavadora de carga frontal con tecnología AI DD",
                 description_purchase="Lavadora LG con motor Direct Drive",
-                sales_description="Perfecta para el hogar moderno",
                 # Campos de compatibilidad para frontend
                 code="LAV-LG-002",
                 category="Lavadoras",
@@ -681,7 +700,6 @@ class OdooService:
                 active=True,
                 type="product",
                 # Campos opcionales de Odoo 18
-                external_id="TV-SONY-003",
                 standard_price=650.00,
                 barcode="3456789012345",
                 weight=18.5,
@@ -693,7 +711,6 @@ class OdooService:
                 website_sequence=30,
                 description_sale="Smart TV 4K HDR con Google TV",
                 description_purchase="Televisor Sony BRAVIA XR con procesador Cognitive Processor XR",
-                sales_description="Experiencia cinematográfica en casa",
                 # Campos de compatibilidad para frontend
                 code="TV-SONY-003",
                 category="Televisores",
@@ -726,7 +743,6 @@ class OdooService:
                 supplier_rank=1,
                 
                 # Campos obligatorios de Odoo
-                external_id="provider_1",
                 ref="MIEL001",
                 vat="B12345678",
                 website="https://www.mielectro.es",
@@ -765,7 +781,6 @@ class OdooService:
                 supplier_rank=1,
                 
                 # Campos obligatorios de Odoo
-                external_id="provider_2",
                 ref="BECK002",
                 vat="A87654321",
                 website="https://www.becken.es",
@@ -804,7 +819,6 @@ class OdooService:
                 supplier_rank=1,
                 
                 # Campos obligatorios de Odoo
-                external_id="provider_3",
                 ref="TECAV003",
                 vat="B98765432",
                 website="https://www.tecnoavanzada.com",
@@ -909,6 +923,24 @@ class OdooService:
                 total=799.99
             )
         ]
+
+    def get_product_count(self):
+        """Obtiene el número total de productos disponibles en Odoo"""
+        try:
+            if not self._models:
+                self._get_connection()
+        
+            print("ODOO_SERVICE: Contando productos en Odoo...")
+            count = self._execute_kw(
+                'product.product',
+                'search_count',
+                [[]]
+            )
+            print(f"ODOO_SERVICE: Total de productos en Odoo: {count}")
+            return count
+        except Exception as e:
+            print(f"ODOO_SERVICE: Error contando productos: {str(e)}")
+            return 0
 
 # Instancia del servicio
 odoo_service = OdooService()

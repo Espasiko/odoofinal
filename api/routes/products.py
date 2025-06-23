@@ -9,11 +9,29 @@ from ..utils.config import config
 router = APIRouter(prefix="/api/v1", tags=["products"])
 
 @router.get("/products/all", response_model=List[Product])
-async def get_all_products():
-    """Obtiene todos los productos sin paginación"""
+async def get_all_products(
+    limit: int = Query(100, ge=1, le=200, description="Número máximo de productos a devolver")
+):
+    """Obtiene todos los productos sin paginación, con un límite configurable"""
     try:
-        # Obtener todos los productos desde Odoo
-        products = odoo_service.get_products()
+        import time
+        start_time = time.time()
+        
+        # Obtener el total de productos disponibles
+        total_count = 0
+        if hasattr(odoo_service, 'get_product_count'):
+            total_count = odoo_service.get_product_count()
+            print(f"API: Total de productos disponibles en Odoo: {total_count}")
+        else:
+            print("API: Método get_product_count no disponible en OdooService")
+        
+        # Obtener productos desde Odoo con un límite
+        products = odoo_service.get_products(offset=0, limit=limit)
+        print(f"API: Se obtuvieron {len(products)} productos de un límite de {limit}")
+        
+        end_time = time.time()
+        print(f"API: Tiempo de respuesta para /products/all: {end_time - start_time:.2f} segundos")
+        
         return products
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo productos: {str(e)}")
@@ -21,28 +39,34 @@ async def get_all_products():
 @router.get("/products", response_model=PaginatedResponse[Product])
 async def get_products(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100)
+    size: int = Query(10, ge=1, le=100)
 ):
     """Obtiene lista paginada de productos"""
     try:
-        # Obtener productos desde Odoo
-        all_products = odoo_service.get_products()
+        # Calcular offset y limit para paginación
+        offset = (page - 1) * size
+        limit = size
         
-        # Calcular paginación
-        total = len(all_products)
-        start_idx = (page - 1) * limit
-        end_idx = start_idx + limit
-        products = all_products[start_idx:end_idx]
+        # Obtener productos desde Odoo con paginación
+        products = odoo_service.get_products(offset=offset, limit=limit)
+        
+        # Obtener el total de productos usando get_product_count si está disponible
+        total = 0
+        if hasattr(odoo_service, 'get_product_count'):
+            total = odoo_service.get_product_count()
+            print(f"API: Total de productos disponibles en Odoo para paginación: {total}")
+        else:
+            print("API: Método get_product_count no disponible, usando estimación")
+            total = len(products) if products else 0
         
         return PaginatedResponse(
             data=products,
             total=total,
             page=page,
-            limit=limit,
-            pages=(total + limit - 1) // limit
+            size=size
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error obteniendo productos: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error obteniendo productos paginados: {str(e)}")
 
 @router.get("/products/{product_id}", response_model=Product)
 async def get_product(
