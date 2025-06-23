@@ -258,3 +258,6 @@ class OdooProviderService(OdooBaseService):
                 active=True
             )
         ]
+
+# Instancia global del servicio
+odoo_provider_service = OdooProviderService()

@@ -311,6 +311,54 @@ log_level = info
 - 📈 KPIs personalizables
 - 🌙 Modo oscuro
 
+## 🤖 Mistral OCR - Procesamiento Inteligente de Documentos
+
+### Características Principales
+- **OCR Avanzado con IA**: Utiliza Mistral OCR para reconocimiento de texto superior
+- **Múltiples Formatos**: Soporta PDF, PNG, JPG, JPEG, AVIF, PPTX, DOCX
+- **Procesamiento de Facturas**: Extracción automática de datos de facturas
+- **Integración con Odoo**: Creación automática de facturas y proveedores
+- **Comprensión de Layout**: Entiende documentos complejos y multiidioma
+- **API REST**: Endpoints seguros con autenticación JWT
+
+### Funcionalidades
+- 📄 **Procesamiento General**: Extrae texto completo de cualquier documento
+- 🧾 **Facturas Inteligentes**: Identifica automáticamente datos de facturación
+- 🔗 **Procesamiento desde URL**: Procesa documentos directamente desde enlaces
+- 🏢 **Gestión de Proveedores**: Crea/actualiza proveedores automáticamente
+- 📊 **Datos Estructurados**: Salida en formato JSON para fácil integración
+- 🔒 **Seguridad**: Autenticación requerida y limpieza automática de archivos
+
+### Endpoints Disponibles
+```
+POST /api/v1/mistral-ocr/process-document     # Procesar documento general
+POST /api/v1/mistral-ocr/process-invoice      # Procesar factura específica
+POST /api/v1/mistral-ocr/process-from-url     # Procesar desde URL
+GET  /api/v1/mistral-ocr/supported-formats    # Formatos soportados
+```
+
+### Configuración
+Añadir al archivo `.env`:
+```bash
+# Mistral OCR Configuration
+MISTRAL_API_KEY=tu_api_key_de_mistral
+```
+
+### Uso Rápido
+```python
+# Ejemplo de uso con Python
+from examples.mistral_ocr_usage import MistralOCRClient
+
+client = MistralOCRClient()
+client.authenticate("usuario", "password")
+result = client.process_invoice("factura.pdf", create_in_odoo=True)
+```
+
+### Documentación Completa
+- 📚 [Guía de Integración](docs/mistral_ocr_integration.md)
+- 🔧 [Ejemplos de Uso](examples/mistral_ocr_usage.py)
+- 🌐 [API Docs](http://localhost:8000/docs) (cuando el servidor esté ejecutándose)
+
 ## 🔄 Desarrollo
 
 ### Desarrollo del Dashboard

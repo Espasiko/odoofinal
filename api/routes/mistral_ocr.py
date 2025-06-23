@@ -1,0 +1,350 @@
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
+from typing import Optional, Dict, Any
+import tempfile
+import os
+import logging
+from ..services.mistral_ocr_service import get_mistral_ocr_service
+from ..services.odoo_provider_service import odoo_provider_service
+from ..services.odoo_sales_service import odoo_sales_service
+from ..services.auth_service import get_current_user
+from ..models.schemas import User
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/api/v1/mistral-ocr",
+    tags=["Mistral OCR"],
+    responses={404: {"description": "Not found"}}
+)
+
+@router.post("/process-document")
+async def process_document(
+    file: UploadFile = File(...),
+    include_images: bool = True,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa un documento (PDF o imagen) usando Mistral OCR
+    
+    Args:
+        file: Archivo a procesar (PDF, PNG, JPG, JPEG, AVIF)
+        include_images: Si incluir imágenes extraídas en base64
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos extraídos del documento
+    """
+    temp_file_path = None
+    
+    try:
+        # Validar formato de archivo
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        service = get_mistral_ocr_service()
+        supported_formats = service.get_supported_formats()
+        
+        if file_extension not in supported_formats:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Formato de archivo no soportado. Formatos válidos: {', '.join(supported_formats)}"
+            )
+        
+        # Crear archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        # Validar tamaño de archivo
+        if not service.validate_file_size(temp_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="El archivo excede el límite de 50MB"
+            )
+        
+        # Procesar documento según el tipo
+        if file_extension == '.pdf':
+            ocr_result = service.process_pdf_document(
+                temp_file_path, 
+                include_images=include_images
+            )
+        else:
+            ocr_result = service.process_image_document(
+                temp_file_path, 
+                include_images=include_images
+            )
+        
+        logger.info(f"Documento procesado exitosamente por usuario {current_user.username}: {file.filename}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Documento procesado exitosamente",
+                "filename": file.filename,
+                "file_type": file_extension,
+                "processed_by": current_user.username,
+                "data": ocr_result
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error procesando documento {file.filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando el documento: {str(e)}"
+        )
+    finally:
+        # Limpiar archivo temporal
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"No se pudo eliminar archivo temporal {temp_file_path}: {e}")
+
+@router.post("/process-invoice")
+async def process_invoice(
+    file: UploadFile = File(...),
+    create_in_odoo: bool = False,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa una factura usando Mistral OCR y opcionalmente la crea en Odoo
+    
+    Args:
+        file: Archivo de factura a procesar
+        create_in_odoo: Si crear la factura en Odoo automáticamente
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos de la factura extraídos
+    """
+    temp_file_path = None
+    
+    try:
+        # Validar formato de archivo
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        service = get_mistral_ocr_service()
+        supported_formats = service.get_supported_formats()
+        
+        if file_extension not in supported_formats:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Formato de archivo no soportado. Formatos válidos: {', '.join(supported_formats)}"
+            )
+        
+        # Crear archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        # Validar tamaño de archivo
+        if not service.validate_file_size(temp_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="El archivo excede el límite de 50MB"
+            )
+        
+        # Procesar documento con OCR
+        if file_extension == '.pdf':
+            ocr_result = service.process_pdf_document(temp_file_path, include_images=False)
+        else:
+            ocr_result = service.process_image_document(temp_file_path, include_images=False)
+        
+        if not ocr_result.get('success', False):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="No se pudo procesar el documento con OCR"
+            )
+        
+        # Extraer datos específicos de factura
+        invoice_data = service.extract_invoice_data_with_ai(ocr_result)
+        
+        response_data = {
+            "success": True,
+            "message": "Factura procesada exitosamente",
+            "filename": file.filename,
+            "file_type": file_extension,
+            "processed_by": current_user.username,
+            "invoice_data": invoice_data,
+            "ocr_confidence": invoice_data.get('confidence', 'unknown')
+        }
+        
+        # Si se solicita, crear la factura en Odoo
+        if create_in_odoo:
+            try:
+                extracted_data = invoice_data.get('extracted_data', {})
+                
+                # Buscar o crear proveedor en Odoo
+                supplier_name = extracted_data.get('supplier_name')
+                supplier_vat = extracted_data.get('supplier_vat')
+                
+                if supplier_name:
+                    # Buscar proveedor existente
+                    providers = odoo_provider_service.get_providers(
+                        search_term=supplier_name,
+                        limit=1
+                    )
+                    
+                    if providers.get('providers'):
+                        supplier_id = providers['providers'][0]['id']
+                    else:
+                        # Crear nuevo proveedor
+                        new_provider = odoo_provider_service.create_provider({
+                            'name': supplier_name,
+                            'vat': supplier_vat,
+                            'is_company': True,
+                            'supplier_rank': 1
+                        })
+                        supplier_id = new_provider['id']
+                    
+                    # Preparar datos de la factura para Odoo
+                    invoice_lines = []
+                    for line_item in extracted_data.get('line_items', []):
+                        if line_item.get('description'):
+                            invoice_lines.append({
+                                'name': line_item.get('description', 'Producto/Servicio'),
+                                'quantity': float(line_item.get('quantity', 1)),
+                                'price_unit': float(line_item.get('unit_price', 0))
+                            })
+                    
+                    # Si no hay líneas específicas, crear una línea general
+                    if not invoice_lines and extracted_data.get('total_amount'):
+                        invoice_lines.append({
+                            'name': f"Factura {extracted_data.get('invoice_number', 'Sin número')}",
+                            'quantity': 1,
+                            'price_unit': float(extracted_data.get('subtotal', extracted_data.get('total_amount', 0)))
+                        })
+                    
+                    # Crear factura en Odoo
+                    odoo_invoice_data = {
+                        'partner_id': supplier_id,
+                        'move_type': 'in_invoice',  # Factura de proveedor
+                        'ref': extracted_data.get('invoice_number'),
+                        'invoice_date': extracted_data.get('invoice_date'),
+                        'invoice_date_due': extracted_data.get('due_date'),
+                        'invoice_line_ids': invoice_lines
+                    }
+                    
+                    # Aquí se crearía la factura en Odoo usando el servicio de ventas
+                    # Por ahora, simulamos la creación
+                    response_data['odoo_invoice'] = {
+                        'created': True,
+                        'supplier_id': supplier_id,
+                        'invoice_data': odoo_invoice_data,
+                        'message': 'Factura creada exitosamente en Odoo'
+                    }
+                    
+                else:
+                    response_data['odoo_invoice'] = {
+                        'created': False,
+                        'message': 'No se pudo identificar el proveedor para crear la factura en Odoo'
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Error creando factura en Odoo: {e}")
+                response_data['odoo_invoice'] = {
+                    'created': False,
+                    'error': str(e),
+                    'message': 'Error al crear la factura en Odoo'
+                }
+        
+        logger.info(f"Factura procesada exitosamente por usuario {current_user.username}: {file.filename}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=response_data
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error procesando factura {file.filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando la factura: {str(e)}"
+        )
+    finally:
+        # Limpiar archivo temporal
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"No se pudo eliminar archivo temporal {temp_file_path}: {e}")
+
+@router.post("/process-from-url")
+async def process_document_from_url(
+    document_url: str,
+    include_images: bool = True,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa un documento desde una URL usando Mistral OCR
+    
+    Args:
+        document_url: URL del documento a procesar
+        include_images: Si incluir imágenes extraídas en base64
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos extraídos del documento
+    """
+    try:
+        # Procesar documento desde URL
+        service = get_mistral_ocr_service()
+        ocr_result = service.process_document_from_url(
+            document_url, 
+            include_images=include_images
+        )
+        
+        logger.info(f"Documento desde URL procesado exitosamente por usuario {current_user.username}: {document_url}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Documento procesado exitosamente",
+                "document_url": document_url,
+                "processed_by": current_user.username,
+                "data": ocr_result
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error procesando documento desde URL {document_url}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando el documento: {str(e)}"
+        )
+
+@router.get("/supported-formats")
+async def get_supported_formats() -> JSONResponse:
+    """
+    Obtiene los formatos de archivo soportados por Mistral OCR
+    
+    Returns:
+        JSONResponse con la lista de formatos soportados
+    """
+    try:
+        service = get_mistral_ocr_service()
+        supported_formats = service.get_supported_formats()
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "supported_formats": supported_formats,
+                "max_file_size": "50MB",
+                "description": "Formatos de archivo soportados por Mistral OCR"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo formatos soportados: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )

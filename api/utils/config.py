@@ -33,6 +33,9 @@ class Config:
     # Configuración de logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
+    # Configuración de Mistral OCR
+    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
+    
     @classmethod
     def get_odoo_config(cls) -> dict:
         """Retorna la configuración de Odoo como diccionario"""

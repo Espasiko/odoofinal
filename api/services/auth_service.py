@@ -116,3 +116,8 @@ class AuthService:
 
 # Instancia del servicio
 auth_service = AuthService()
+
+# Función de conveniencia para usar en las rutas
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
+    """Función de conveniencia para obtener el usuario actual"""
+    return await auth_service.get_current_user(token)

@@ -191,3 +191,6 @@ class OdooSalesService(OdooBaseService):
                 delivery_status="pending"
             )
         ]
+
+# Instancia global del servicio
+odoo_sales_service = OdooSalesService()

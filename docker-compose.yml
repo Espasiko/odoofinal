@@ -56,6 +56,7 @@ services:
       ODOO_DB: "manus_odoo-bd"
       ODOO_USERNAME: "yo@mail.com"
       ODOO_PASSWORD: "admin"
+      MISTRAL_API_KEY: "${MISTRAL_API_KEY:-}"
     command: uvicorn main_new:app --reload --host 0.0.0.0 --port 8000
 
 volumes:

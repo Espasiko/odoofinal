@@ -15,6 +15,7 @@ from api.routes.customers import router as customers_router
 from api.routes.dashboard import router as dashboard_router
 from api.routes.tasks import router as tasks_router
 from api.routes.ocr import router as ocr_router
+from api.routes.mistral_ocr import router as mistral_ocr_router
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -45,6 +46,7 @@ app.include_router(customers_router)
 app.include_router(dashboard_router)
 app.include_router(tasks_router)
 app.include_router(ocr_router)
+app.include_router(mistral_ocr_router)
 
 @app.get("/")
 async def root():
