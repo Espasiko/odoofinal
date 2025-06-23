@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/v1", tags=["providers"])
 @router.get("/providers", response_model=PaginatedResponse[Provider])
 async def get_providers(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    size: int = Query(10, ge=1, le=100),
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
     """Obtiene lista paginada de proveedores"""
@@ -20,16 +20,16 @@ async def get_providers(
         
         # Calcular paginación
         total = len(all_providers)
-        start_idx = (page - 1) * limit
-        end_idx = start_idx + limit
+        start_idx = (page - 1) * size
+        end_idx = start_idx + size
         providers = all_providers[start_idx:end_idx]
         
         return PaginatedResponse(
             data=providers,
             total=total,
             page=page,
-            limit=limit,
-            pages=(total + limit - 1) // limit
+            size=size,
+            pages=(total + size - 1) // size
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo proveedores: {str(e)}")

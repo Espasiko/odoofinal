@@ -12,12 +12,13 @@ class OdooService:
         self._common = None
         self._models = None
         self._uid = None
+        self._url = 'http://172.18.0.3:8069'
     
     def _get_connection(self):
         """Establece conexión con Odoo"""
         try:
             if not self._common:
-                self._common = xmlrpc.client.ServerProxy(f'{self.config["url"]}/xmlrpc/2/common')
+                self._common = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/common')
             
             if not self._uid:
                 self._uid = self._common.authenticate(
@@ -28,11 +29,12 @@ class OdooService:
                 )
             
             if not self._models and self._uid:
-                self._models = xmlrpc.client.ServerProxy(f'{self.config["url"]}/xmlrpc/2/object')
+                self._models = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/object')
             
             return self._uid is not None
         except Exception as e:
-            print(f"Error conectando con Odoo: {e}")
+            print(f"Error detallado conectando con Odoo en {self._url}: {str(e)}")
+            raise
             return False
     
     def _cleanup_connection(self):
@@ -550,6 +552,28 @@ class OdooService:
         finally:
             print("ODOO_SERVICE: Finalizando create_product y limpiando conexión")
             self._cleanup_connection()
+
+    def create_supplier(self, supplier_name: str) -> Optional[int]:
+        """Crea un proveedor en Odoo si no existe"""
+        try:
+            if not self._models:
+                self._get_connection()
+
+            supplier_data = {
+                'name': supplier_name,
+                'is_company': True,
+                'supplier_rank': 1,
+            }
+            supplier_id = self._execute_kw(
+                'res.partner',
+                'create',
+                [supplier_data]
+            )
+            print(f"Proveedor {supplier_name} creado con ID {supplier_id}")
+            return supplier_id
+        except Exception as e:
+            print(f"Error creando proveedor {supplier_name}: {e}")
+            return None
 
     def create_invoice(self, supplier_id, invoice_data):
         try:

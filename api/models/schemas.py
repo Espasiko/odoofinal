@@ -236,7 +236,6 @@ class Provider(BaseModel):
     
     # CAMPOS DE CONTACTO AMPLIADOS
     mobile: Optional[str] = None  # Teléfono móvil
-    fax: Optional[str] = None  # Fax
     function: Optional[str] = None  # Cargo/función
     title: Optional[int] = None  # Título (Sr., Sra., etc.)
     

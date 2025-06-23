@@ -29,7 +29,7 @@ services:
       - ./config:/etc/odoo
       - ./addons:/mnt/extra-addons
     restart: unless-stopped
-    command: odoo
+    command: odoo --xmlrpc-interface=0.0.0.0
 
   adminer:
     image: adminer
@@ -56,6 +56,7 @@ services:
       ODOO_DB: "manus_odoo-bd"
       ODOO_USERNAME: "yo@mail.com"
       ODOO_PASSWORD: "admin"
+    command: uvicorn main_new:app --reload --host 0.0.0.0 --port 8000
 
 volumes:
   odoo-web-data:

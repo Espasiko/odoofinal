@@ -34,6 +34,8 @@ RUN pip install --no-cache-dir setuptools
 RUN pip install --no-cache-dir -r requirements.txt || true
 RUN pip uninstall -y Pillow || true
 RUN pip install --no-cache-dir Pillow>=10.3.0 --no-binary Pillow
+RUN pip install --no-cache-dir opencv-python-headless
+RUN pip install --no-cache-dir invoice2data
 RUN mkdir -p /tmp/xmlrpc2 && \
     wget -O /tmp/xmlrpc2/xmlrpc2-0.2.tar.gz https://files.pythonhosted.org/packages/source/x/xmlrpc2/xmlrpc2-0.2.tar.gz && \
     tar -xzf /tmp/xmlrpc2/xmlrpc2-0.2.tar.gz -C /tmp/xmlrpc2 && \

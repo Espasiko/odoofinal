@@ -1,1 +1,1 @@
-{"message":"Invoice processed successfully","invoice_id":56,"extracted_data":{"number":"FALMCE","date":"07/01/25","partner_name":"ALMCE S.L.","amount_total":0.0,"lines":[],"due_dates":[],"customer_order_ref":""}}
+{"message":"Invoice processed successfully","invoice_id":63,"extracted_data":{"number":"25000289","date":"07/01/25","partner_name":"ALMCE S.L.","amount_total":6.0,"lines":[],"due_dates":["06/02/25"],"customer_order_ref":"25000232PO"}}
