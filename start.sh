@@ -45,9 +45,9 @@ if ! docker info &> /dev/null; then
 fi
 
 # Verificar si los contenedores ya están ejecutándose
-if docker ps | grep -q "manusodoo-roto_odoo_1\|manusodoo-roto_db_1\|manusodoo-roto_adminer_1"; then
+if docker ps | grep -q "odoo\|db\|adminer\|fastapi"; then
     print_warning "Algunos contenedores ya están ejecutándose"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|manusodoo-roto_|fastapi"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|odoo|db|adminer|fastapi"
 else
     print_status "Algunos contenedores ya están ejecutándose. Verificando estado..."
 fi
@@ -56,9 +56,11 @@ fi
 print_status "Deteniendo contenedores existentes..."
 docker-compose down 2>/dev/null || true
 
-# Iniciar todos los contenedores usando docker-compose
-print_status "Iniciando todos los contenedores con docker-compose..."
-docker-compose up -d
+# Iniciar los contenedores con Docker Compose
+print_status "Iniciando contenedores con Docker Compose..."
+docker-compose up -d db
+sleep 5  # Esperar a que la base de datos esté lista
+docker-compose up -d odoo adminer fastapi
 
 if [ $? -ne 0 ]; then
     print_error "Error al iniciar los contenedores con docker-compose"
