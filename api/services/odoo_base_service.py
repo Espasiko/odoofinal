@@ -11,7 +11,7 @@ class OdooBaseService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = 'http://172.18.0.3:8069'
+        self._url = 'http://172.18.0.4:8069'
     
     def _get_connection(self):
         """Establece conexión con Odoo"""
