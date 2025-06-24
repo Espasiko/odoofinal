@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mistral OCR - Procesamiento de Documentos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .file-info {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            border-left: 5px solid #28a745;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        .progress-custom {
+            height: 8px;
+            border-radius: 10px;
+            background: #e9ecef;
+        }
+        .progress-bar-custom {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 10px;
+        }
+        .text-result {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        .metadata-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #007bff;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="fas fa-eye"></i> Mistral OCR</h1>
+                <p class="mb-0">Procesamiento Inteligente de Documentos con IA</p>
+            </div>
+
+            <div class="p-4">
+                <!-- Área de subida de archivos -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-upload"></i> Subir Documento</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                    <h4>Arrastra tu archivo aquí</h4>
+                                    <p class="text-muted">o haz clic para seleccionar</p>
+                                    <input type="file" id="fileInput" class="d-none" accept=".pdf,.png,.jpg,.jpeg,.avif">
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i>
+                                            Formatos soportados: PDF, PNG, JPG, JPEG, AVIF (máx. 50MB)
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div id="fileInfo" class="file-info d-none">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file fa-2x text-primary me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 id="fileName" class="mb-1"></h6>
+                                            <small id="fileSize" class="text-muted"></small>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger" id="removeFile">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="includeImages" checked>
+                                        <label class="form-check-label" for="includeImages">
+                                            Incluir imágenes extraídas en base64
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 text-center">
+                                    <button class="btn btn-custom btn-lg" id="processBtn" disabled>
+                                        <i class="fas fa-magic"></i> Procesar Documento
+                                    </button>
+                                </div>
+
+                                <!-- Barra de progreso -->
+                                <div class="loading mt-4">
+                                    <div class="text-center mb-3">
+                                        <i class="fas fa-cog fa-spin fa-2x text-primary"></i>
+                                        <p class="mt-2">Procesando documento con IA...</p>
+                                    </div>
+                                    <div class="progress progress-custom">
+                                        <div class="progress-bar progress-bar-custom" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de información -->
+                    <div class="col-lg-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6><i class="fas fa-check-circle text-success"></i> Características</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-robot text-primary"></i> IA avanzada de Mistral</li>
+                                    <li><i class="fas fa-language text-primary"></i> Reconocimiento multiidioma</li>
+                                    <li><i class="fas fa-image text-primary"></i> Extracción de imágenes</li>
+                                    <li><i class="fas fa-file-pdf text-primary"></i> Soporte para PDF</li>
+                                    <li><i class="fas fa-camera text-primary"></i> Procesamiento de imágenes</li>
+                                </ul>
+
+                                <hr>
+
+                                <h6><i class="fas fa-question-circle text-warning"></i> ¿Cómo usar?</h6>
+                                <ol class="small">
+                                    <li>Selecciona o arrastra tu archivo</li>
+                                    <li>Configura las opciones si es necesario</li>
+                                    <li>Haz clic en "Procesar Documento"</li>
+                                    <li>Espera a que la IA procese el contenido</li>
+                                    <li>Revisa y descarga los resultados</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultados -->
+                <div id="resultContainer" class="result-container d-none">
+                    <h4><i class="fas fa-clipboard-list text-success"></i> Resultados del Procesamiento</h4>
+                    
+                    <!-- Texto extraído -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5><i class="fas fa-file-text text-primary"></i> Texto Extraído</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="copyText">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <div id="extractedText" class="text-result"></div>
+                    </div>
+
+                    <!-- Metadatos -->
+                    <div class="mt-4" id="metadataSection">
+                        <h5><i class="fas fa-info text-info"></i> Metadatos</h5>
+                        <div id="metadata"></div>
+                    </div>
+
+                    <!-- Imágenes extraídas -->
+                    <div class="mt-4 d-none" id="imagesSection">
+                        <h5><i class="fas fa-images text-warning"></i> Imágenes Extraídas</h5>
+                        <div id="extractedImages" class="row"></div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="mt-4 text-center">
+                        <button class="btn btn-success me-2" id="downloadText">
+                            <i class="fas fa-download"></i> Descargar Texto
+                        </button>
+                        <button class="btn btn-info me-2" id="downloadJson">
+                            <i class="fas fa-file-code"></i> Descargar JSON
+                        </button>
+                        <button class="btn btn-secondary" id="newDocument">
+                            <i class="fas fa-plus"></i> Nuevo Documento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let selectedFile = null;
+        let currentResult = null;
+        let accessToken = null;
+
+        // Elementos del DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFile = document.getElementById('removeFile');
+        const processBtn = document.getElementById('processBtn');
+        const loading = document.querySelector('.loading');
+        const resultContainer = document.getElementById('resultContainer');
+        const extractedText = document.getElementById('extractedText');
+        const metadata = document.getElementById('metadata');
+        const extractedImages = document.getElementById('extractedImages');
+        const includeImages = document.getElementById('includeImages');
+
+        // Configuración de la API
+        const API_BASE = 'http://localhost:8002';
+        const USERNAME = 'admin';
+        const PASSWORD = 'admin_password_secure';
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            authenticate();
+        });
+
+        function setupEventListeners() {
+            // Eventos de drag and drop
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            
+            // Eventos de archivo
+            fileInput.addEventListener('change', handleFileSelect);
+            removeFile.addEventListener('click', clearFile);
+            
+            // Eventos de procesamiento
+            processBtn.addEventListener('click', processDocument);
+            
+            // Eventos de resultados
+            document.getElementById('copyText').addEventListener('click', copyText);
+            document.getElementById('downloadText').addEventListener('click', downloadText);
+            document.getElementById('downloadJson').addEventListener('click', downloadJson);
+            document.getElementById('newDocument').addEventListener('click', resetForm);
+        }
+
+        // Autenticación
+        async function authenticate() {
+            try {
+                const response = await fetch(`${API_BASE}/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `username=${USERNAME}&password=${PASSWORD}`
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    accessToken = data.access_token;
+                    console.log('✅ Autenticación exitosa');
+                } else {
+                    console.error('❌ Error de autenticación: Respuesta no OK', await response.text());
+                    throw new Error('Error de autenticación');
+                }
+            } catch (error) {
+                console.error('❌ Error de autenticación:', error);
+                alert('Error de autenticación. Verifica que el servidor esté ejecutándose.');
+            }
+        }
+
+        // Manejo de drag and drop
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            // Validar tipo de archivo
+            const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/avif'];
+            if (!validTypes.includes(file.type)) {
+                alert('Tipo de archivo no soportado. Use PDF, PNG, JPG, JPEG o AVIF.');
+                return;
+            }
+
+            // Validar tamaño (50MB)
+            if (file.size > 50 * 1024 * 1024) {
+                alert('El archivo es demasiado grande. Máximo 50MB.');
+                return;
+            }
+
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            fileInfo.classList.remove('d-none');
+            processBtn.disabled = false;
+            resultContainer.classList.add('d-none');
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.add('d-none');
+            processBtn.disabled = true;
+            resultContainer.classList.add('d-none');
+        }
+
+        async function processDocument() {
+            if (!selectedFile) {
+                alert('Por favor, selecciona un archivo primero.');
+                return;
+            }
+            
+            if (!accessToken) {
+                alert('Error de autenticación. Reintentando...');
+                await authenticate();
+                if (!accessToken) {
+                    alert('No se pudo autenticar. Verifica que el servidor esté funcionando.');
+                    return;
+                }
+            }
+
+            // Mostrar loading
+            loading.classList.add('show');
+            processBtn.disabled = true;
+            
+            // Simular progreso
+            animateProgress();
+
+            try {
+                console.log('📤 Enviando archivo:', selectedFile.name);
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('include_images', includeImages.checked);
+
+                const response = await fetch(`${API_BASE}/api/v1/mistral-ocr/process-document`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: formData
+                });
+
+                console.log('📥 Respuesta del servidor:', response.status, response.statusText);
+
+                if (response.ok) {
+                    currentResult = await response.json();
+                    console.log('✅ Documento procesado exitosamente:', currentResult);
+                    displayResults(currentResult);
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Error del servidor:', errorText);
+                    let errorMessage = 'Error procesando documento';
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.detail || errorMessage;
+                    } catch (e) {
+                        errorMessage = errorText || errorMessage;
+                    }
+                    throw new Error(errorMessage);
+                }
+            } catch (error) {
+                console.error('❌ Error completo:', error);
+                alert(`Error procesando documento: ${error.message}`);
+            } finally {
+                loading.classList.remove('show');
+                processBtn.disabled = false;
+            }
+        }
+
+        function displayResults(result) {
+            // Mostrar texto extraído
+            const textContent = result.data?.text || result.text || 'No se pudo extraer texto';
+            extractedText.textContent = textContent;
+
+            // Mostrar metadatos
+            const metadataContent = result.data?.metadata || {};
+            metadata.innerHTML = '';
+            for (const [key, value] of Object.entries(metadataContent)) {
+                const item = document.createElement('div');
+                item.className = 'metadata-item';
+                item.innerHTML = `<strong>${key}:</strong> ${value}`;
+                metadata.appendChild(item);
+            }
+
+            // Mostrar imágenes si las hay
+            const images = result.data?.images || [];
+            if (images.length > 0) {
+                document.getElementById('imagesSection').classList.remove('d-none');
+                extractedImages.innerHTML = '';
+                images.forEach((imgData, index) => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-3 mb-3';
+                    col.innerHTML = `
+                        <div class="text-center">
+                            <img src="data:image/png;base64,${imgData}" class="image-preview img-fluid" alt="Imagen ${index + 1}">
+                            <p class="small mt-2">Imagen ${index + 1}</p>
+                        </div>
+                    `;
+                    extractedImages.appendChild(col);
+                });
+            }
+
+            resultContainer.classList.remove('d-none');
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function animateProgress() {
+            const progressBar = document.querySelector('.progress-bar');
+            let width = 0;
+            const interval = setInterval(() => {
+                width += Math.random() * 15;
+                if (width >= 90) {
+                    width = 90;
+                    clearInterval(interval);
+                }
+                progressBar.style.width = width + '%';
+            }, 200);
+
+            // Completar al 100% cuando termine
+            setTimeout(() => {
+                progressBar.style.width = '100%';
+            }, 3000);
+        }
+
+        function copyText() {
+            navigator.clipboard.writeText(extractedText.textContent)
+                .then(() => alert('Texto copiado al portapapeles'))
+                .catch(() => alert('Error copiando texto'));
+        }
+
+        function downloadText() {
+            const text = extractedText.textContent;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ocr_result_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadJson() {
+            const json = JSON.stringify(currentResult, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ocr_result_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function resetForm() {
+            clearFile();
+            resultContainer.classList.add('d-none');
+            currentResult = null;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

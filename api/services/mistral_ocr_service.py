@@ -187,16 +187,14 @@ class MistralOCRService:
                 'pages_content': pages_content,
                 'extracted_images': extracted_images,
                 'page_count': len(pages_content),
-                'image_count': len(extracted_images),
-                'raw_response': ocr_response
+                'image_count': len(extracted_images)
             }
             
         except Exception as e:
             logger.error(f"Error parseando respuesta de Mistral OCR: {e}")
             return {
                 'success': False,
-                'error': str(e),
-                'raw_response': ocr_response
+                'error': str(e)
             }
     
     def extract_invoice_data_with_ai(self, ocr_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -250,10 +248,27 @@ class MistralOCRService:
             Si algún campo no se encuentra, usa null. Asegúrate de que la respuesta sea JSON válido.
             """
             
-            # Aquí se podría usar Mistral Chat API para procesar el prompt
-            # Por ahora, devolvemos una estructura básica
-            return {
-                'extracted_data': {
+            # Usar Mistral Chat API para procesar el prompt
+            chat_response = self.client.chat.complete(
+                model="mistral-large-latest",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": extraction_prompt
+                    }
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            # Extraer y parsear la respuesta JSON
+            response_content = chat_response.choices[0].message.content
+            
+            try:
+                extracted_data = json.loads(response_content)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Error parseando JSON de Mistral: {e}. Respuesta: {response_content}")
+                # Fallback con estructura básica
+                extracted_data = {
                     'invoice_number': None,
                     'invoice_date': None,
                     'due_date': None,
@@ -267,7 +282,10 @@ class MistralOCRService:
                     'currency': 'EUR',
                     'payment_terms': None,
                     'line_items': []
-                },
+                }
+            
+            return {
+                'extracted_data': extracted_data,
                 'full_text': full_text,
                 'confidence': 'high'  # Mistral OCR tiene alta precisión
             }
