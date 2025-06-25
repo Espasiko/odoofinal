@@ -26,11 +26,15 @@ async def get_dashboard_stats(
         for i, p in enumerate(products[:3]):  # Solo los primeros 3 para debug
             print(f"DEBUG: Producto {i}: stock={getattr(p, 'stock', 'NO_ATTR')}, type={type(getattr(p, 'stock', None))}")
         
+        from ..models.schemas import Product
         low_stock_products = []
         out_of_stock_products = []
         
         for p in products:
             try:
+                # Asegurarse de que p sea instancia de Product
+                if isinstance(p, dict):
+                    p = Product(**p)
                 if hasattr(p, 'stock'):
                     stock_value = getattr(p, 'stock')
                     if stock_value is not None:
@@ -95,6 +99,8 @@ async def get_dashboard_stats(
         
         return stats
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error obteniendo estadísticas del dashboard: {str(e)}")
 
 @router.get("/dashboard/categories")
