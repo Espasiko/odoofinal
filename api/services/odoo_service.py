@@ -12,23 +12,28 @@ class OdooService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = 'http://172.18.0.3:8069'
+        self._url = 'http://172.18.0.4:8069'  # Usar la IP correcta del contenedor Odoo - Actualizado 2025-06-24
     
     def _get_connection(self):
         """Establece conexión con Odoo"""
         try:
+            print(f"Intentando conectar a Odoo con URL: {self._url}")
             if not self._common:
+                print(f"Creando proxy para {self._url}/xmlrpc/2/common")
                 self._common = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/common')
             
             if not self._uid:
+                print(f"Autenticando en Odoo con DB: {self.config['db']}, Usuario: {self.config['username']}")
                 self._uid = self._common.authenticate(
                     self.config["db"],
                     self.config["username"],
                     self.config["password"],
                     {}
                 )
+                print(f"Autenticación completada, UID: {self._uid}")
             
             if not self._models and self._uid:
+                print(f"Creando proxy para {self._url}/xmlrpc/2/object")
                 self._models = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/object')
             
             return self._uid is not None

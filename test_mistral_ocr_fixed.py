@@ -12,12 +12,12 @@ def test_mistral_ocr():
     """Prueba el servicio Mistral OCR con un documento de ejemplo"""
     
     # URL del servidor
-    base_url = "http://localhost:8002"
+    base_url = "http://localhost:8000"
     
     # Primero, obtener token de autenticación
     auth_data = {
-        "username": "admin",
-        "password": "admin123"
+        "username": "yo@mail.com",
+        "password": "admin"
     }
     
     print("🔐 Obteniendo token de autenticación...")

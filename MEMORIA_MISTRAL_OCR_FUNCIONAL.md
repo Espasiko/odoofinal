@@ -44,9 +44,10 @@ El sistema Mistral OCR está **100% funcional** y listo para producción PMV.
   - ✅ Condiciones de pago: GIRO A 30 DIAS
 
 ### 🚀 Servidor en Funcionamiento
-- **URL**: http://localhost:8002
+- **URL**: http://localhost:8000
 - **Estado**: ✅ Activo
-- **Command ID**: b91d6a8a-7093-4497-a497-562fd90afc9b
+- **Credenciales**: yo@mail.com / admin
+- **Command ID**: Actualizado - Servicio funcionando correctamente
 
 ### 📊 Comparación con Tesseract
 

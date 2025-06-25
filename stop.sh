@@ -28,18 +28,45 @@ print_info() {
 }
 
 # Verificar si los contenedores están ejecutándose
-if ! docker ps | grep -q "last_odoo_1\|last_db_1"; then
-    print_warning "Los contenedores no están ejecutándose"
+if ! docker ps | grep -q "odoo\|db\|adminer\|fastapi"; then
+    print_warning "No hay contenedores de ManusOdoo en ejecución"
     exit 0
 fi
 
 # Mostrar contenedores que se van a detener
-print_status "Contenedores activos:"
-docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "NAMES|last_"
+print_status "Contenedores activos de ManusOdoo:"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|odoo|db|adminer|fastapi"
 
-# Detener contenedores gracefully
-print_status "Deteniendo contenedores..."
-docker-compose down
+# Detener contenedores de manera ordenada
+print_status "Deteniendo contenedores de manera ordenada..."
+
+# Detener primero FastAPI
+if docker ps | grep -q "fastapi"; then
+    print_status "Deteniendo FastAPI..."
+    docker-compose stop fastapi
+fi
+
+# Detener Odoo
+if docker ps | grep -q "odoo"; then
+    print_status "Deteniendo Odoo..."
+    docker-compose stop odoo
+fi
+
+# Detener Adminer
+if docker ps | grep -q "adminer"; then
+    print_status "Deteniendo Adminer..."
+    docker-compose stop adminer
+fi
+
+# Detener la base de datos por último
+if docker ps | grep -q "db"; then
+    print_status "Deteniendo la base de datos..."
+    docker-compose stop db
+fi
+
+# Detener contenedores sin eliminar volúmenes
+print_status "Deteniendo contenedores sin eliminar volúmenes..."
+docker-compose down --remove-orphans
 
 if [ $? -eq 0 ]; then
     print_status "✅ Contenedores detenidos correctamente"
@@ -58,10 +85,24 @@ else
     fi
 fi
 
+# Limpieza segura de contenedores detenidos (solo si es explícitamente solicitado)
+if [ "$1" = "--clean" ]; then
+    print_warning "¡ADVERTENCIA! Modo limpieza activado"
+    print_status "Eliminando contenedores detenidos..."
+    docker ps -aq -f status=exited -f status=created | xargs -r docker rm 2>/dev/null || true
+    
+    # Mensaje informativo sobre volúmenes y redes
+    print_warning "ATENCIÓN: No se eliminarán volúmenes ni redes para prevenir pérdida de datos"
+    print_info "Si necesitas limpiar volúmenes o redes, hazlo manualmente con precaución"
+else
+    print_status "Omitiendo limpieza de contenedores detenidos (usa --clean si es necesario)"
+fi
+
 # Verificar que los contenedores estén detenidos
-if docker ps | grep -q "last_odoo_1\|last_db_1"; then
-    print_error "Algunos contenedores siguen ejecutándose"
-    docker ps | grep "last_"
+if docker ps | grep -q "odoo\|db\|adminer\|fastapi"; then
+    print_error "¡ADVERTENCIA! Algunos contenedores aún están en ejecución:"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "odoo|db|adminer|fastapi"
+    print_warning "Intenta detenerlos manualmente con: docker-compose stop"
     exit 1
 fi
 
