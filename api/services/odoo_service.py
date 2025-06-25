@@ -12,7 +12,7 @@ class OdooService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = 'http://172.18.0.4:8069'  # Usar la IP correcta del contenedor Odoo - Actualizado 2025-06-24
+        self._url = 'http://172.18.0.5:8069'  # Usar la IP correcta del contenedor Odoo - Actualizado 2025-06-25
     
     def _get_connection(self):
         """Establece conexión con Odoo"""
