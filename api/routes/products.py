@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+import logging
 from typing import List, Optional
 
 from ..models.schemas import Product, User, PaginatedResponse, ProductCreate
 from ..services.auth_service import auth_service
 from ..services.odoo_service import odoo_service
+from ..services.odoo_product_service import OdooProductService
 from ..utils.config import config
 
 router = APIRouter(prefix="/api/v1", tags=["products"])
@@ -84,22 +86,25 @@ async def get_product(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo producto: {str(e)}")
 
-@router.post("/products", response_model=Product)
-async def create_product(
-    product: ProductCreate,  # Cambiado de Product a ProductCreate
-    current_user: User = Depends(auth_service.get_current_active_user)
-):
-    """Crea un nuevo producto (simulado)"""
-    # En una implementación real, se crearía en Odoo y se devolvería el producto completo
-    # Por ahora, simulamos la creación y devolvemos un objeto Product con un ID
-    # Asumiendo que odoo_service.create_product(product) devuelve el producto creado con su ID
-    product_created = odoo_service.create_product(product)
-    if not product_created:
-        raise HTTPException(status_code=500, detail="Error al crear el producto en Odoo")
-    return product_created
-
-    # Simulación anterior:
-    # return Product(id=999, name=product.name, code=product.code, category=product.category, price=product.price, stock_quantity=product.stock, image_url=product.image_url, is_active=True)
+@router.post("/products")
+async def create_product(request: Request):
+    logger = logging.getLogger("products_endpoint")
+    product_data = await request.json()
+    logger.info(f"Creando producto | Data recibida: {product_data}")
+    try:
+        # Transformación Frontend → Odoo
+        logger.debug(f"Transformación Front→Odoo | Entrada: {product_data}")
+        odoo_data = OdooProductService.front_to_odoo_product_dict(product_data)
+        logger.debug(f"Transformación Front→Odoo | Salida: {odoo_data}")
+        product_created = odoo_service.create_product(ProductCreate(**odoo_data))
+        if not product_created:
+            raise HTTPException(status_code=500, detail="Error al crear el producto en Odoo")
+        return {"id": product_created.id}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error no controlado: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno")
 
 @router.put("/products/{product_id}", response_model=Product)
 async def update_product(

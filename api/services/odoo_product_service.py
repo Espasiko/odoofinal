@@ -4,6 +4,60 @@ from ..models.schemas import Product, ProductCreate
 
 class OdooProductService(OdooBaseService):
     """Servicio para gestión de productos en Odoo"""
+
+    @staticmethod
+    def front_to_odoo_product_dict(front_data: dict) -> dict:
+        """
+        Adapta y valida datos de producto recibidos del frontend al formato dict para Odoo 18.
+        - Mapea campos: 'nombre' -> 'name', 'precio' -> 'list_price', 'proveedor.id' -> 'supplier_id'.
+        - Valida tipos: 'precio' debe ser float, 'proveedor.id' debe ser int (o convertible).
+        - Si 'proveedor' no está presente, asigna False a 'supplier_id'.
+        - Usa logging para registrar la transformación y errores.
+        - Lanza HTTPException(400) si hay error de validación.
+        """
+        import logging
+        from fastapi import HTTPException
+
+        logger = logging.getLogger("odoo_product_adapter")
+        logger.debug(f"Transformando datos del frontend: {front_data}")
+
+        result = {}
+        # Mapear nombre
+        nombre = front_data.get("nombre")
+        if not isinstance(nombre, str) or not nombre.strip():
+            logger.error(f"Campo 'nombre' inválido: {nombre}")
+            raise HTTPException(status_code=400, detail="Campo 'nombre' es obligatorio y debe ser string.")
+        result["name"] = nombre.strip()
+
+        # Mapear precio
+        precio = front_data.get("precio")
+        try:
+            if isinstance(precio, str):
+                precio = precio.replace(",", ".")
+                precio = float(precio)
+            elif not isinstance(precio, (float, int)):
+                raise ValueError
+            result["list_price"] = float(precio)
+        except Exception:
+            logger.error(f"Campo 'precio' inválido: {precio}")
+            raise HTTPException(status_code=400, detail="Campo 'precio' debe ser un número válido.")
+
+        # Mapear proveedor
+        proveedor = front_data.get("proveedor")
+        supplier_id = False
+        if proveedor is not None:
+            prov_id = proveedor.get("id") if isinstance(proveedor, dict) else None
+            if prov_id is not None:
+                try:
+                    supplier_id = int(prov_id)
+                except Exception:
+                    logger.error(f"Campo 'proveedor.id' inválido: {prov_id}")
+                    raise HTTPException(status_code=400, detail="Campo 'proveedor.id' debe ser un entero.")
+        result["supplier_id"] = supplier_id
+
+        logger.info(f"Datos transformados para Odoo: {result}")
+        return result
+
     
     def get_products(self, offset=0, limit=100):
         """Obtiene productos desde Odoo"""
