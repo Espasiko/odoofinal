@@ -12,10 +12,13 @@ class OdooService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = 'http://172.18.0.5:8069'  # Usar la IP correcta del contenedor Odoo - Actualizado 2025-06-25
+        self._url = self.config['url']  # Usar la URL de configuración
     
     def _get_connection(self):
         """Establece conexión con Odoo"""
+        import logging
+        logger = logging.getLogger("odoo_connection")
+        logger.warning(f"[LOG ODOO_URL] Conectando a Odoo con URL: {self._url}")
         try:
             print(f"Intentando conectar a Odoo con URL: {self._url}")
             if not self._common:
@@ -83,7 +86,7 @@ class OdooService:
             odoo_products = self._execute_kw(
                 'product.product',
                 'search_read',
-                [[]],
+                [[('active', '=', True)]],
                 {'offset': offset, 'limit': limit, 'fields': [
                     'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
                     'type', 'standard_price', 'barcode', 'weight',

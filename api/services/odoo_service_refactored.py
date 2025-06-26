@@ -30,6 +30,14 @@ class OdooServiceRefactored:
         """Crea un nuevo producto en Odoo"""
         return self.product_service.create_product(product_data)
     
+    def update_product(self, product_id: int, update_data: dict) -> Optional[Product]:
+        """Actualiza un producto existente en Odoo"""
+        return self.product_service.update_product(product_id, update_data)
+
+    def archive_product(self, product_id: int) -> bool:
+        """Archiva (desactiva) un producto en Odoo (active=False)"""
+        return self.product_service.archive_product(product_id)
+
     def get_product_count(self) -> int:
         """Obtiene el número total de productos"""
         return self.product_service.get_product_count()

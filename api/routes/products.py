@@ -96,44 +96,70 @@ async def create_product(request: Request):
         logger.debug(f"Transformación Front→Odoo | Entrada: {product_data}")
         odoo_data = OdooProductService.front_to_odoo_product_dict(product_data)
         logger.debug(f"Transformación Front→Odoo | Salida: {odoo_data}")
-        product_created = odoo_service.create_product(ProductCreate(**odoo_data))
+        # Crear producto pasando el dict completo, sin ProductCreate restrictivo
+        product_created = odoo_service.create_product(odoo_data)
         if not product_created:
             raise HTTPException(status_code=500, detail="Error al crear el producto en Odoo")
-        return {"id": product_created.id}
+        template_id = getattr(product_created, 'template_id', None)
+        return {"id": product_created.id, "template_id": template_id}
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"Error no controlado: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error interno")
+        logger.error(f"Error creando producto: {str(e)}", exc_info=True)
+        # Mostrar el error real de Odoo si está disponible
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @router.put("/products/{product_id}", response_model=Product)
 async def update_product(
     product_id: int,
-    product: Product,
+    update_data: dict,
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
-    """Actualiza un producto existente (simulado)"""
-    # Verificar que el producto existe
+    """Actualiza un producto existente en Odoo (real)"""
+    import logging
+    logger = logging.getLogger("products_endpoint")
+    logger.info(f"Update request para producto {product_id}: {update_data}")
+    # Validar existencia
     existing_product = odoo_service.get_product_by_id(product_id)
     if not existing_product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    # Por ahora retornamos el producto actualizado
-    # En una implementación real, se actualizaría en Odoo
-    product.id = product_id
-    return product
+    # Solo tomar campos válidos para update
+    allowed_fields = [
+        'name', 'list_price', 'default_code', 'categ_id', 'active', 'type', 'standard_price',
+        'barcode', 'weight', 'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
+        'is_published', 'website_sequence', 'description_sale', 'description_purchase',
+        'seller_ids', 'product_tag_ids', 'public_categ_ids', 'pos_categ_ids', 'taxes_id', 'supplier_taxes_id'
+    ]
+    update_fields = {k: v for k, v in update_data.items() if k in allowed_fields}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No se proporcionaron campos válidos para actualizar")
+    # Validación y adaptación extra: si el campo es list_price y viene como string, convertir a float
+    if 'list_price' in update_fields and isinstance(update_fields['list_price'], str):
+        try:
+            update_fields['list_price'] = float(update_fields['list_price'].replace(",", "."))
+        except Exception:
+            raise HTTPException(status_code=400, detail="El campo 'list_price' debe ser un número válido.")
+    # Validar nombre si viene incluido
+    if 'name' in update_fields and (not isinstance(update_fields['name'], str) or not update_fields['name'].strip()):
+        raise HTTPException(status_code=400, detail="El campo 'name' es obligatorio y debe ser string.")
+    updated = odoo_service.update_product(product_id, update_fields)
+    if not updated:
+        raise HTTPException(status_code=500, detail="Error al actualizar producto en Odoo")
+    return updated
 
 @router.delete("/products/{product_id}")
 async def delete_product(
     product_id: int,
     current_user: User = Depends(auth_service.get_current_active_user)
 ):
-    """Elimina un producto (simulado)"""
-    # Verificar que el producto existe
+    """Archiva (desactiva) un producto en Odoo (real)"""
+    import logging
+    logger = logging.getLogger("products_endpoint")
+    logger.info(f"Archive request para producto {product_id}")
     existing_product = odoo_service.get_product_by_id(product_id)
     if not existing_product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    # Por ahora solo retornamos éxito
-    # En una implementación real, se eliminaría de Odoo
-    return {"message": "Producto eliminado correctamente"}
+    archived = odoo_service.archive_product(product_id)
+    if not archived:
+        raise HTTPException(status_code=500, detail="Error al archivar producto en Odoo")
+    return {"message": "Producto archivado correctamente"}

@@ -25,6 +25,7 @@ class TokenData(BaseModel):
 # Modelos de negocio - Basados en campos reales de Odoo 18
 class Product(BaseModel):
     id: int
+    template_id: Optional[int] = None  # ID de product.template para operaciones reales
     name: str  # Campo obligatorio en product.template
     default_code: Optional[str] = None  # Código del producto (opcional)
     list_price: Optional[float] = None  # Precio de venta (opcional)
