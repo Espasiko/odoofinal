@@ -124,6 +124,19 @@ async def update_product(
     if not existing_product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     # Solo tomar campos válidos para update
+    # --- MAPEO UNIVERSAL DE CAMPOS DE PRECIO ---
+    # Si llega 'precio' o 'price', mapear a 'list_price' (Odoo)
+    update_data = dict(update_data)  # Copia defensiva
+    if 'precio' in update_data:
+        try:
+            update_data['list_price'] = float(str(update_data['precio']).replace(",", "."))
+        except Exception:
+            raise HTTPException(status_code=400, detail="El campo 'precio' debe ser un número válido.")
+    elif 'price' in update_data:
+        try:
+            update_data['list_price'] = float(str(update_data['price']).replace(",", "."))
+        except Exception:
+            raise HTTPException(status_code=400, detail="El campo 'price' debe ser un número válido.")
     allowed_fields = [
         'name', 'list_price', 'default_code', 'categ_id', 'active', 'type', 'standard_price',
         'barcode', 'weight', 'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
@@ -131,6 +144,7 @@ async def update_product(
         'seller_ids', 'product_tag_ids', 'public_categ_ids', 'pos_categ_ids', 'taxes_id', 'supplier_taxes_id'
     ]
     update_fields = {k: v for k, v in update_data.items() if k in allowed_fields}
+    logger.info(f"Campos enviados a Odoo para update: {update_fields}")
     if not update_fields:
         raise HTTPException(status_code=400, detail="No se proporcionaron campos válidos para actualizar")
     # Validación y adaptación extra: si el campo es list_price y viene como string, convertir a float
