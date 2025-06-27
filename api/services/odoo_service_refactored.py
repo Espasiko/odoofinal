@@ -55,6 +55,10 @@ class OdooServiceRefactored:
         """Crea un nuevo proveedor en Odoo"""
         return self.provider_service.create_supplier(supplier_data)
     
+    def update_provider(self, provider_id: int, update_data: dict) -> Optional[Provider]:
+        """Actualiza un proveedor existente en Odoo"""
+        return self.provider_service.update_provider(provider_id, update_data)
+    
     # Métodos de clientes
     def get_customers(self, offset=0, limit=100) -> List[Customer]:
         """Obtiene clientes desde Odoo"""

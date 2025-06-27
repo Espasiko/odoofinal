@@ -47,8 +47,8 @@ class OdooProviderService(OdooBaseService):
                         country_name = p['country_id'][1]
                     elif isinstance(p['country_id'], str):
                         country_name = p['country_id']
-                
-                # Asegurar que los campos de texto sean strings
+
+                # Saneamiento de campos que pueden ser False en lugar de None o string vacío
                 email = p.get('email') or ''
                 if email is False:
                     email = ''
@@ -88,10 +88,10 @@ class OdooProviderService(OdooBaseService):
                 comment = p.get('comment') or ''
                 if comment is False:
                     comment = ''
-                
+
                 transformed_providers.append(Provider(
-                    id=p.get('id'),
-                    name=p.get('name', ''),
+                    id=p['id'],
+                    name=p.get('name', 'N/A'),
                     email=email,
                     phone=phone,
                     mobile=mobile,
@@ -105,113 +105,149 @@ class OdooProviderService(OdooBaseService):
                     vat=vat,
                     supplier_rank=p.get('supplier_rank', 0),
                     customer_rank=p.get('customer_rank', 0),
-                    is_company=p.get('is_company', True),
+                    is_company=p.get('is_company', False),
                     category_id=p.get('category_id', []),
                     comment=comment,
-                    active=p.get('active', True)
+                    active=p.get('active', False)
                 ))
-        
-            print(f"ODOO_SERVICE: Proveedores transformados: {len(transformed_providers)}")
+            print("ODOO_SERVICE: Transformación completada.")
             return transformed_providers
         except Exception as e:
-            print(f"ODOO_SERVICE: Error obteniendo proveedores: {str(e)}")
+            print(f"ODOO_SERVICE: Error conectando a Odoo o procesando datos: {e}")
             return self._get_fallback_providers()
-    
-    def get_supplier_by_name(self, name: str) -> Optional[Provider]:
-        """Busca un proveedor por nombre"""
+
+    def create_supplier(self, supplier_data) -> Optional[Provider]:
+        """
+        Crea un nuevo proveedor en Odoo.
+        Acepta un Pydantic model ProviderCreate o un dict.
+        Sanea los campos de string que puedan ser False o None a "".
+        """
+        import logging
+        logger = logging.getLogger("odoo_provider_service.create_supplier")
+
         try:
-            suppliers = self._execute_kw(
-                'res.partner',
-                'search_read',
-                [[['name', 'ilike', name], ['supplier_rank', '>', 0]]],
-                {'fields': ['id', 'name', 'email', 'phone', 'vat'], 'limit': 1}
-            )
+            if isinstance(supplier_data, ProviderCreate):
+                data = supplier_data.dict()
+            elif isinstance(supplier_data, dict):
+                data = supplier_data
+            else:
+                raise ValueError("El formato de datos del proveedor no es válido.")
+
+            # Saneamiento de campos string
+            all_string_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile', 'street', 'street2', 'city', 'zip'
+            ]
+            for k in all_string_fields:
+                if k in data and (data[k] is False or data[k] is None):
+                    data[k] = ""
             
-            if suppliers:
-                s = suppliers[0]
-                return Provider(
-                    id=s['id'],
-                    name=s['name'],
-                    email=s.get('email', ''),
-                    phone=s.get('phone', ''),
-                    vat=s.get('vat', ''),
-                    supplier_rank=1,
-                    is_company=True,
-                    active=True
-                )
-            return None
-            
-        except Exception as e:
-            print(f"Error buscando proveedor {name}: {e}")
-            return None
-    
-    def create_supplier(self, supplier_data: ProviderCreate) -> Optional[Provider]:
-        """Crea un nuevo proveedor en Odoo"""
-        try:
-            # Preparar datos del proveedor
-            vals = {
-                'name': supplier_data.name,
-                'is_company': True,
-                'supplier_rank': 1,
-                'customer_rank': 0,
-                'email': supplier_data.email or '',
-                'phone': supplier_data.phone or '',
-                'mobile': supplier_data.mobile or '',
-                'website': supplier_data.website or '',
-                'street': supplier_data.street or '',
-                'street2': supplier_data.street2 or '',
-                'city': supplier_data.city or '',
-                'zip': supplier_data.zip or '',
-                'vat': supplier_data.vat or '',
-                'comment': supplier_data.comment or '',
-                'active': supplier_data.active if supplier_data.active is not None else True
+            # Mapeo de claves del frontend (español) a Odoo (inglés) si es necesario
+            field_mapping = {
+                "nombre": "name",
+                "correo_electronico": "email",
+                "telefono": "phone",
+                "nif": "vat",
+                "sitio_web": "website",
+                "movil": "mobile",
+                "calle": "street",
+                "calle2": "street2",
+                "ciudad": "city",
+                "codigo_postal": "zip",
+                "comentarios": "comment",
+                "activo": "active"
             }
             
-            # Crear proveedor
-            supplier_id = self._execute_kw(
-                'res.partner',
-                'create',
-                [vals]
-            )
+            # Normalizar el diccionario de datos usando el mapeo
+            normalized_data = {}
+            for key, value in data.items():
+                odoo_key = field_mapping.get(key, key)
+                normalized_data[odoo_key] = value
+
+            # Construir el diccionario de valores para Odoo
+            vals = {}
+            all_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile',
+                'street', 'street2', 'city', 'zip',
+                'active', 'is_company', 'supplier_rank', 'customer_rank'
+            ]
+
+            for field in all_fields:
+                if field in normalized_data and normalized_data[field] is not None:
+                    vals[field] = normalized_data[field]
+
+            # Establecer valores por defecto para campos clave si no se proporcionan
+            vals.setdefault('is_company', True)
+            vals.setdefault('supplier_rank', 1)
+            vals.setdefault('customer_rank', 0)
+            vals.setdefault('active', True)
+
+            # Validar que el nombre no esté vacío
+            if not vals.get('name'):
+                logger.error("Error al crear proveedor: el campo 'name' es obligatorio.")
+                return None
             
-            if supplier_id:
-                # Obtener el proveedor creado
-                created_supplier = self._execute_kw(
-                    'res.partner',
-                    'read',
-                    [supplier_id],
-                    {'fields': ['id', 'name', 'email', 'phone', 'mobile', 'website',
-                               'street', 'street2', 'city', 'zip', 'vat', 'comment', 'active']}
-                )
-                
-                if created_supplier:
-                    s = created_supplier[0]
-                    return Provider(
-                        id=s['id'],
-                        name=s['name'],
-                        email=s.get('email', ''),
-                        phone=s.get('phone', ''),
-                        mobile=s.get('mobile', ''),
-                        website=s.get('website', ''),
-                        street=s.get('street', ''),
-                        street2=s.get('street2', ''),
-                        city=s.get('city', ''),
-                        zip=s.get('zip', ''),
-                        vat=s.get('vat', ''),
-                        comment=s.get('comment', ''),
-                        supplier_rank=1,
-                        customer_rank=0,
-                        is_company=True,
-                        active=s.get('active', True)
-                    )
+            logger.info(f"Creando proveedor en Odoo con valores: {vals}")
+            provider_id = self._execute_kw('res.partner', 'create', [vals])
             
-            print("Error: No se pudo crear el proveedor")
-            return None
-                
+            if not provider_id:
+                logger.error("Error: Odoo no devolvió un ID para el nuevo proveedor.")
+                return None
+
+            logger.info(f"Proveedor creado con ID: {provider_id}. Leyendo datos de vuelta...")
+            
+            # Leer el proveedor recién creado para devolver el objeto completo
+            created_provider_data = self._execute_kw('res.partner', 'read', [provider_id], {'fields': list(vals.keys())})
+            
+            if not created_provider_data:
+                logger.error(f"No se pudo leer el proveedor con ID {provider_id} después de crearlo.")
+                return None
+            
+            # Devolver como instancia del modelo Provider
+            return Provider(**created_provider_data[0])
+
         except Exception as e:
-            print(f"Error creando proveedor: {e}")
+            logger.error(f"Error creando proveedor: {e}")
             return None
-    
+
+    def update_provider(self, provider_id: int, update_data: dict) -> Optional[Provider]:
+        """
+        Actualiza un proveedor existente en Odoo. Sanea campos como create_supplier.
+        """
+        import logging
+        logger = logging.getLogger("odoo_provider_service.update_provider")
+        try:
+            # Saneo de campos string
+            all_string_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile', 'street', 'street2', 'city', 'zip'
+            ]
+            for k in all_string_fields:
+                if k in update_data and (update_data[k] is False or update_data[k] is None):
+                    update_data[k] = ""
+
+            # Preparar vals solo con campos que vienen en la petición
+            vals = {}
+            updatable_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile',
+                'street', 'street2', 'city', 'zip',
+                'active', 'is_company', 'supplier_rank', 'customer_rank'
+            ]
+
+            for field in updatable_fields:
+                if field in update_data:
+                    vals[field] = update_data[field]
+
+            # Actualizar en Odoo
+            self._execute_kw('res.partner', 'write', [[provider_id], vals])
+
+            # Leer el proveedor actualizado y devolverlo
+            provider = self._execute_kw('res.partner', 'read', [[provider_id]], {'fields': list(vals.keys())})
+            if provider:
+                return Provider(**provider[0])
+            return None
+        except Exception as e:
+            logger.error(f"Error actualizando proveedor {provider_id}: {e}")
+            return None
+
     def _get_fallback_providers(self) -> List[Provider]:
         """Datos de proveedores de respaldo"""
         return [
