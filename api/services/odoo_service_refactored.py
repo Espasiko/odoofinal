@@ -30,6 +30,14 @@ class OdooServiceRefactored:
         """Crea un nuevo producto en Odoo"""
         return self.product_service.create_product(product_data)
     
+    def update_product(self, product_id: int, update_data: dict) -> Optional[Product]:
+        """Actualiza un producto existente en Odoo"""
+        return self.product_service.update_product(product_id, update_data)
+
+    def archive_product(self, product_id: int) -> bool:
+        """Archiva (desactiva) un producto en Odoo (active=False)"""
+        return self.product_service.archive_product(product_id)
+
     def get_product_count(self) -> int:
         """Obtiene el número total de productos"""
         return self.product_service.get_product_count()
@@ -46,6 +54,10 @@ class OdooServiceRefactored:
     def create_supplier(self, supplier_data: ProviderCreate) -> Optional[Provider]:
         """Crea un nuevo proveedor en Odoo"""
         return self.provider_service.create_supplier(supplier_data)
+    
+    def update_provider(self, provider_id: int, update_data: dict) -> Optional[Provider]:
+        """Actualiza un proveedor existente en Odoo"""
+        return self.provider_service.update_provider(provider_id, update_data)
     
     # Métodos de clientes
     def get_customers(self, offset=0, limit=100) -> List[Customer]:

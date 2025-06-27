@@ -25,6 +25,7 @@ class TokenData(BaseModel):
 # Modelos de negocio - Basados en campos reales de Odoo 18
 class Product(BaseModel):
     id: int
+    template_id: Optional[int] = None  # ID de product.template para operaciones reales
     name: str  # Campo obligatorio en product.template
     default_code: Optional[str] = None  # Código del producto (opcional)
     list_price: Optional[float] = None  # Precio de venta (opcional)
@@ -219,79 +220,95 @@ class CustomerCreate(BaseModel):
     customer: bool = True
     supplier: bool = False
     status: Optional[str] = "Activo"  # Campo legacy
+    supplier: bool = True  # Calculado desde supplier_rank
+
+from pydantic import validator
+from typing import Union
 
 class Provider(BaseModel):
     id: int
-    name: str  # Campo obligatorio en res.partner
-    email: Optional[str] = None  # Email del proveedor
-    phone: Optional[str] = None  # Teléfono del proveedor
-    is_company: bool = True  # Es empresa (True para proveedores)
-    supplier_rank: int = 1  # Rango de proveedor (>0 para ser proveedor)
-    
-    # NUEVOS CAMPOS OBLIGATORIOS DE ODOO
-    external_id: Optional[str] = None  # External ID único
-    ref: Optional[str] = None  # Referencia interna
-    vat: Optional[str] = None  # NIF/CIF
-    website: Optional[str] = None  # Sitio web
-    
-    # CAMPOS DE CONTACTO AMPLIADOS
-    mobile: Optional[str] = None  # Teléfono móvil
-    function: Optional[str] = None  # Cargo/función
-    title: Optional[int] = None  # Título (Sr., Sra., etc.)
-    
-    # CAMPOS DE DIRECCIÓN COMPLETOS
-    street: Optional[str] = None  # Dirección
-    street2: Optional[str] = None  # Dirección 2
-    city: Optional[str] = None  # Ciudad
-    zip: Optional[str] = None  # Código postal
-    country_id: Optional[int] = None  # ID del país
-    state_id: Optional[int] = None  # ID del estado/provincia
-    
-    # CAMPOS DE CONFIGURACIÓN COMERCIAL
-    customer_rank: int = 0  # Rango de cliente
-    category_id: Optional[List[int]] = []  # Categorías de contacto
-    user_id: Optional[int] = None  # Comercial asignado
-    team_id: Optional[int] = None  # Equipo de ventas
-    
-    # CAMPOS FINANCIEROS
-    property_payment_term_id: Optional[int] = None  # Plazo de pago
-    property_supplier_payment_term_id: Optional[int] = None  # Plazo pago proveedor
-    property_account_payable_id: Optional[int] = None  # Cuenta por pagar
-    property_account_receivable_id: Optional[int] = None  # Cuenta por cobrar
-    
-    # CAMPOS DE CONFIGURACIÓN
-    active: bool = True  # Activo
-    lang: Optional[str] = "es_ES"  # Idioma
-    tz: Optional[str] = "Europe/Madrid"  # Zona horaria
-    comment: Optional[str] = None  # Notas internas
-    
-    # Campos de compatibilidad
-    country: Optional[str] = None  # Nombre del país para mostrar
-    customer: bool = False  # Calculado desde customer_rank
-    supplier: bool = True  # Calculado desde supplier_rank
+    name: str
+    email: Optional[Union[str, bool, None]] = None
+    phone: Optional[Union[str, bool, None]] = None
+    is_company: bool = True
+    supplier_rank: int = 1
+    external_id: Optional[Union[str, bool, None]] = None
+    ref: Optional[Union[str, bool, None]] = None
+    vat: Optional[Union[str, bool, None]] = None
+    website: Optional[Union[str, bool, None]] = None
+    mobile: Optional[Union[str, bool, None]] = None
+    function: Optional[Union[str, bool, None]] = None
+    title: Optional[int] = None
+    street: Optional[Union[str, bool, None]] = None
+    street2: Optional[Union[str, bool, None]] = None
+    city: Optional[Union[str, bool, None]] = None
+    zip: Optional[Union[str, bool, None]] = None
+    country_id: Optional[int] = None
+    state_id: Optional[int] = None
+    customer_rank: int = 0
+    category_id: Optional[List[int]] = []
+    user_id: Optional[int] = None
+    team_id: Optional[int] = None
+    property_payment_term_id: Optional[int] = None
+    property_supplier_payment_term_id: Optional[int] = None
+    property_account_payable_id: Optional[int] = None
+    property_account_receivable_id: Optional[int] = None
+    active: bool = True
+    lang: Optional[Union[str, bool, None]] = "es_ES"
+    tz: Optional[Union[str, bool, None]] = "Europe/Madrid"
+    comment: Optional[Union[str, bool, None]] = None
+    country: Optional[Union[str, bool, None]] = None
+    customer: bool = False
+    supplier: bool = True
+
+    @validator('*', pre=True)
+    def false_to_empty(cls, v):
+        if v is False or v is None:
+            return ""
+        return v
 
 class ProviderCreate(BaseModel):
     name: str  # Campo obligatorio
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    street: Optional[str] = None
-    city: Optional[str] = None
+    email: Optional[Union[str, bool, None]] = None
+    phone: Optional[Union[str, bool, None]] = None
+    street: Optional[Union[str, bool, None]] = None
+    city: Optional[Union[str, bool, None]] = None
     country_id: Optional[int] = None
     customer_rank: int = 0  # No es cliente
     supplier_rank: int = 1  # Es proveedor
     is_company: bool = True  # Por defecto empresa
     # Campos de compatibilidad
-    country: Optional[str] = None
+    country: Optional[Union[str, bool, None]] = None
     customer: bool = False
     supplier: bool = True
 
+    @validator('*', pre=True)
+    def false_to_empty(cls, v):
+        if v is False or v is None:
+            return ""
+        return v
+
 class ProviderUpdate(BaseModel):
-    name: Optional[str] = None
-    tax_calculation_method: Optional[str] = None
-    discount_type: Optional[str] = None
-    payment_term: Optional[str] = None
-    incentive_rules: Optional[str] = None
-    status: Optional[str] = None
+    name: Optional[Union[str, bool, None]] = None
+    tax_calculation_method: Optional[Union[str, bool, None]] = None
+    comment: Optional[Union[str, bool, None]] = None
+    phone: Optional[Union[str, bool, None]] = None
+    email: Optional[Union[str, bool, None]] = None
+    street: Optional[Union[str, bool, None]] = None
+    city: Optional[Union[str, bool, None]] = None
+    country_id: Optional[int] = None
+    customer_rank: Optional[int] = None
+    supplier_rank: Optional[int] = None
+    is_company: Optional[bool] = None
+    country: Optional[Union[str, bool, None]] = None
+    customer: Optional[bool] = None
+    supplier: Optional[bool] = None
+
+    @validator('*', pre=True)
+    def false_to_empty(cls, v):
+        if v is False or v is None:
+            return ""
+        return v
 
 # Modelos de respuesta
 class SessionResponse(BaseModel):

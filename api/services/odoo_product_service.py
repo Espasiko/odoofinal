@@ -1,9 +1,147 @@
 from typing import List, Optional
 from .odoo_base_service import OdooBaseService
 from ..models.schemas import Product, ProductCreate
+import logging
 
 class OdooProductService(OdooBaseService):
     """Servicio para gestión de productos en Odoo"""
+
+    def update_product(self, product_id: int, update_data: dict) -> Optional[Product]:
+        """
+        Actualiza un producto existente en Odoo usando write().
+        update_data: dict con campos a actualizar (formato Odoo, e.g. {'name': 'Nuevo nombre'})
+        """
+        import logging
+        logger = logging.getLogger("odoo_product_update")
+        try:
+            if not self._models:
+                self._get_connection()
+            logger.info(f"Actualizando producto {product_id} con datos: {update_data}")
+            # Validar existencia
+            existing = self.get_product_by_id(product_id)
+            if not existing:
+                logger.error(f"Producto {product_id} no encontrado.")
+                return None
+            # Realizar update
+            res = self._execute_kw('product.template', 'write', [[product_id], update_data])
+            if not res:
+                logger.error(f"Fallo al actualizar producto {product_id} en Odoo.")
+                return None
+            logger.info(f"Producto {product_id} actualizado correctamente.")
+            # Leer producto actualizado
+            return self.get_product_by_id(product_id)
+        except Exception as e:
+            logger.error(f"Error actualizando producto {product_id}: {str(e)}")
+            return None
+
+    def archive_product(self, product_id: int) -> bool:
+        """
+        Archiva (desactiva) un producto en Odoo (active=False).
+        """
+        import logging
+        logger = logging.getLogger("odoo_product_archive")
+        try:
+            if not self._models:
+                self._get_connection()
+            # Validar existencia
+            existing = self.get_product_by_id(product_id)
+            if not existing:
+                logger.error(f"Producto {product_id} no encontrado para archivar.")
+                return False
+            # Si ya está archivado, no hacer nada
+            if hasattr(existing, 'active') and not existing.active:
+                logger.info(f"Producto {product_id} ya estaba archivado.")
+                return True
+            res = self._execute_kw('product.template', 'write', [[product_id], {'active': False}])
+            if not res:
+                logger.error(f"Fallo al archivar producto {product_id} en Odoo.")
+                return False
+            logger.info(f"Producto {product_id} archivado correctamente.")
+            return True
+        except Exception as e:
+            logger.error(f"Error archivando producto {product_id}: {str(e)}")
+            return False
+
+
+    @staticmethod
+    def front_to_odoo_product_dict(front_data: dict) -> dict:
+        """
+        Adapta y valida datos de producto recibidos del frontend al formato dict para Odoo 18.
+        - Mapea campos: 'name'/'nombre' -> 'name', 'price'/'precio' -> 'list_price', 'code'/'codigo' -> 'default_code', 'category'/'categoria' -> 'categ_id', 'proveedor.id' -> 'supplier_id', 'stock' -> 'stock', 'image_url' -> 'image_url'.
+        - Valida tipos: 'precio' debe ser float, 'proveedor.id' debe ser int (o convertible).
+        - Si 'proveedor' no está presente, asigna False a 'supplier_id'.
+        - Usa logging para registrar la transformación y errores.
+        - Lanza HTTPException(400) si hay error de validación.
+        """
+        import logging
+        from fastapi import HTTPException
+
+        logger = logging.getLogger("odoo_product_adapter")
+        logger.debug(f"Transformando datos del frontend: {front_data}")
+
+        result = {}
+        # Mapear nombre (soporta 'nombre' y 'name')
+        nombre = front_data.get("nombre") or front_data.get("name")
+        if not isinstance(nombre, str) or not nombre.strip():
+            logger.error(f"Campo 'nombre'/'name' inválido: {nombre}")
+            raise HTTPException(status_code=400, detail="Campo 'nombre' es obligatorio y debe ser string.")
+        result["name"] = nombre.strip()
+
+        # Mapear precio (soporta 'precio' y 'price')
+        precio = front_data.get("precio") if front_data.get("precio") is not None else front_data.get("price")
+        try:
+            if isinstance(precio, str):
+                precio = precio.replace(",", ".")
+                precio = float(precio)
+            elif not isinstance(precio, (float, int)):
+                raise ValueError
+            result["list_price"] = float(precio)
+        except Exception:
+            logger.error(f"Campo 'precio'/'price' inválido: {precio}")
+            raise HTTPException(status_code=400, detail="Campo 'precio' es obligatorio y debe ser un número válido.")
+
+        # Mapear código interno (soporta 'codigo' y 'code')
+        codigo = front_data.get("codigo") or front_data.get("code")
+        if codigo:
+            if not isinstance(codigo, str):
+                codigo = str(codigo)
+            result["default_code"] = codigo.strip()
+
+        # Mapear categoría (soporta 'categoria' y 'category')
+        categoria = front_data.get("categoria") or front_data.get("category")
+        if categoria:
+            # Si es un int, lo pasamos directo; si es string, lo dejamos como está (Odoo puede aceptar ambos)
+            result["categ_id"] = categoria
+
+        # Mapear proveedor
+        proveedor = front_data.get("proveedor")
+        supplier_id = False
+        if proveedor is not None:
+            prov_id = proveedor.get("id") if isinstance(proveedor, dict) else None
+            if prov_id is not None:
+                try:
+                    supplier_id = int(prov_id)
+                except Exception:
+                    logger.error(f"Campo 'proveedor.id' inválido: {prov_id}")
+                    raise HTTPException(status_code=400, detail="Campo 'proveedor.id' debe ser un entero.")
+        result["supplier_id"] = supplier_id
+
+        # Mapear stock (opcional)
+        stock = front_data.get("stock")
+        if stock is not None:
+            try:
+                result["stock"] = int(stock)
+            except Exception:
+                logger.warning(f"Campo 'stock' inválido: {stock}")
+
+        # Mapear imagen (opcional)
+        image_url = front_data.get("image_url")
+        if image_url:
+            result["image_url"] = image_url
+
+        logger.info(f"Datos transformados para Odoo: {result}")
+        return result
+
     
     def get_products(self, offset=0, limit=100):
         """Obtiene productos desde Odoo"""
@@ -215,31 +353,69 @@ class OdooProductService(OdooBaseService):
                 return self._get_fallback_products()
     
     def get_product_by_id(self, product_id: int) -> Optional[Product]:
-        """Obtiene un producto específico por ID"""
+        """Obtiene un producto específico por ID (inteligente: busca en template y product, y suma stock real)."""
         try:
+            # 1. Intentar leer como product.template (es lo más robusto para updates y frontend)
+            p = self._execute_kw(
+                'product.template',
+                'read',
+                [[product_id]],
+                {'fields': ['id', 'name', 'default_code', 'categ_id', 'list_price']}
+            )
+            if p and isinstance(p, list) and len(p) > 0:
+                p = p[0]
+                category_name = self._get_category_name(p.get('categ_id'))
+                # 2. Buscar el stock REAL sumando stock_quant
+                stock = 0
+                try:
+                    # Buscar todos los product.product con este template
+                    variants = self._execute_kw(
+                        'product.product',
+                        'search_read',
+                        [[('product_tmpl_id', '=', product_id)]],
+                        {'fields': ['id']}
+                    )
+                    variant_ids = [v['id'] for v in variants]
+                    if variant_ids:
+                        # Buscar stock en stock.quant
+                        stock_quants = self._execute_kw(
+                            'stock.quant',
+                            'search_read',
+                            [[('product_id', 'in', variant_ids)]],
+                            {'fields': ['quantity']}
+                        )
+                        stock = sum(float(q['quantity']) for q in stock_quants if 'quantity' in q)
+                except Exception as e:
+                    print(f"Error calculando stock real para template {product_id}: {e}")
+                return Product(
+                    id=p['id'],
+                    name=p['name'],
+                    code=p.get('default_code', ''),
+                    category=category_name,
+                    price=p.get('list_price', 0.0),
+                    stock=stock,
+                    image_url=f"https://example.com/images/product_{p['id']}.jpg"
+                )
+            # 3. Si no existe como template, intentar como product.product (legacy)
             p = self._execute_kw(
                 'product.product',
                 'read',
                 [product_id],
-                {'fields': ['id', 'name', 'default_code', 'list_price', 'categ_id', 'qty_available']}
+                {'fields': ['id', 'name', 'default_code', 'list_price', 'categ_id']}
             )
-            
-            if not p:
-                return self._get_fallback_product_by_id(product_id)
-            
-            p = p[0]  # read devuelve una lista
-            category_name = self._get_category_name(p.get('categ_id'))
-            
-            return Product(
-                id=p['id'],
-                name=p['name'],
-                code=p.get('default_code', ''),
-                category=category_name,
-                price=p.get('list_price', 0.0),
-                stock=int(p.get('qty_available') or 0),
-                image_url=f"https://example.com/images/product_{p['id']}.jpg"
-            )
-            
+            if p and isinstance(p, list) and len(p) > 0:
+                p = p[0]
+                category_name = self._get_category_name(p.get('categ_id'))
+                return Product(
+                    id=p['id'],
+                    name=p['name'],
+                    code=p.get('default_code', ''),
+                    category=category_name,
+                    price=p.get('list_price', 0.0),
+                    stock=0,
+                    image_url=f"https://example.com/images/product_{p['id']}.jpg"
+                )
+            return self._get_fallback_product_by_id(product_id)
         except Exception as e:
             print(f"Error obteniendo producto {product_id}: {e}")
             return self._get_fallback_product_by_id(product_id)
@@ -275,7 +451,24 @@ class OdooProductService(OdooBaseService):
             
             if product_id:
                 # Obtener el producto creado
-                return self.get_product_by_id(product_id)
+                product = self.get_product_by_id(product_id)
+                # Obtener el template_id real desde product.product
+                template_id = None
+                try:
+                    product_data = self._execute_kw(
+                        'product.product',
+                        'read',
+                        [product_id],
+                        {'fields': ['product_tmpl_id']}
+                    )
+                    if product_data and 'product_tmpl_id' in product_data[0]:
+                        template_id = product_data[0]['product_tmpl_id'][0]
+                except Exception as e:
+                    print(f"Error obteniendo template_id para product_id {product_id}: {e}")
+                # Adjunta el template_id como atributo extra (hack rápido)
+                if product:
+                    product.template_id = template_id
+                return product
             else:
                 print("Error: No se pudo crear el producto")
                 return None
