@@ -39,6 +39,8 @@ class Config:
     
     # Configuración de Mistral OCR
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
+    # Configuración de Mistral LLM (Excel→JSON)
+    MISTRAL_LLM_API_KEY: str = os.getenv("MISTRAL_LLM_API_KEY", "")
     
     @classmethod
     def get_odoo_config(cls) -> dict:
