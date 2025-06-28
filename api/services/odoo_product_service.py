@@ -22,6 +22,7 @@ class OdooProductService(OdooBaseService):
             if not existing:
                 logger.error(f"Producto {product_id} no encontrado.")
                 return None
+
             # Realizar update
             res = self._execute_kw('product.template', 'write', [[product_id], update_data])
             if not res:
@@ -572,3 +573,6 @@ class OdooProductService(OdooBaseService):
             if product.id == product_id:
                 return product
         return None
+
+# Instancia global para evitar errores de importación circular
+odoo_product_service = OdooProductService()
