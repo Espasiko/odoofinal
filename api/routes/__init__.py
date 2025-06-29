@@ -6,7 +6,7 @@ from .providers import router as providers_router
 from .dashboard import router as dashboard_router
 from .customers import router as customers_router
 from .sales import router as sales_router
-from .tasks import router as tasks_router
+
 from .ocr import router as ocr_router
 
 __all__ = [
@@ -16,6 +16,6 @@ __all__ = [
     "dashboard_router",
     "customers_router",
     "sales_router",
-    "tasks_router",
+
     "ocr_router"
 ]

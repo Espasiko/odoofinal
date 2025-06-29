@@ -94,3 +94,7 @@ class OdooServiceRefactored:
     def get_category_name(self, categ_id):
         """Obtiene el nombre de una categoría"""
         return self.product_service._get_category_name(categ_id)
+
+    def find_or_create_category(self, category_name: str) -> int:
+        """Busca o crea una categoría de producto y devuelve su ID."""
+        return self.product_service.find_or_create_category(category_name)

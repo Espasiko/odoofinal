@@ -1,7 +1,6 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any, Generic, TypeVar
+from pydantic import BaseModel, validator
+from typing import List, Optional, Dict, Any, Generic, TypeVar, Union
 from datetime import datetime
-from pydantic import BaseModel
 
 T = TypeVar('T')
 
@@ -22,112 +21,68 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-# Modelos de negocio - Basados en campos reales de Odoo 18
-class Product(BaseModel):
-    id: int
-    template_id: Optional[int] = None  # ID de product.template para operaciones reales
-    name: str  # Campo obligatorio en product.template
-    default_code: Optional[str] = None  # Código del producto (opcional)
-    list_price: Optional[float] = None  # Precio de venta (opcional)
-    categ_id: Optional[int] = None  # ID de categoría (opcional)
-    active: bool = True  # Estado activo/inactivo
-    type: Optional[str] = "consu"  # Tipo de producto: consu, service, product
-    
-    # NUEVOS CAMPOS OBLIGATORIOS DE ODOO
-    external_id: Optional[str] = None  # External ID único
-    standard_price: Optional[float] = None  # Cost (precio de coste)
-    barcode: Optional[str] = None  # Código de barras EAN-13
-    weight: Optional[float] = None  # Peso del producto
-    
-    # CAMPOS DE CONFIGURACIÓN AVANZADA
-    sale_ok: bool = True  # Disponible para venta
-    purchase_ok: bool = True  # Disponible para compra
-    available_in_pos: bool = True  # Disponible en TPV
-    to_weight: bool = False  # Producto a peso
-    is_published: bool = True  # Publicado en web
-    website_sequence: Optional[int] = 10  # Secuencia en web
-    
-    # CAMPOS DE DESCRIPCIÓN
-    description_sale: Optional[str] = None  # Descripción de venta
-    description_purchase: Optional[str] = None  # Descripción de compra
-    sales_description: Optional[str] = None  # Descripción para ventas
-    
-    # CAMPOS DE CATEGORIZACIÓN
-    seller_ids: Optional[List[int]] = []  # IDs de proveedores
-    product_tag_ids: Optional[List[int]] = []  # Etiquetas del producto
-    public_categ_ids: Optional[List[int]] = []  # Categorías públicas
-    pos_categ_ids: Optional[List[int]] = []  # Categorías TPV
-    
-    # CAMPOS DE IMPUESTOS
-    taxes_id: Optional[List[int]] = []  # Impuestos de venta
-    supplier_taxes_id: Optional[List[int]] = []  # Impuestos de compra
-    
-    # Campos calculados para compatibilidad con frontend
-    qty_available: Optional[float] = None  # Stock disponible de Odoo
-    code: Optional[str] = None  # Alias para default_code
-    price: Optional[float] = None  # Alias para list_price
-    category: Optional[str] = None  # Nombre de categoría para mostrar
-    stock: Optional[int] = None  # Stock calculado
-    image_url: Optional[str] = None  # URL de imagen
-    product_name: Optional[str] = None  # Nombre del producto para frontend
-    location: Optional[str] = None  # Ubicación del producto
-    last_updated: Optional[str] = None  # Última actualización
+# --- Modelos de Producto Refactorizados ---
 
-class ProductCreate(BaseModel):
-    name: str  # Campo obligatorio
-    default_code: Optional[str] = None  # Código del producto
-    list_price: Optional[float] = None  # Precio de venta
-    categ_id: Optional[int] = None  # ID de categoría
-    active: bool = True  # Estado activo
-    type: Optional[str] = "consu"  # Tipo de producto
-    
-    # NUEVOS CAMPOS DE ODOO
-    external_id: Optional[str] = None  # External ID único
-    standard_price: Optional[float] = None  # Cost (precio de coste)
-    barcode: Optional[str] = None  # Código de barras EAN-13
-    weight: Optional[float] = None  # Peso del producto
-    sale_ok: bool = True  # Disponible para venta
-    purchase_ok: bool = True  # Disponible para compra
-    available_in_pos: bool = True  # Disponible en TPV
-    to_weight: bool = False  # Producto a peso
-    is_published: bool = True  # Publicado en web
-    website_sequence: Optional[int] = 10  # Secuencia en web
-    description_sale: Optional[str] = None  # Descripción de venta
-    description_purchase: Optional[str] = None  # Descripción de compra
-    sales_description: Optional[str] = None  # Descripción para ventas
-    
-    # Campos de compatibilidad
-    code: Optional[str] = None  # Alias para default_code
-    price: Optional[float] = None  # Alias para list_price
-    category: Optional[str] = None  # Para búsqueda de categoría por nombre
-
-class ProductUpdate(BaseModel):
+# Modelo Base con todos los campos opcionales para herencia
+class ProductBase(BaseModel):
     name: Optional[str] = None
     default_code: Optional[str] = None
     list_price: Optional[float] = None
+    standard_price: Optional[float] = None  # Coste
     categ_id: Optional[int] = None
-    active: Optional[bool] = None
-    type: Optional[str] = None
-    
-    # NUEVOS CAMPOS DE ODOO
-    external_id: Optional[str] = None
-    standard_price: Optional[float] = None
     barcode: Optional[str] = None
+    active: Optional[bool] = True
+    type: Optional[str] = "consu"
+    external_id: Optional[str] = None
     weight: Optional[float] = None
-    sale_ok: Optional[bool] = None
-    purchase_ok: Optional[bool] = None
-    available_in_pos: Optional[bool] = None
-    to_weight: Optional[bool] = None
-    is_published: Optional[bool] = None
-    website_sequence: Optional[int] = None
+    sale_ok: Optional[bool] = True
+    purchase_ok: Optional[bool] = True
+    available_in_pos: Optional[bool] = True
+    to_weight: Optional[bool] = False
+    is_published: Optional[bool] = True
+    website_sequence: Optional[int] = 10
     description_sale: Optional[str] = None
     description_purchase: Optional[str] = None
     sales_description: Optional[str] = None
-    
-    # Campos de compatibilidad
+    public_categ_ids: Optional[List[int]] = []
+    seller_ids: Optional[List[Dict[str, Any]]] = []
+    taxes_id: Optional[List[int]] = []
+    supplier_taxes_id: Optional[List[int]] = []
+    property_account_income_id: Optional[int] = None
+    property_account_expense_id: Optional[int] = None
+    # Campos de compatibilidad para el frontend
     code: Optional[str] = None
     price: Optional[float] = None
     category: Optional[str] = None
+    stock: Optional[int] = None
+    image_url: Optional[str] = None
+    product_name: Optional[str] = None
+    location: Optional[str] = None
+    last_updated: Optional[str] = None
+
+# Modelo para leer un producto de Odoo (con campos obligatorios de solo lectura)
+class Product(ProductBase):
+    id: int
+    name: str  # El nombre es obligatorio al leer un producto
+    template_id: Optional[int] = None
+    qty_available: Optional[float] = None
+    virtual_available: Optional[float] = None
+    incoming_qty: Optional[float] = None
+    outgoing_qty: Optional[float] = None
+    create_date: Optional[datetime] = None
+    write_date: Optional[datetime] = None
+    product_tag_ids: Optional[List[int]] = []
+    pos_categ_ids: Optional[List[int]] = []
+
+# Modelo para crear un producto en Odoo
+class ProductCreate(ProductBase):
+    name: str  # El nombre es obligatorio para crear un producto
+
+# Modelo para actualizar un producto en Odoo (hereda todos los campos opcionales)
+class OdooProductUpdate(ProductBase):
+    pass
+
+# --- Fin de Modelos de Producto Refactorizados ---
 
 class InventoryItem(BaseModel):
     id: int
@@ -222,8 +177,8 @@ class CustomerCreate(BaseModel):
     status: Optional[str] = "Activo"  # Campo legacy
     supplier: bool = True  # Calculado desde supplier_rank
 
-from pydantic import validator
-from typing import Union
+
+
 
 class Provider(BaseModel):
     id: int

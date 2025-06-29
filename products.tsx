@@ -1,17 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, message } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Table, Card, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, message, Spin, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import type { TablePaginationConfig } from 'antd/es/table';
 import { odooService } from './src/services/odooService';
-
-interface Product {
-  id: number;
-  name: string;
-  code: string;
-  category: string;
-  price: number;
-  stock: number;
-  image_url: string;
-}
+import { Product, PaginatedResponse } from './src/services/odooService';
 
 const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,22 +11,43 @@ const Products: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
+  const [pagination, setPagination] = useState<TablePaginationConfig>({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+    showSizeChanger: true,
+    showQuickJumper: true,
+    showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} productos`,
+  });
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async (params: TablePaginationConfig = pagination) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await odooService.getProducts();
-      setProducts(data);
+      const response: PaginatedResponse<Product> = await odooService.getProducts(
+        params.current,
+        params.pageSize
+      );
+      setProducts(response.data);
+      setPagination(prev => ({
+        ...prev,
+        current: response.page,
+        pageSize: response.limit, // 'limit' en la respuesta, 'pageSize' en antd
+        total: response.total,
+      }));
     } catch (error) {
       console.error('Error fetching products:', error);
       message.error('Error al cargar productos');
     } finally {
       setLoading(false);
     }
+  }, [pagination]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleTableChange = (newPagination: TablePaginationConfig) => {
+    fetchProducts(newPagination);
   };
 
   const showModal = (product?: Product) => {
@@ -56,49 +69,36 @@ const Products: React.FC = () => {
   const handleSubmit = async (values: any) => {
     try {
       if (editingProduct) {
-        // Actualizar producto existente
-        const updatedProduct = await odooService.updateProduct(editingProduct.id, values);
-        if (updatedProduct) {
-          setProducts(products.map(p => p.id === editingProduct.id ? updatedProduct : p));
-          message.success('Producto actualizado exitosamente');
-        } else {
-          message.error('Error al actualizar el producto');
-        }
+        await odooService.updateProduct(editingProduct.id, values);
       } else {
-        // Crear nuevo producto
-        const newProduct = await odooService.createProduct(values);
-        if (newProduct) {
-          setProducts([...products, newProduct]);
-          message.success('Producto creado exitosamente');
-        } else {
-          message.error('Error al crear el producto');
-        }
+        await odooService.createProduct(values);
       }
+      fetchProducts(pagination); // Recargar la tabla para ver los cambios
       setIsModalVisible(false);
       setEditingProduct(null);
       form.resetFields();
     } catch (error) {
+      // El servicio ya muestra un mensaje de error, solo logueamos aquí
       console.error('Error submitting product:', error);
-      message.error('Error al procesar el producto');
+      // No cerramos el modal en caso de error para que el usuario pueda corregir
     }
   };
 
   const handleDelete = (product: Product) => {
     Modal.confirm({
-      title: '¿Estás seguro de que quieres eliminar este producto?',
+      title: '¿Estás seguro de que quieres archivar este producto?',
       icon: <ExclamationCircleOutlined />,
-      content: `Se eliminará el producto: ${product.name}`,
-      okText: 'Sí, eliminar',
+      content: `Se archivará el producto: ${product.name}`,
+      okText: 'Sí, archivar',
       okType: 'danger',
       cancelText: 'Cancelar',
       onOk: async () => {
         try {
-          await odooService.deleteProduct(product.id);
-          setProducts(products.filter(p => p.id !== product.id));
-          message.success('Producto eliminado exitosamente');
+          await odooService.deleteProduct(product.id); // 'delete' en el servicio archiva en Odoo
+          fetchProducts(pagination); // Recargar la tabla para ver los cambios
         } catch (error) {
+          // El servicio ya muestra un mensaje de error, solo logueamos aquí
           console.error('Error deleting product:', error);
-          message.error('Error al eliminar el producto');
         }
       },
     });
@@ -110,42 +110,34 @@ const Products: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 80,
+      sorter: true,
     },
     {
       title: 'Nombre',
       dataIndex: 'name',
       key: 'name',
+      sorter: true,
     },
     {
       title: 'Código',
-      dataIndex: 'code',
-      key: 'code',
+      dataIndex: 'default_code',
+      key: 'default_code',
+      render: (code: string) => code || <Tag>N/A</Tag>,
     },
     {
-      title: 'Categoría',
-      dataIndex: 'category',
-      key: 'category',
-    },
-    {
-      title: 'Precio',
-      dataIndex: 'price',
-      key: 'price',
+      title: 'Precio de Venta',
+      dataIndex: 'list_price',
+      key: 'list_price',
       render: (price: number) => `€${price ? price.toFixed(2) : '0.00'}`,
+      sorter: true,
     },
     {
-      title: 'Stock',
-      dataIndex: 'stock',
-      key: 'stock',
-      render: (stock: number) => {
-        const stockValue = stock || 0;
-        let color = 'green';
-        if (stockValue < 5) {
-          color = 'red';
-        } else if (stockValue < 10) {
-          color = 'orange';
-        }
-        return <Tag color={color}>{stockValue} unidades</Tag>;
-      },
+        title: 'Estado',
+        dataIndex: 'active',
+        key: 'active',
+        render: (active: boolean) => (
+            <Tag color={active ? 'green' : 'red'}>{active ? 'Activo' : 'Archivado'}</Tag>
+        ),
     },
     {
       title: 'Acciones',
@@ -167,7 +159,7 @@ const Products: React.FC = () => {
             size="small"
             onClick={() => handleDelete(record)}
           >
-            Eliminar
+            Archivar
           </Button>
         </Space>
       ),
@@ -177,7 +169,7 @@ const Products: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Productos</h2>
+        <h2>Productos de Odoo</h2>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -192,13 +184,9 @@ const Products: React.FC = () => {
           columns={columns}
           dataSource={products}
           rowKey="id"
+          pagination={pagination}
           loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} productos`,
-          }}
+          onChange={handleTableChange}
         />
       </Card>
 
@@ -213,81 +201,34 @@ const Products: React.FC = () => {
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{
-            category: 'Electrodomésticos',
-            price: 0,
-            stock: 0
-          }}
         >
+          {/* Los campos del formulario se deben actualizar para que coincidan con el modelo Product */}
           <Form.Item
             label="Nombre del Producto"
             name="name"
             rules={[{ required: true, message: 'Por favor ingresa el nombre del producto' }]}
           >
-            <Input placeholder="Ej: Refrigerador Samsung" />
+            <Input />
           </Form.Item>
 
           <Form.Item
-            label="Código del Producto"
-            name="code"
-            rules={[{ required: true, message: 'Por favor ingresa el código del producto' }]}
+            label="Código (Referencia Interna)"
+            name="default_code"
           >
-            <Input placeholder="Ej: REF-001" />
+            <Input />
           </Form.Item>
 
           <Form.Item
-            label="Categoría"
-            name="category"
-            rules={[{ required: true, message: 'Por favor selecciona una categoría' }]}
-          >
-            <Select placeholder="Selecciona una categoría">
-              <Select.Option value="Electrodomésticos">Electrodomésticos</Select.Option>
-              <Select.Option value="Electrónicos">Electrónicos</Select.Option>
-              <Select.Option value="Limpieza">Limpieza</Select.Option>
-              <Select.Option value="Cocina">Cocina</Select.Option>
-              <Select.Option value="Climatización">Climatización</Select.Option>
-              <Select.Option value="Otros">Otros</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="Precio (€)"
-            name="price"
+            label="Precio de Venta (€)"
+            name="list_price"
             rules={[{ required: true, message: 'Por favor ingresa el precio' }]}
           >
-            <InputNumber
-              min={0}
-              step={0.01}
-              precision={2}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Stock"
-            name="stock"
-            rules={[{ required: true, message: 'Por favor ingresa la cantidad en stock' }]}
-          >
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              placeholder="0"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="URL de Imagen"
-            name="image_url"
-          >
-            <Input placeholder="https://example.com/imagen.jpg" />
+            <InputNumber min={0} step={0.01} precision={2} style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={handleCancel}>
-                Cancelar
-              </Button>
+              <Button onClick={handleCancel}>Cancelar</Button>
               <Button type="primary" htmlType="submit">
                 {editingProduct ? 'Actualizar' : 'Crear'} Producto
               </Button>

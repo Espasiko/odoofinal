@@ -1,38 +1,132 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Union, Any
 from .odoo_base_service import OdooBaseService
-from ..models.schemas import Product, ProductCreate
+import logging
+from ..models.schemas import Product, ProductCreate, OdooProductUpdate
+from fastapi import HTTPException
 import logging
 
 class OdooProductService(OdooBaseService):
     """Servicio para gestión de productos en Odoo"""
 
-    def update_product(self, product_id: int, update_data: dict) -> Optional[Product]:
+    def get_product_by_id(self, product_id: int) -> Optional[Product]:
         """
-        Actualiza un producto existente en Odoo usando write().
-        update_data: dict con campos a actualizar (formato Odoo, e.g. {'name': 'Nuevo nombre'})
+        Obtiene un producto por su ID de la base de datos de Odoo.
         """
-        import logging
-        logger = logging.getLogger("odoo_product_update")
         try:
             if not self._models:
                 self._get_connection()
-            logger.info(f"Actualizando producto {product_id} con datos: {update_data}")
-            # Validar existencia
-            existing = self.get_product_by_id(product_id)
-            if not existing:
-                logger.error(f"Producto {product_id} no encontrado.")
+            
+            product_data = self._execute_kw(
+                'product.template', 
+                'search_read', 
+                [[['id', '=', product_id]]], 
+                {
+                    'limit': 1,
+                    'fields': [
+                        'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
+                        'type', 'standard_price', 'barcode', 'weight', 'sale_ok', 'purchase_ok',
+                        'available_in_pos', 'to_weight', 'is_published', 'website_sequence',
+                        'description_sale', 'description_purchase', 'seller_ids',
+                        'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
+                        'taxes_id', 'supplier_taxes_id'
+                    ]
+                }
+            )
+            
+            if not product_data:
                 return None
+            
+            transformed_data = self._transform_products(product_data)
+            # Odoo's search_read returns a list, even for one result
+            return Product(**transformed_data[0])
 
-            # Realizar update
-            res = self._execute_kw('product.template', 'write', [[product_id], update_data])
-            if not res:
-                logger.error(f"Fallo al actualizar producto {product_id} en Odoo.")
-                return None
-            logger.info(f"Producto {product_id} actualizado correctamente.")
-            # Leer producto actualizado
+        except Exception as e:
+            logging.error(f"Error fetching product {product_id}: {str(e)}")
+            return None
+
+    def _prepare_product_data_for_odoo(self, product_data: Union[ProductCreate, OdooProductUpdate]) -> Dict:
+        """
+        Prepara el diccionario de datos para Odoo, filtrando campos no existentes
+        y manejando mapeos de nombres si es necesario.
+        """
+        data_dict = product_data.model_dump(exclude_unset=True)
+        
+        allowed_fields = {
+            'name', 'default_code', 'list_price', 'standard_price', 'categ_id',
+            'barcode', 'active', 'type', 'weight', 'sale_ok', 'purchase_ok',
+            'available_in_pos', 'to_weight', 'is_published', 'website_sequence',
+            'description_sale', 'description_purchase', 'public_categ_ids',
+            'seller_ids', 'taxes_id', 'supplier_taxes_id',
+            'property_account_income_id', 'property_account_expense_id'
+        }
+
+        field_mappings = {
+            'price': 'list_price',
+            'cost': 'standard_price',
+            'code': 'default_code'
+        }
+
+        vals = {}
+        for key, value in data_dict.items():
+            odoo_key = field_mappings.get(key, key)
+            if odoo_key in allowed_fields:
+                vals[odoo_key] = value
+
+        return vals
+
+    def create_product(self, product_data: ProductCreate) -> Dict:
+        """
+        Crea un nuevo producto en Odoo.
+        """
+        vals = self._prepare_product_data_for_odoo(product_data)
+        if not vals:
+            raise HTTPException(status_code=400, detail="No se proporcionaron datos válidos para crear el producto.")
+        
+        try:
+            if not self._models:
+                self._get_connection()
+
+            product_id = self._execute_kw(
+                'product.template', 'create', [vals]
+            )
+            
+            if product_id:
+                created_product = self.get_product_by_id(product_id)
+                if created_product:
+                    return created_product.model_dump()
+                else:
+                    raise HTTPException(status_code=404, detail=f"Producto creado con ID {product_id} pero no se pudo recuperar.")
+            else:
+                raise HTTPException(status_code=500, detail="No se pudo crear el producto en Odoo, no se devolvió ID.")
+                
+        except Exception as e:
+            logging.error(f"Error al crear producto en Odoo: {e}")
+            raise HTTPException(status_code=500, detail=f"Ocurrió un error al comunicarse con Odoo: {str(e)}")
+
+    def update_product(self, product_id: int, update_data: OdooProductUpdate) -> Optional[Product]:
+        """
+        Actualiza un producto existente en Odoo usando write().
+        """
+        vals = self._prepare_product_data_for_odoo(update_data)
+
+        if not vals:
+            logging.warning(f"No se proporcionaron campos válidos para actualizar el producto {product_id}. No se realizará ninguna acción.")
+            return self.get_product_by_id(product_id)
+
+        try:
+            if not self._models:
+                self._get_connection()
+
+            success = self._execute_kw('product.template', 'write', [[product_id], vals])
+            
+            if success:
+                logging.info(f"Producto {product_id} actualizado exitosamente en Odoo.")
+            else:
+                logging.warning(f"El método 'write' de Odoo para el producto {product_id} no devolvió un error, pero tampoco éxito explícito.")
+            
             return self.get_product_by_id(product_id)
         except Exception as e:
-            logger.error(f"Error actualizando producto {product_id}: {str(e)}")
+            logging.error(f"Error al actualizar el producto {product_id} en Odoo: {str(e)}")
             return None
 
     def archive_product(self, product_id: int) -> bool:
@@ -63,87 +157,201 @@ class OdooProductService(OdooBaseService):
             logger.error(f"Error archivando producto {product_id}: {str(e)}")
             return False
 
-
-    @staticmethod
-    def front_to_odoo_product_dict(front_data: dict) -> dict:
-        """
-        Adapta y valida datos de producto recibidos del frontend al formato dict para Odoo 18.
-        - Mapea campos: 'name'/'nombre' -> 'name', 'price'/'precio' -> 'list_price', 'code'/'codigo' -> 'default_code', 'category'/'categoria' -> 'categ_id', 'proveedor.id' -> 'supplier_id', 'stock' -> 'stock', 'image_url' -> 'image_url'.
-        - Valida tipos: 'precio' debe ser float, 'proveedor.id' debe ser int (o convertible).
-        - Si 'proveedor' no está presente, asigna False a 'supplier_id'.
-        - Usa logging para registrar la transformación y errores.
-        - Lanza HTTPException(400) si hay error de validación.
-        """
-        import logging
-        from fastapi import HTTPException
-
-        logger = logging.getLogger("odoo_product_adapter")
-        logger.debug(f"Transformando datos del frontend: {front_data}")
-
-        result = {}
-        # Mapear nombre (soporta 'nombre' y 'name')
-        nombre = front_data.get("nombre") or front_data.get("name")
-        if not isinstance(nombre, str) or not nombre.strip():
-            logger.error(f"Campo 'nombre'/'name' inválido: {nombre}")
-            raise HTTPException(status_code=400, detail="Campo 'nombre' es obligatorio y debe ser string.")
-        result["name"] = nombre.strip()
-
-        # Mapear precio (soporta 'precio' y 'price')
-        precio = front_data.get("precio") if front_data.get("precio") is not None else front_data.get("price")
+    def resolve_supplier(self, supplier_name: str) -> Optional[int]:
+        """Busca un proveedor por nombre y lo crea si no existe."""
+        if not supplier_name:
+            return None
         try:
-            if isinstance(precio, str):
-                precio = precio.replace(",", ".")
-                precio = float(precio)
-            elif not isinstance(precio, (float, int)):
-                raise ValueError
-            result["list_price"] = float(precio)
-        except Exception:
-            logger.error(f"Campo 'precio'/'price' inválido: {precio}")
-            raise HTTPException(status_code=400, detail="Campo 'precio' es obligatorio y debe ser un número válido.")
+            if not self._models:
+                self._get_connection()
+            supplier_ids = self._execute_kw('res.partner', 'search', [[('name', 'ilike', supplier_name), ('is_company', '=', True)]], {'limit': 1})
+            if supplier_ids:
+                return supplier_ids[0]
+            else:
+                new_supplier_id = self._execute_kw('res.partner', 'create', [{'name': supplier_name, 'is_company': True}])
+                logging.info(f"Nuevo proveedor '{supplier_name}' creado con ID: {new_supplier_id}")
+                return new_supplier_id
+        except Exception as e:
+            logging.error(f"Error resolviendo proveedor '{supplier_name}': {e}")
+            return None
 
-        # Mapear código interno (soporta 'codigo' y 'code')
-        codigo = front_data.get("codigo") or front_data.get("code")
-        if codigo:
-            if not isinstance(codigo, str):
-                codigo = str(codigo)
-            result["default_code"] = codigo.strip()
+    def resolve_category(self, category_name: str, subcategory_name: Optional[str] = None) -> Optional[int]:
+        """Busca una categoría y subcategoría, creándolas si no existen."""
+        if not category_name:
+            return None
+        try:
+            if not self._models:
+                self._get_connection()
+            # Busca la categoría padre
+            parent_cat_ids = self._execute_kw('product.category', 'search', [[('name', 'ilike', category_name)]], {'limit': 1})
+            if parent_cat_ids:
+                parent_id = parent_cat_ids[0]
+            else:
+                parent_id = self._execute_kw('product.category', 'create', [{'name': category_name}])
+                logging.info(f"Nueva categoría '{category_name}' creada con ID: {parent_id}")
 
-        # Mapear categoría (soporta 'categoria' y 'category')
-        categoria = front_data.get("categoria") or front_data.get("category")
-        if categoria:
-            # Si es un int, lo pasamos directo; si es string, lo dejamos como está (Odoo puede aceptar ambos)
-            result["categ_id"] = categoria
+            if not subcategory_name:
+                return parent_id
 
-        # Mapear proveedor
-        proveedor = front_data.get("proveedor")
-        supplier_id = False
-        if proveedor is not None:
-            prov_id = proveedor.get("id") if isinstance(proveedor, dict) else None
-            if prov_id is not None:
-                try:
-                    supplier_id = int(prov_id)
-                except Exception:
-                    logger.error(f"Campo 'proveedor.id' inválido: {prov_id}")
-                    raise HTTPException(status_code=400, detail="Campo 'proveedor.id' debe ser un entero.")
-        result["supplier_id"] = supplier_id
+            # Busca la subcategoría
+            sub_cat_ids = self._execute_kw('product.category', 'search', [[('name', 'ilike', subcategory_name), ('parent_id', '=', parent_id)]], {'limit': 1})
+            if sub_cat_ids:
+                return sub_cat_ids[0]
+            else:
+                sub_id = self._execute_kw('product.category', 'create', [{'name': subcategory_name, 'parent_id': parent_id}])
+                logging.info(f"Nueva subcategoría '{subcategory_name}' creada con ID: {sub_id} bajo '{category_name}'")
+                return sub_id
+        except Exception as e:
+            logging.error(f"Error resolviendo categoría '{category_name}': {e}")
+            return None
 
-        # Mapear stock (opcional)
-        stock = front_data.get("stock")
-        if stock is not None:
+    def front_to_odoo_product_dict(self, product_data: Dict[str, Any], supplier_name: str) -> Dict[str, Any]:
+        """Convierte un dict de la IA a un dict para Odoo, incluyendo seller_ids."""
+        vals = {}
+        if product_data.get('nombre'):
+            vals['name'] = product_data['nombre']
+        if product_data.get('referencia_proveedor'):
+            vals['default_code'] = str(product_data['referencia_proveedor'])
+        if product_data.get('precio_coste') is not None:
             try:
-                result["stock"] = int(stock)
-            except Exception:
-                logger.warning(f"Campo 'stock' inválido: {stock}")
+                vals['standard_price'] = float(product_data['precio_coste'])
+            except (ValueError, TypeError):
+                logging.warning(f"No se pudo convertir 'precio_coste' a float para {product_data.get('nombre')}")
+        if product_data.get('descripcion'):
+            vals['description_sale'] = product_data['descripcion']
+        
+        category_id = self.resolve_category(product_data.get('categoria'), product_data.get('subcategoria'))
+        if category_id:
+            vals['categ_id'] = category_id
 
-        # Mapear imagen (opcional)
-        image_url = front_data.get("image_url")
-        if image_url:
-            result["image_url"] = image_url
+        supplier_id = self.resolve_supplier(supplier_name)
+        if supplier_id and 'standard_price' in vals:
+            vals['supplier_info'] = {
+                'name': supplier_id,
+                'price': vals['standard_price']
+            }
+        
+        return vals
 
-        logger.info(f"Datos transformados para Odoo: {result}")
-        return result
+    def create_or_update_product(self, product_vals: Dict[str, Any]) -> Optional[int]:
+        """
+        Busca un producto por 'default_code'. Si existe, lo actualiza. Si no, lo crea.
+        Maneja la lógica de 'seller_ids' (product.supplierinfo).
+        """
+        if not self._models:
+            self._get_connection()
+
+        ref_code = product_vals.get('default_code')
+        if not ref_code:
+            logging.warning(f"Producto sin 'default_code' no puede ser procesado: {product_vals.get('name')}")
+            return None
+
+        supplier_info = product_vals.pop('supplier_info', None)
+
+        try:
+            product_ids = self._execute_kw('product.template', 'search', [[('default_code', '=', ref_code)]], {'limit': 1})
+            
+            if product_ids:
+                product_id = product_ids[0]
+                if product_vals:
+                    self._execute_kw('product.template', 'write', [[product_id], product_vals])
+                logging.info(f"Producto '{product_vals.get('name')}' (ID: {product_id}) actualizado.")
+
+                if supplier_info:
+                    supplier_id = supplier_info['name']
+                    supplierinfo_ids = self._execute_kw('product.supplierinfo', 'search', [
+                        [('product_tmpl_id', '=', product_id), ('name', '=', supplier_id)]
+                    ], {'limit': 1})
+
+                    if supplierinfo_ids:
+                        self._execute_kw('product.supplierinfo', 'write', [supplierinfo_ids, {'price': supplier_info['price']}])
+                        logging.info(f"Actualizado precio para proveedor ID {supplier_id} en producto ID {product_id}.")
+                    else:
+                        self._execute_kw('product.supplierinfo', 'create', [{
+                            'product_tmpl_id': product_id,
+                            'name': supplier_id,
+                            'price': supplier_info['price']
+                        }])
+                        logging.info(f"Añadido nuevo proveedor ID {supplier_id} al producto ID {product_id}.")
+                return product_id
+            else:
+                if supplier_info:
+                    product_vals['seller_ids'] = [(0, 0, supplier_info)]
+                
+                new_product_id = self._execute_kw('product.template', 'create', [product_vals])
+                logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
+                return new_product_id
+
+        except Exception as e:
+            logging.error(f"Error en create_or_update para producto '{ref_code}': {e}", exc_info=True)
+            return None
+
+
+
+
 
     
+    def get_paginated_products(self, page: int = 1, limit: int = 10, sort_by: str = 'id', sort_order: str = 'asc', search: Optional[str] = None, category: Optional[str] = None):
+        """Obtiene productos paginados, ordenados y filtrados desde Odoo."""
+        offset = (page - 1) * limit
+        order = f'{sort_by} {sort_order.upper()}'
+
+        domain = []
+        if search:
+            domain.extend(['|', ('name', 'ilike', search), ('default_code', 'ilike', search)])
+        if category:
+            # Primero, encontrar el ID de la categoría por su nombre
+            category_id = self._execute_kw('product.category', 'search', [[('name', 'ilike', category)]], {'limit': 1})
+            if category_id:
+                domain.append(('categ_id', '=', category_id[0]))
+
+        try:
+            total = self._execute_kw('product.product', 'search_count', [domain])
+            if total == 0:
+                return [], 0
+
+            odoo_products = self._execute_kw(
+                'product.product',
+                'search_read',
+                [domain],
+                {
+                    'offset': offset, 
+                    'limit': limit, 
+                    'order': order,
+                    'fields': [
+                        'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
+                        'type', 'standard_price', 'barcode', 'weight',
+                        'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
+                        'is_published', 'website_sequence', 'description_sale',
+                        'description_purchase', 'seller_ids',
+                        'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
+                        'taxes_id', 'supplier_taxes_id'
+                    ]
+                }
+            )
+
+            if not odoo_products:
+                return [], total
+
+            # Transformación de datos (simplificada de tu código original)
+            products = [Product(**p) for p in self._transform_products(odoo_products)]
+            return products, total
+        except Exception as e:
+            logging.error(f"Error en get_paginated_products: {e}")
+            return [], 0
+
+    def _transform_products(self, odoo_products: List[Dict]) -> List[Dict]:
+        transformed = []
+        for p in odoo_products:
+            data = p.copy()
+            if data.get('categ_id') and isinstance(data['categ_id'], list):
+                data['categ_id'] = data['categ_id'][0]
+            for key in ['default_code', 'description_sale', 'description_purchase', 'barcode']:
+                if data.get(key) is False:
+                    data[key] = '' if key != 'barcode' else None
+            transformed.append(data)
+        return transformed
+
     def get_products(self, offset=0, limit=100):
         """Obtiene productos desde Odoo"""
         try:
@@ -573,6 +781,41 @@ class OdooProductService(OdooBaseService):
             if product.id == product_id:
                 return product
         return None
+
+    def find_or_create_category(self, category_name: str) -> int:
+        """
+        Busca una categoría de producto por nombre. Si no existe, la crea.
+        Devuelve el ID de la categoría.
+        """
+        if not category_name or not isinstance(category_name, str):
+            category_name = "Sin Categoría"
+
+        try:
+            if not self._models:
+                self._get_connection()
+
+            domain = [('name', '=', category_name)]
+            category_ids = self._execute_kw('product.category', 'search', [domain], {'limit': 1})
+
+            if category_ids:
+                category_id = category_ids[0]
+                logging.info(f"Categoría encontrada: '{category_name}' con ID: {category_id}")
+                return category_id
+            else:
+                logging.info(f"Categoría '{category_name}' no encontrada. Creando...")
+                new_category_vals = {'name': category_name}
+                new_category_id = self._execute_kw('product.category', 'create', [new_category_vals])
+                
+                if new_category_id:
+                    logging.info(f"Categoría '{category_name}' creada con ID: {new_category_id}")
+                    return new_category_id
+                else:
+                    logging.error(f"No se pudo crear la categoría '{category_name}'")
+                    raise Exception(f"Fallo al crear la categoría '{category_name}' en Odoo.")
+
+        except Exception as e:
+            logging.error(f"Error en find_or_create_category para '{category_name}': {e}")
+            raise
 
 # Instancia global para evitar errores de importación circular
 odoo_product_service = OdooProductService()

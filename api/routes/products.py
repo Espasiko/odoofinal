@@ -1,13 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from ..models.schemas import Product, User, PaginatedResponse, ProductCreate
+from ..models.schemas import Product, User, PaginatedResponse, ProductCreate, OdooProductUpdate
 from ..services.auth_service import get_current_active_user
-from ..services.odoo_service import odoo_service
 from ..services.odoo_product_service import OdooProductService
-from ..utils.config import config
 
 router = APIRouter(prefix="/api/v1", tags=["products"])
+
+# Helper para no instanciar el servicio en cada ruta
+# FastAPI lo manejará como un singleton en el scope de la request
+def get_product_service():
+    return OdooProductService()
 
 @router.get("/products", response_model=PaginatedResponse[Product])
 async def get_products(
@@ -15,104 +18,73 @@ async def get_products(
     size: int = Query(10, ge=1, le=100),
     sort_by: Optional[str] = Query('id', description="Campo por el que ordenar"),
     sort_order: Optional[str] = Query('asc', description="asc o desc"),
-    search: Optional[str] = Query(None, description="Término de búsqueda en nombre y descripción"),
-    category: Optional[str] = Query(None, description="Filtrar por categoría"),
-    current_user: User = Depends(get_current_active_user)
+    search: Optional[str] = Query(None, description="Término de búsqueda en nombre y código"),
+    category: Optional[str] = Query(None, description="Filtrar por nombre de categoría"),
+    current_user: User = Depends(get_current_active_user),
+    product_service: OdooProductService = Depends(get_product_service)
 ):
     """Obtiene lista paginada de productos REALES de Odoo"""
-    try:
-        products, total = odoo_service.get_paginated_products(
-            page=page, 
-            limit=size, 
-            sort_by=sort_by, 
-            sort_order=sort_order,
-            search=search,
-            category=category
-        )
-        return PaginatedResponse(items=products, total=total, page=page, size=size)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/products/all", response_model=List[Product])
-async def get_all_products(current_user: User = Depends(get_current_active_user)):
-    """Obtiene todos los productos sin paginación"""
-    try:
-        return odoo_service.get_products()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    products, total = product_service.get_paginated_products(
+        page=page, 
+        limit=size, 
+        sort_by=sort_by, 
+        sort_order=sort_order,
+        search=search,
+        category=category
+    )
+    return PaginatedResponse(data=products, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
 @router.get("/products/{product_id}", response_model=Product)
 async def get_product(
     product_id: int,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    product_service: OdooProductService = Depends(get_product_service)
 ):
     """Obtiene un producto específico por ID"""
-    try:
-        product = odoo_service.get_product_by_id(product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-        return product
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    product = product_service.get_product_by_id(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return product
 
 @router.post("/products", response_model=Product, status_code=201)
 async def create_product(
     product_data: ProductCreate,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    product_service: OdooProductService = Depends(get_product_service)
 ):
     """Crea un nuevo producto en Odoo (real)"""
-    try:
-        product_service = OdooProductService()
-        created_product_id = product_service.create_product(product_data.dict())
-        if not created_product_id:
-            raise HTTPException(status_code=400, detail="Failed to create product in Odoo")
-        
-        new_product = odoo_service.get_product_by_id(created_product_id)
-        if not new_product:
-            raise HTTPException(status_code=404, detail="Newly created product not found")
-            
-        return new_product
-    except Exception as e:
-        import logging
-        logging.error(f"Error creating product: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    # El servicio ya maneja la lógica de creación y las excepciones
+    created_product_dict = product_service.create_product(product_data)
+    return created_product_dict
 
 @router.put("/products/{product_id}", response_model=Product)
 async def update_product(
     product_id: int,
-    update_data: dict,
-    current_user: User = Depends(get_current_active_user)
+    update_data: OdooProductUpdate, # Usar el schema para validación
+    current_user: User = Depends(get_current_active_user),
+    product_service: OdooProductService = Depends(get_product_service)
 ):
     """Actualiza un producto existente en Odoo (real)"""
-    import logging
-    try:
-        product_service = OdooProductService()
-        success = product_service.update_product(product_id, update_data)
-        if not success:
-            raise HTTPException(status_code=400, detail="Failed to update product in Odoo")
-        
-        updated_product = odoo_service.get_product_by_id(product_id)
-        if not updated_product:
-            raise HTTPException(status_code=404, detail="Updated product not found")
+    # Convertimos el modelo Pydantic a un diccionario, excluyendo campos no seteados
+    update_dict = update_data.model_dump(exclude_unset=True)
+    if not update_dict:
+        raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
 
-        return updated_product
-    except Exception as e:
-        logging.error(f"Error al actualizar producto {product_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    updated_product = product_service.update_product(product_id, update_dict)
+    if not updated_product:
+        # El servicio ya loguea el error, aquí solo informamos al cliente
+        raise HTTPException(status_code=404, detail=f"No se pudo actualizar el producto {product_id}. Puede que no exista o haya un error en Odoo.")
+    return updated_product
 
-@router.delete("/products/{product_id}")
+@router.delete("/products/{product_id}", status_code=204)
 async def delete_product(
     product_id: int,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    product_service: OdooProductService = Depends(get_product_service)
 ):
     """Archiva (desactiva) un producto en Odoo (real)"""
-    import logging
-    try:
-        product_service = OdooProductService()
-        success = product_service.archive_product(product_id)
-        if not success:
-            raise HTTPException(status_code=400, detail="Failed to archive product in Odoo")
-        return {"message": f"Product {product_id} archived successfully"}
-    except Exception as e:
-        logging.error(f"Error archivando producto {product_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    success = product_service.archive_product(product_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"No se pudo archivar el producto {product_id}. Puede que no exista o ya esté archivado.")
+    # No se devuelve contenido en un 204
+    return
