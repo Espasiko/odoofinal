@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 # Importar dependencias
 from ..models.schemas import User
-from ..services.auth_service import auth_service
+from ..services.auth_service import get_current_active_user
 from ..services.odoo_service import odoo_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -41,7 +41,7 @@ async def get_tasks(
     _end: int = Query(10, description="Limit for pagination"),
     _sort: str = Query("create_date", description="Field to sort by"),
     _order: str = Query("desc", description="Sort order (asc/desc)"),
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener lista de tareas"""
     try:
@@ -108,7 +108,7 @@ async def get_tasks(
 @router.get("/{task_id}", response_model=Task)
 async def get_task(
     task_id: int,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtener una tarea específica"""
     try:
@@ -154,7 +154,7 @@ async def get_task(
 @router.post("/", response_model=Task)
 async def create_task(
     task: TaskCreate,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Crear una nueva tarea"""
     try:
@@ -184,7 +184,7 @@ async def create_task(
 async def update_task(
     task_id: int,
     task: TaskUpdate,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Actualizar una tarea existente"""
     try:
@@ -223,7 +223,7 @@ async def update_task(
 @router.delete("/{task_id}")
 async def delete_task(
     task_id: int,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Eliminar una tarea (marcar como inactiva)"""
     try:

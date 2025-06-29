@@ -576,3 +576,6 @@ class OdooProductService(OdooBaseService):
 
 # Instancia global para evitar errores de importación circular
 odoo_product_service = OdooProductService()
+
+# Instancia global para evitar errores de importación circular
+odoo_product_service = OdooProductService()

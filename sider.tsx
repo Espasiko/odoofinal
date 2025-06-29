@@ -76,6 +76,11 @@ const Sider: React.FC = () => {
           },
 
           {
+            key: 'import-excel',
+            icon: <InboxOutlined />,
+            label: <Link to="/import-excel">Importar Excel</Link>,
+          },
+          {
             key: 'settings',
             icon: <SettingOutlined />,
             label: <Link to="/settings">Configuración</Link>,

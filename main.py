@@ -11,13 +11,13 @@ from api.utils.config import config
 from api.routes.auth import router as auth_router
 from api.routes.products import router as products_router
 from api.routes.providers import router as providers_router
-from api.routes.inventory import router as inventory_router
-from api.routes.sales import router as sales_router
-from api.routes.customers import router as customers_router
-from api.routes.dashboard import router as dashboard_router
-from api.routes.tasks import router as tasks_router
-from api.routes.ocr import router as ocr_router
-from api.routes.mistral_ocr import router as mistral_ocr_router
+# from api.routes.inventory import router as inventory_router
+# from api.routes.sales import router as sales_router
+# from api.routes.customers import router as customers_router
+# from api.routes.dashboard import router as dashboard_router
+# from api.routes.tasks import router as tasks_router
+# from api.routes.ocr import router as ocr_router
+# from api.routes.mistral_ocr import router as mistral_ocr_router
 from api.routes.web_ui import router as web_ui_router
 from api.routes.mistral_llm_excel import router as mistral_llm_excel_router
 
@@ -49,13 +49,13 @@ if static_dir.exists():
 app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(providers_router)
-app.include_router(inventory_router)
-app.include_router(sales_router)
-app.include_router(customers_router)
-app.include_router(dashboard_router)
-app.include_router(tasks_router)
-app.include_router(ocr_router)
-app.include_router(mistral_ocr_router)
+# app.include_router(inventory_router)
+# app.include_router(sales_router)
+# app.include_router(customers_router)
+# app.include_router(dashboard_router)
+# app.include_router(tasks_router)
+# app.include_router(ocr_router)
+# app.include_router(mistral_ocr_router)
 app.include_router(mistral_llm_excel_router)
 
 # Incluir rutas de interfaz web (al final para que no interfieran con las API)
@@ -74,9 +74,9 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main_new:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=False,  # Cambiado a False
+        reload=True,
         log_level="info"
     )
