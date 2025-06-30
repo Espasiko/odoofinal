@@ -40,14 +40,17 @@ class InvoiceImportService:
             product_vals = {
                 "name": l.description[:60],
                 "default_code": l.code,
+                "type": "consu",
+                "uom_id": 1,
+                "uom_po_id": 1,
+                "name": l.description[:60],
+                "default_code": l.code,
                 "list_price": l.price_unit,
                 "standard_price": l.price_unit,
-                "categ_id": None,
-                "seller_ids": [(0, 0, {
-                    "name": supplier_id,
-                    "price": l.price_unit,
-                    "product_code": l.code,
-                })]
+                "type": "consu",
+                "purchase_ok": True,
+                "sale_ok": False,
+                #"categ_id": None,
             }
             prod_id = odoo_product_service.create_or_update_product(product_vals)
             if prod_id:

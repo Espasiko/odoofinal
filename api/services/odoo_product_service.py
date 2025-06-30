@@ -245,6 +245,7 @@ class OdooProductService(OdooBaseService):
         seller_ids_data = product_vals.pop('seller_ids', [])
 
         try:
+            logging.info(f"Odoo create_or_update: vals={product_vals}")
             product_ids = self._execute_kw('product.template', 'search', [[('default_code', '=', ref_code)]], {'limit': 1})
             
             if product_ids:
@@ -287,7 +288,11 @@ class OdooProductService(OdooBaseService):
                 if seller_ids_data:
                     product_vals['seller_ids'] = seller_ids_data
                 
-                new_product_id = self._execute_kw('product.template', 'create', [product_vals])
+                try:
+                    new_product_id = self._execute_kw('product.template', 'create', [product_vals])
+                except Exception as e:
+                    logging.error(f"Odoo create product error for {ref_code}: {e}")
+                    return None
                 logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
                 return new_product_id
 
