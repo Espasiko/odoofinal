@@ -4,6 +4,23 @@ from ..models.schemas import Provider, ProviderCreate
 
 class OdooProviderService(OdooBaseService):
     """Servicio para gestión de proveedores en Odoo"""
+
+    def get_paginated_providers(self, page=1, limit=10):
+        """Obtiene proveedores paginados y el total"""
+        import logging
+        logger = logging.getLogger("odoo_provider_service.paginated")
+        logger.info(f"--- get_paginated_providers page={page} limit={limit} ---")
+        offset = (page - 1) * limit
+        try:
+            all_providers = self.get_providers(offset=0, limit=10000)
+            logger.info(f"Total proveedores obtenidos de Odoo: {len(all_providers)}")
+            paginated = all_providers[offset:offset+limit]
+            total = len(all_providers)
+            logger.info(f"Proveedores devueltos: {len(paginated)} (offset={offset})")
+            return paginated, total
+        except Exception as e:
+            logger.error(f"EXCEPCIÓN CRÍTICA en get_paginated_providers: {e}", exc_info=True)
+            return [], 0
     
     def get_providers(self, offset=0, limit=100) -> List[Provider]:
         """Obtiene proveedores desde Odoo"""
@@ -116,6 +133,65 @@ class OdooProviderService(OdooBaseService):
             print(f"ODOO_SERVICE: Error conectando a Odoo o procesando datos: {e}")
             return self._get_fallback_providers()
 
+    def get_provider_by_id(self, provider_id: int) -> Optional[Provider]:
+        """Obtiene un proveedor específico por su ID directamente desde Odoo"""
+        import logging
+        logger = logging.getLogger("odoo_provider_service.get_provider_by_id")
+        try:
+            if not self._models:
+                self._get_connection()
+
+            result = self._execute_kw(
+                'res.partner',
+                'read',
+                [[provider_id]],
+                {'fields': [
+                    'id', 'name', 'email', 'phone', 'mobile', 'website',
+                    'street', 'street2', 'city', 'state_id', 'zip', 'country_id',
+                    'vat', 'supplier_rank', 'customer_rank', 'is_company',
+                    'category_id', 'comment', 'active'
+                ]}
+            )
+            if not result:
+                return None
+            p = result[0]
+            # Procesar campos anidados como en get_providers
+            state_name = ''
+            if p.get('state_id'):
+                state_name = p['state_id'][1] if isinstance(p['state_id'], list) and len(p['state_id']) > 1 else p['state_id']
+            country_name = ''
+            if p.get('country_id'):
+                country_name = p['country_id'][1] if isinstance(p['country_id'], list) and len(p['country_id']) > 1 else p['country_id']
+
+            return Provider(
+                id=p['id'],
+                name=p.get('name', 'N/A'),
+                email=p.get('email') or '',
+                phone=p.get('phone') or '',
+                mobile=p.get('mobile') or '',
+                website=p.get('website') or '',
+                street=p.get('street') or '',
+                street2=p.get('street2') or '',
+                city=p.get('city') or '',
+                state=state_name,
+                zip=p.get('zip') or '',
+                country=country_name,
+                vat=p.get('vat') or '',
+                supplier_rank=p.get('supplier_rank', 0),
+                customer_rank=p.get('customer_rank', 0),
+                is_company=p.get('is_company', False),
+                category_id=p.get('category_id', []),
+                comment=p.get('comment') or '',
+                active=p.get('active', False)
+            )
+        except Exception as e:
+            logger.error(f"Error obteniendo proveedor {provider_id}: {e}")
+            return None
+
+    # Alias para mantener compatibilidad con interfaz anterior
+    def create_provider(self, supplier_data):
+        return self.create_supplier(supplier_data)
+
     def create_supplier(self, supplier_data) -> Optional[Provider]:
         """
         Crea un nuevo proveedor en Odoo.
@@ -132,6 +208,19 @@ class OdooProviderService(OdooBaseService):
                 data = supplier_data
             else:
                 raise ValueError("El formato de datos del proveedor no es válido.")
+
+            # --- Comprobación de duplicados ---
+            vat_value = data.get('vat')
+            existing_ids: list = []
+            if vat_value:
+                existing_ids = self._execute_kw('res.partner', 'search', [[['vat', '=', vat_value], ['is_company', '=', True], ['supplier_rank', '>', 0]]]) or []
+            if not existing_ids and data.get('name'):
+                # Búsqueda aproximada por nombre si no hay VAT o no se encontró coincidencia
+                existing_ids = self._execute_kw('res.partner', 'search', [[['name', 'ilike', data['name']], ['is_company', '=', True], ['supplier_rank', '>', 0]]]) or []
+
+            if existing_ids:
+                logger.info(f"Proveedor duplicado detectado, id existente: {existing_ids[0]}. No se crea uno nuevo.")
+                return existing_ids[0]
 
             # Saneamiento de campos string
             all_string_fields = [
@@ -294,6 +383,26 @@ class OdooProviderService(OdooBaseService):
                 active=True
             )
         ]
+
+# Instancia global del servicio
+    def get_paginated_providers(self, page: int = 1, limit: int = 10):
+        """Devuelve tupla (lista_proveedores, total) con paginación real o simulada"""
+        # Calcular desplazamiento
+        offset = (page - 1) * limit if limit else 0
+        # Obtener lote
+        providers = self.get_providers(offset=offset, limit=limit)
+        try:
+            total = self._execute_kw(
+                'res.partner',
+                'search_count',
+                [[['is_company', '=', True], ['supplier_rank', '>', 0]]]
+            )
+            if total is None:
+                total = len(providers)
+        except Exception:
+            # En caso de error de conexión, usar longitud del lote
+            total = len(providers)
+        return providers, total
 
 # Instancia global del servicio
 odoo_provider_service = OdooProviderService()

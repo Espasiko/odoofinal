@@ -19,11 +19,11 @@ const Providers: React.FC = () => {
     fetchProviders();
   }, []);
 
-  const fetchProviders = async () => {
+  const fetchProviders = async (page: number = 1, limit: number = 10) => {
     try {
       setLoading(true);
-      const data = await odooService.getProviders();
-      setProviders(data);
+      const response = await odooService.getProviders(page, limit);
+      setProviders(response.data);
     } catch (error) {
       console.error('Error fetching providers:', error);
       message.error('Error al cargar proveedores');
@@ -208,12 +208,7 @@ const Providers: React.FC = () => {
           dataSource={providers}
           rowKey="id"
           loading={loading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} proveedores`,
-          }}
+          pagination={false}
           style={{
             background: '#141414',
           }}
