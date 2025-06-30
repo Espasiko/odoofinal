@@ -138,18 +138,12 @@ class OdooProductService(OdooBaseService):
         try:
             if not self._models:
                 self._get_connection()
-            # Validar existencia
-            existing = self.get_product_by_id(product_id)
-            if not existing:
-                logger.error(f"Producto {product_id} no encontrado para archivar.")
-                return False
-            # Si ya está archivado, no hacer nada
-            if hasattr(existing, 'active') and not existing.active:
-                logger.info(f"Producto {product_id} ya estaba archivado.")
-                return True
+            # Se elimina la comprobación de existencia previa para evitar condiciones de carrera.
+            # El método 'write' de Odoo devolverá False si el ID no existe, lo que es más eficiente.
             res = self._execute_kw('product.template', 'write', [[product_id], {'active': False}])
+            
             if not res:
-                logger.error(f"Fallo al archivar producto {product_id} en Odoo.")
+                logger.error(f"Fallo al archivar producto {product_id} en Odoo. Puede que no exista o ya esté archivado.")
                 return False
             logger.info(f"Producto {product_id} archivado correctamente.")
             return True
@@ -226,17 +220,18 @@ class OdooProductService(OdooBaseService):
 
         supplier_id = self.resolve_supplier(supplier_name)
         if supplier_id and 'standard_price' in vals:
-            vals['supplier_info'] = {
-                'name': supplier_id,
-                'price': vals['standard_price']
-            }
+            vals['seller_ids'] = [(0, 0, {
+                'partner_id': supplier_id,
+                'price': vals['standard_price'],
+                'product_code': product_data.get('referencia_proveedor')
+            })]
         
         return vals
 
     def create_or_update_product(self, product_vals: Dict[str, Any]) -> Optional[int]:
         """
         Busca un producto por 'default_code'. Si existe, lo actualiza. Si no, lo crea.
-        Maneja la lógica de 'seller_ids' (product.supplierinfo).
+        Maneja la lógica de 'seller_ids' (product.supplierinfo) para evitar duplicados.
         """
         if not self._models:
             self._get_connection()
@@ -246,37 +241,51 @@ class OdooProductService(OdooBaseService):
             logging.warning(f"Producto sin 'default_code' no puede ser procesado: {product_vals.get('name')}")
             return None
 
-        supplier_info = product_vals.pop('supplier_info', None)
+        # Separamos la información del proveedor del resto de datos del producto.
+        seller_ids_data = product_vals.pop('seller_ids', [])
 
         try:
             product_ids = self._execute_kw('product.template', 'search', [[('default_code', '=', ref_code)]], {'limit': 1})
             
             if product_ids:
+                # --- LÓGICA DE ACTUALIZACIÓN ---
                 product_id = product_ids[0]
+                
+                # Actualiza los campos básicos del producto si hay alguno.
                 if product_vals:
                     self._execute_kw('product.template', 'write', [[product_id], product_vals])
-                logging.info(f"Producto '{product_vals.get('name')}' (ID: {product_id}) actualizado.")
+                logging.info(f"Producto '{product_vals.get('name', ref_code)}' (ID: {product_id}) actualizado.")
 
-                if supplier_info:
-                    supplier_id = supplier_info['name']
-                    supplierinfo_ids = self._execute_kw('product.supplierinfo', 'search', [
-                        [('product_tmpl_id', '=', product_id), ('name', '=', supplier_id)]
-                    ], {'limit': 1})
+                # Maneja la información del proveedor para actualizar o crear.
+                if seller_ids_data:
+                    # Extraemos el diccionario de datos del proveedor.
+                    supplier_info = seller_ids_data[0][2]
+                    partner_id = supplier_info.get('partner_id')
+                    
+                    if partner_id:
+                        # Buscamos si ya existe una línea de proveedor para este producto y proveedor.
+                        supplierinfo_ids = self._execute_kw('product.supplierinfo', 'search', [
+                            [('product_tmpl_id', '=', product_id), ('partner_id', '=', partner_id)]
+                        ], {'limit': 1})
 
-                    if supplierinfo_ids:
-                        self._execute_kw('product.supplierinfo', 'write', [supplierinfo_ids, {'price': supplier_info['price']}])
-                        logging.info(f"Actualizado precio para proveedor ID {supplier_id} en producto ID {product_id}.")
-                    else:
-                        self._execute_kw('product.supplierinfo', 'create', [{
-                            'product_tmpl_id': product_id,
-                            'name': supplier_id,
-                            'price': supplier_info['price']
-                        }])
-                        logging.info(f"Añadido nuevo proveedor ID {supplier_id} al producto ID {product_id}.")
+                        if supplierinfo_ids:
+                            # Si existe, la actualizamos.
+                            update_vals = {'price': supplier_info.get('price')}
+                            if 'product_code' in supplier_info:
+                                update_vals['product_code'] = supplier_info['product_code']
+                            self._execute_kw('product.supplierinfo', 'write', [supplierinfo_ids, update_vals])
+                            logging.info(f"Info de proveedor ID {partner_id} actualizada en producto ID {product_id}.")
+                        else:
+                            # Si no existe, la creamos.
+                            supplier_info['product_tmpl_id'] = product_id
+                            self._execute_kw('product.supplierinfo', 'create', [supplier_info])
+                            logging.info(f"Nueva info de proveedor ID {partner_id} añadida al producto ID {product_id}.")
                 return product_id
             else:
-                if supplier_info:
-                    product_vals['seller_ids'] = [(0, 0, supplier_info)]
+                # --- LÓGICA DE CREACIÓN ---
+                # Volvemos a añadir los datos del proveedor para la creación.
+                if seller_ids_data:
+                    product_vals['seller_ids'] = seller_ids_data
                 
                 new_product_id = self._execute_kw('product.template', 'create', [product_vals])
                 logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
@@ -291,53 +300,57 @@ class OdooProductService(OdooBaseService):
 
 
     
-    def get_paginated_products(self, page: int = 1, limit: int = 10, sort_by: str = 'id', sort_order: str = 'asc', search: Optional[str] = None, category: Optional[str] = None):
+    def get_paginated_products(self, page: int = 1, limit: int = 10, sort_by: str = 'id', sort_order: str = 'asc', search: Optional[str] = None, category: Optional[str] = None, include_inactive: bool = False):
         """Obtiene productos paginados, ordenados y filtrados desde Odoo."""
+        logger = logging.getLogger("odoo_product_service.get_paginated")
+        logger.info(f"--- Iniciando get_paginated_products con page={page}, limit={limit}, include_inactive={include_inactive} ---")
+
         offset = (page - 1) * limit
         order = f'{sort_by} {sort_order.upper()}'
 
         domain = []
+        if not include_inactive:
+            domain.append(('active', '=', True))
         if search:
             domain.extend(['|', ('name', 'ilike', search), ('default_code', 'ilike', search)])
         if category:
-            # Primero, encontrar el ID de la categoría por su nombre
             category_id = self._execute_kw('product.category', 'search', [[('name', 'ilike', category)]], {'limit': 1})
             if category_id:
                 domain.append(('categ_id', '=', category_id[0]))
 
+        logger.info(f"Dominio de búsqueda para Odoo: {domain}")
+
         try:
-            total = self._execute_kw('product.product', 'search_count', [domain])
+            total = self._execute_kw('product.template', 'search_count', [domain])
+            logger.info(f"Total de productos encontrados por search_count: {total}")
+
             if total == 0:
+                logger.warning("search_count devolvió 0. Finalizando búsqueda.")
                 return [], 0
 
             odoo_products = self._execute_kw(
-                'product.product',
+                'product.template',
                 'search_read',
                 [domain],
                 {
-                    'offset': offset, 
-                    'limit': limit, 
+                    'offset': offset,
+                    'limit': limit,
                     'order': order,
-                    'fields': [
-                        'id', 'name', 'default_code', 'list_price', 'categ_id', 'active',
-                        'type', 'standard_price', 'barcode', 'weight',
-                        'sale_ok', 'purchase_ok', 'available_in_pos', 'to_weight',
-                        'is_published', 'website_sequence', 'description_sale',
-                        'description_purchase', 'seller_ids',
-                        'product_tag_ids', 'public_categ_ids', 'pos_categ_ids',
-                        'taxes_id', 'supplier_taxes_id'
-                    ]
+                    'fields': ['id', 'name', 'default_code', 'active', 'is_published']
                 }
             )
+            
+            logger.info(f"Respuesta de search_read (primeros 5): {odoo_products[:5]}")
 
             if not odoo_products:
+                logger.warning("search_read devolvió una lista vacía, pero search_count encontró resultados.")
                 return [], total
 
-            # Transformación de datos (simplificada de tu código original)
             products = [Product(**p) for p in self._transform_products(odoo_products)]
+            logger.info(f"Transformación a Pydantic exitosa. Devolviendo {len(products)} productos.")
             return products, total
         except Exception as e:
-            logging.error(f"Error en get_paginated_products: {e}")
+            logger.error(f"EXCEPCIÓN CRÍTICA en get_paginated_products: {e}", exc_info=True)
             return [], 0
 
     def _transform_products(self, odoo_products: List[Dict]) -> List[Dict]:
@@ -520,8 +533,8 @@ class OdooProductService(OdooBaseService):
                         barcode = str(barcode)
                     
                     transformed_products.append(Product(
-                        id=p.get('id'),
-                        name=p.get('name', ''),
+                        id=p['id'],
+                        name=p['name'],
                         default_code=default_code,
                         list_price=p.get('list_price', 0.0),
                         categ_id=categ_id_value,

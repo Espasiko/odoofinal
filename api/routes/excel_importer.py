@@ -121,12 +121,18 @@ async def process_and_load_excel(
         end_time_mistral = time.time()
 
         all_processed_products = []
+        raw_ia_responses = []
         for res in results:
             if res:
+                raw_ia_responses.append(res) # Capturamos la respuesta cruda
                 products = parse_mistral_response(res)
                 all_processed_products.extend(products)
             else:
                 logger.warning("Un lote no pudo ser procesado por la IA.")
+
+        logger.info(f"Respuesta completa de la IA (agregada): {json.dumps(raw_ia_responses, indent=2)}")
+
+
 
         if not all_processed_products:
             return JSONResponse(content={"message": "La IA no encontró productos para procesar.", "raw_ia_response": None}, status_code=200)
@@ -160,7 +166,7 @@ async def process_and_load_excel(
             "productos_creados_o_actualizados": created,
             "productos_fallidos": failed,
             "tiempo_total_segundos": round(total_time, 2),
-            "raw_ia_response": None
+            "raw_ia_response": raw_ia_responses
         }
 
     except httpx.HTTPStatusError as e:

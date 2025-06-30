@@ -15,11 +15,12 @@ def get_product_service():
 @router.get("/products", response_model=PaginatedResponse[Product])
 async def get_products(
     page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+    size: int = Query(10, ge=1, le=1000), # Límite aumentado para pruebas
     sort_by: Optional[str] = Query('id', description="Campo por el que ordenar"),
     sort_order: Optional[str] = Query('asc', description="asc o desc"),
     search: Optional[str] = Query(None, description="Término de búsqueda en nombre y código"),
     category: Optional[str] = Query(None, description="Filtrar por nombre de categoría"),
+    include_inactive: bool = Query(False, description="Incluir productos inactivos (archivados)"),
     current_user: User = Depends(get_current_active_user),
     product_service: OdooProductService = Depends(get_product_service)
 ):
@@ -30,7 +31,8 @@ async def get_products(
         sort_by=sort_by, 
         sort_order=sort_order,
         search=search,
-        category=category
+        category=category,
+        include_inactive=include_inactive
     )
     return PaginatedResponse(data=products, total=total, page=page, size=size, pages=(total + size - 1) // size)
 
