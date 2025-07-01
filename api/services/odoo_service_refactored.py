@@ -43,9 +43,13 @@ class OdooServiceRefactored:
         return self.product_service.get_product_count()
     
     # Métodos de proveedores
-    def get_providers(self, offset=0, limit=100) -> List[Provider]:
+    def get_providers(self, offset: int = 0, limit: int = 100) -> List[Provider]:
         """Obtiene proveedores desde Odoo"""
         return self.provider_service.get_providers(offset, limit)
+
+    def get_paginated_providers(self, page: int = 1, limit: int = 10):
+        """Obtiene proveedores paginados y el total"""
+        return self.provider_service.get_paginated_providers(page, limit)
     
     def get_supplier_by_name(self, name: str) -> Optional[Provider]:
         """Busca un proveedor por nombre"""

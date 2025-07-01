@@ -76,11 +76,27 @@ class OdooService:
 
 # Importar servicios refactorizados
 from .odoo_service_refactored import OdooServiceRefactored
+from .odoo_provider_service import odoo_provider_service
 
 # Crear alias para mantener compatibilidad
 class OdooServiceCompatible(OdooServiceRefactored):
-    """Clase de compatibilidad que mantiene la interfaz original"""
-    pass
+    """Clase de compatibilidad que mantiene la interfaz original y delega a servicios especializados"""
+
+    # -------- Proveedores --------
+    def get_paginated_providers(self, page: int = 1, limit: int = 10):
+        return odoo_provider_service.get_paginated_providers(page, limit)
+
+    def get_providers(self):
+        return odoo_provider_service.get_providers()
+
+    def get_provider_by_id(self, provider_id: int):
+        return odoo_provider_service.get_provider_by_id(provider_id)
+
+    def create_provider(self, provider_data: dict):
+        return odoo_provider_service.create_provider(provider_data)
+
+    def update_provider(self, provider_id: int, update_vals: dict):
+        return odoo_provider_service.update_provider(provider_id, update_vals)
 
 # Instancia del servicio (ahora usando la versión refactorizada)
 odoo_service = OdooServiceCompatible()

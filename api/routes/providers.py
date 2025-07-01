@@ -15,8 +15,15 @@ async def get_providers(
 ):
     """Obtiene lista paginada de proveedores"""
     try:
+        import logging
+        logger = logging.getLogger("api.routes.providers")
+        logger.info(f"Llamada a /providers page={page} size={size}")
         providers, total = odoo_service.get_paginated_providers(page=page, limit=size)
-        return PaginatedResponse(items=providers, total=total, page=page, size=size)
+        logger.info(f"Respuesta de get_paginated_providers: {len(providers)} proveedores, total={total}")
+        # Calcular páginas
+        pages = (total + size - 1) // size if size else 1
+        logger.info(f"Paginas calculadas: {pages}")
+        return PaginatedResponse(data=providers, total=total, page=page, limit=size, pages=pages)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

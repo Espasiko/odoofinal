@@ -74,6 +74,7 @@ class InvoiceImportService:
             "created_products": product_ids,
             "purchase_order_id": po_id,
             "invoice_id": invoice_id,
+            "invoice_error": getattr(odoo_purchase_service, 'last_error', None),
             "lines": len(core.lines)
         }
 

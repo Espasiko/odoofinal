@@ -88,9 +88,14 @@ class OdooService {
   private token: string | null = null;
   private isAuthenticated: boolean = false;
 
+  private username: string;
+  private password: string;
+  private tokenExpiresAt: number | null = null;
+
   constructor() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    
+    this.username = import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com';
+    this.password = import.meta.env.VITE_ODOO_PASSWORD || 'admin';
     this.apiClient = axios.create({
       baseURL: apiUrl,
       timeout: 10000,
@@ -98,9 +103,8 @@ class OdooService {
         'Content-Type': 'application/json',
       },
     });
-
     this.setupInterceptors();
-    this.loadTokenFromStorage();
+    this.loginAuto();
   }
 
   private setupInterceptors(): void {
@@ -124,8 +128,10 @@ class OdooService {
           originalRequest._retry = true;
           try {
             // Implement token refresh logic if available, otherwise logout
-            this.logout();
-            window.location.href = '/login';
+            this.token = null;
+            this.isAuthenticated = false;
+    this.tokenExpiresAt = null;
+    // window.location.href = '/login'; // Solo en producción
           } catch (refreshError) {
             return Promise.reject(refreshError);
           }
@@ -144,24 +150,37 @@ class OdooService {
     };
   }
 
-  private loadTokenFromStorage(): void {
-    const storedToken = localStorage.getItem('odoo_token');
-    if (storedToken) {
-      this.token = storedToken;
+  // Login automático con renovación
+  private async loginAuto() {
+    try {
+      if (this.token && this.tokenExpiresAt && Date.now() < this.tokenExpiresAt - 60000) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append('username', this.username);
+      formData.append('password', this.password);
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/token`,
+        formData,
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      );
+      this.token = response.data.access_token;
       this.isAuthenticated = true;
+      // Decodificar JWT para calcular expiración
+      const payload = this.token ? JSON.parse(atob(this.token.split('.')[1])) : {exp: Math.floor(Date.now() / 1000) + 1800};
+      this.tokenExpiresAt = payload.exp * 1000;
+    } catch (error) {
+      this.token = null;
+      this.isAuthenticated = false;
+      this.tokenExpiresAt = null;
+      console.error('Error en login automático:', error);
     }
   }
 
-  private saveTokenToStorage(token: string): void {
-    localStorage.setItem('odoo_token', token);
-    this.token = token;
-    this.isAuthenticated = true;
-  }
-
-  private clearTokenFromStorage(): void {
-    localStorage.removeItem('odoo_token');
-    this.token = null;
-    this.isAuthenticated = false;
+  private async ensureToken() {
+    if (!this.token || !this.tokenExpiresAt || Date.now() > this.tokenExpiresAt - 60000) {
+      await this.loginAuto();
+    }
   }
 
   async login(username: string, password: string): Promise<boolean> {
@@ -177,7 +196,11 @@ class OdooService {
       });
 
       if (response.data.access_token) {
-        this.saveTokenToStorage(response.data.access_token);
+        this.token = response.data.access_token;
+        this.isAuthenticated = true;
+        // Decodificar JWT para calcular expiración
+        const payload = this.token ? JSON.parse(atob(this.token.split('.')[1])) : {exp: Math.floor(Date.now() / 1000) + 1800};
+        this.tokenExpiresAt = payload.exp * 1000;
         return true;
       }
       return false;
@@ -188,10 +211,13 @@ class OdooService {
   }
 
   logout(): void {
-    this.clearTokenFromStorage();
+    this.token = null;
+    this.isAuthenticated = false;
+    this.tokenExpiresAt = null;
   }
 
   async getProducts(page: number = 1, limit: number = 10, sortBy: string = 'id', sortOrder: 'asc' | 'desc' = 'asc', search: string = ''): Promise<PaginatedResponse<Product>> {
+    await this.ensureToken();
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -210,6 +236,7 @@ class OdooService {
   }
 
   async createProduct(productData: Partial<Product>): Promise<Product> {
+    await this.ensureToken();
     try {
       const response = await this.apiClient.post<Product>('/api/v1/products', productData);
       message.success('Producto creado exitosamente');
@@ -222,6 +249,7 @@ class OdooService {
   }
 
   async updateProduct(id: number, productData: Partial<Product>): Promise<Product> {
+    await this.ensureToken();
     try {
       const response = await this.apiClient.put<Product>(`/api/v1/products/${id}`, productData);
       message.success('Producto actualizado exitosamente');
@@ -234,6 +262,7 @@ class OdooService {
   }
 
   async deleteProduct(id: number): Promise<void> {
+    await this.ensureToken();
     try {
       await this.apiClient.delete(`/api/v1/products/${id}`);
       message.success('Producto archivado exitosamente');
@@ -246,6 +275,60 @@ class OdooService {
 
   isLoggedIn(): boolean {
     return this.isAuthenticated && !!this.token;
+  }
+  // Métodos CRUD para proveedores
+  async getProviders(page: number = 1, limit: number = 10, search: string = ''): Promise<PaginatedResponse<Provider>> {
+    await this.ensureToken();
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: limit.toString(),
+        search: search,
+      });
+      const response = await this.apiClient.get<PaginatedResponse<Provider>>(`/api/v1/providers?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      return { data: [], total: 0, page, limit, pages: 0 };
+    }
+  }
+
+  async createProvider(providerData: Partial<Provider>): Promise<Provider> {
+    await this.ensureToken();
+    try {
+      const response = await this.apiClient.post<Provider>('/api/v1/providers', providerData);
+      message.success('Proveedor creado exitosamente');
+      return response.data;
+    } catch (error) {
+      const apiError = this.formatError(error as AxiosError);
+      message.error(`Error al crear proveedor: ${apiError.message}`);
+      throw apiError;
+    }
+  }
+
+  async updateProvider(id: number, providerData: Partial<Provider>): Promise<Provider> {
+    await this.ensureToken();
+    try {
+      const response = await this.apiClient.put<Provider>(`/api/v1/providers/${id}`, providerData);
+      message.success('Proveedor actualizado exitosamente');
+      return response.data;
+    } catch (error) {
+      const apiError = this.formatError(error as AxiosError);
+      message.error(`Error al actualizar proveedor: ${apiError.message}`);
+      throw apiError;
+    }
+  }
+
+  async deleteProvider(id: number): Promise<void> {
+    await this.ensureToken();
+    try {
+      await this.apiClient.delete(`/api/v1/providers/${id}`);
+      message.success('Proveedor archivado exitosamente');
+    } catch (error) {
+      const apiError = this.formatError(error as AxiosError);
+      message.error(`Error al archivar proveedor: ${apiError.message}`);
+      throw apiError;
+    }
   }
 }
 

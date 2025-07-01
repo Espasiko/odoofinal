@@ -17,7 +17,9 @@ from api.routes.providers import router as providers_router
 # from api.routes.dashboard import router as dashboard_router
 # from api.routes.tasks import router as tasks_router
 # from api.routes.ocr import router as ocr_router
-# from api.routes.mistral_ocr import router as mistral_ocr_router
+from api.routes.mistral_ocr import router as mistral_ocr_router
+from api.routes.invoices import router as invoices_router
+
 from api.routes.web_ui import router as web_ui_router
 from api.routes.mistral_llm_excel import router as mistral_llm_excel_router
 from api.routes.excel_importer import router as excel_importer_router
@@ -56,7 +58,9 @@ app.include_router(providers_router)
 # app.include_router(dashboard_router)
 # app.include_router(tasks_router)
 # app.include_router(ocr_router)
-# app.include_router(mistral_ocr_router)
+app.include_router(mistral_ocr_router)
+app.include_router(invoices_router)
+
 app.include_router(mistral_llm_excel_router)
 app.include_router(excel_importer_router)
 
