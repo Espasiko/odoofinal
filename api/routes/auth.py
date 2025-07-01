@@ -1,18 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-from typing import Dict, Any, Annotated
+from typing import Annotated
 
 from ..models.schemas import Token, User, SessionResponse
-from ..services.auth_service import AuthService, fake_users_db
+from ..services.auth_service import auth_service, fake_users_db, get_current_active_user
 from ..utils.config import config
 
 router = APIRouter(tags=["authentication"])
 
-auth_service = AuthService()
-
 @router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
     """Endpoint para autenticación y obtención de token"""
     user = auth_service.authenticate_user(fake_users_db, form_data.username, form_data.password)
     if not user:
@@ -25,13 +23,17 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     access_token = auth_service.create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return Token(access_token=access_token, token_type="bearer")
 
 @router.get("/session", response_model=SessionResponse)
-async def get_session(current_user: Dict[str, Any] = Depends(auth_service.get_current_active_user)):
-    """Obtiene información de la sesión actual"""
+async def get_session(current_user: User = Depends(get_current_active_user)) -> SessionResponse:
+    """Obtiene información de la sesión actual y refresca el token."""
+    access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+    new_access_token = auth_service.create_access_token(
+        data={"sub": current_user.username}, expires_delta=access_token_expires
+    )
     return SessionResponse(
-        access_token=auth_service.create_access_token(data={"sub": current_user["username"]}),
+        access_token=new_access_token,
         token_type="bearer",
         user=current_user
     )

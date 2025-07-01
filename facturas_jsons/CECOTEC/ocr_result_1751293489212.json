@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Documento procesado exitosamente",
+  "filename": "Factura de clientes_240046527_20250102_105711.pdf",
+  "file_type": ".pdf",
+  "processed_by": "yo@mail.com",
+  "data": {
+    "success": true,
+    "full_text": "# CECOTEC INNOVACIONES, S.L\n\nAvda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890\n\n## FACTURA 245S1-240046527\n\n$02 / 01 / 25$\n\n## centvec\n\nAntonio Plaza Bonachera Carretera de Alicún, $\\mathrm{n}^{\\circ} 172$ 04740 Roquetas de Mar ESPAÑA NIF: ES75236270G Ref.Compra: B24022689-1\n\n|  Rel. | Descripción | EAN | Card. | Precio Ud. | Portes | Total B) | IVA | Total | ID-Exp. | IV. ped. B2B  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  ALBARÁN: 244856801 (01/01/2025) |  | N ${ }^{\\circ}$ ref. Cliente pedido/entrega: B24022689-1 |  |  |  |  |  |  |  |   |\n|  01727 | Power Espresso 20 Tradizionale Light Red | 8435484017275 | 3 | $62,93 €$ | $0,00 €$ | $188,79 €$ | $39,65 €$ | 228,44€ B24022689-1 |  | 2531963329 68  |\n|  Dis | Portes | Base |  | Total Base Imp. |  |  |  |  |  |   |\n|   | $0,00 €$ | $188,79 €$ |  | $188,79 €$ | $0,00 €$ |  | $39,65 €$ |  |  | $9,82 €$  |\n\n|  Total: | 238,26€  |\n| --- | --- |\n|  |   |\n\n$30 / 12 / 2024$ B24022689 253196332968 Based On Sales Orders 244811416. Basado en Entregas 244856801.\n\n|  METODO DE PAGO | DOC. DE PAGO | FECHA VENCIMIENTO |  |  |   |\n| --- | --- | --- | --- | --- | --- |\n|  $50 \\% 30$ dias - $50 \\% 60$ dia | GIRO C | 240046527-1 | 10/02/2025 | 119,13€ |   |\n|   |  | 240046527-1 | 10/03/2025 | 119,13€ |   |\n\n## Crédito y Caución\n\nAtradius",
+    "pages_content": [
+      "# CECOTEC INNOVACIONES, S.L\n\nAvda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890\n\n## FACTURA 245S1-240046527\n\n$02 / 01 / 25$\n\n## centvec\n\nAntonio Plaza Bonachera Carretera de Alicún, $\\mathrm{n}^{\\circ} 172$ 04740 Roquetas de Mar ESPAÑA NIF: ES75236270G Ref.Compra: B24022689-1\n\n|  Rel. | Descripción | EAN | Card. | Precio Ud. | Portes | Total B) | IVA | Total | ID-Exp. | IV. ped. B2B  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  ALBARÁN: 244856801 (01/01/2025) |  | N ${ }^{\\circ}$ ref. Cliente pedido/entrega: B24022689-1 |  |  |  |  |  |  |  |   |\n|  01727 | Power Espresso 20 Tradizionale Light Red | 8435484017275 | 3 | $62,93 €$ | $0,00 €$ | $188,79 €$ | $39,65 €$ | 228,44€ B24022689-1 |  | 2531963329 68  |\n|  Dis | Portes | Base |  | Total Base Imp. |  |  |  |  |  |   |\n|   | $0,00 €$ | $188,79 €$ |  | $188,79 €$ | $0,00 €$ |  | $39,65 €$ |  |  | $9,82 €$  |\n\n|  Total: | 238,26€  |\n| --- | --- |\n|  |   |\n\n$30 / 12 / 2024$ B24022689 253196332968 Based On Sales Orders 244811416. Basado en Entregas 244856801.\n\n|  METODO DE PAGO | DOC. DE PAGO | FECHA VENCIMIENTO |  |  |   |\n| --- | --- | --- | --- | --- | --- |\n|  $50 \\% 30$ dias - $50 \\% 60$ dia | GIRO C | 240046527-1 | 10/02/2025 | 119,13€ |   |\n|   |  | 240046527-1 | 10/03/2025 | 119,13€ |   |\n\n## Crédito y Caución\n\nAtradius"
+    ],
+    "extracted_images": [],
+    "page_count": 1,
+    "image_count": 0
+  }
+}

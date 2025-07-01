@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
 
 from ..models.schemas import Customer, User, PaginatedResponse
-from ..services.auth_service import auth_service
+from ..services.auth_service import get_current_active_user
 
 router = APIRouter(prefix="/api/v1", tags=["customers"])
 
@@ -19,7 +19,7 @@ fake_customers_db = [
 async def get_customers(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtiene lista paginada de clientes"""
     try:
@@ -42,7 +42,7 @@ async def get_customers(
 @router.get("/customers/{customer_id}", response_model=Customer)
 async def get_customer(
     customer_id: int,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Obtiene un cliente específico por ID"""
     try:
@@ -58,7 +58,7 @@ async def get_customer(
 @router.post("/customers", response_model=Customer)
 async def create_customer(
     customer: Customer,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Crea un nuevo cliente"""
     # Generar nuevo ID
@@ -71,7 +71,7 @@ async def create_customer(
 async def update_customer(
     customer_id: int,
     customer: Customer,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Actualiza un cliente existente"""
     # Buscar el cliente existente
@@ -87,7 +87,7 @@ async def update_customer(
 @router.delete("/customers/{customer_id}")
 async def delete_customer(
     customer_id: int,
-    current_user: User = Depends(auth_service.get_current_active_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     """Elimina un cliente"""
     # Buscar el cliente existente

@@ -26,20 +26,21 @@ export const useProviders = (): UseProvidersReturn => {
     current: 1,
     pageSize: 10,
     total: 0,
+    pages: 0,
   });
 
-  const fetchProviders = useCallback(async (page: number = 1, limit: number = 10) => {
+  const fetchProviders = useCallback(async (page: number = 1, limit: number = 10, search: string = '') => {
     setLoading(true);
     setError(null);
     
     try {
-      const response: PaginatedResponse<Provider> = await odooService.getProviders({ page, limit });
-      
+      const response: PaginatedResponse<Provider> = await odooService.getProviders(page, limit, search);
       setProviders(response.data);
       setPagination({
         current: response.page,
         pageSize: response.limit,
         total: response.total,
+        pages: response.pages,
       });
     } catch (err: any) {
       const errorMessage = err.message || 'Error al cargar proveedores';

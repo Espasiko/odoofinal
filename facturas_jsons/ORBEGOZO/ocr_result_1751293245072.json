@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "message": "Documento procesado exitosamente",
+  "filename": "ABONO - FRA0732025032507421043.pdf",
+  "file_type": ".pdf",
+  "processed_by": "yo@mail.com",
+  "data": {
+    "success": true,
+    "full_text": "# SONIFER, S.A.\n\nAvda. de Santiago, 86 30007 MURCIA Telf. 968231600 - Fax: 968245362 E-mail:sonifer@sonifer.es\n\n## FRA. RECTIFICATIVA\n\n|  Cliente | C.I.F. | Número | Fecha  |\n| --- | --- | --- | --- |\n|  44047 | 75236270 G | 07421043 | 25/03/25  |\n|  Agencia |  | Forma de pago |   |\n|  TXT |  |  |   |\n|  Portes |  | Agente FERMOQUIM, S.L. |   |\n\n|  Código | Descripción | Cantidad | Precio | \\%Dto. | Importe  |\n| --- | --- | --- | --- | --- | --- |\n|  DEVOLUCION 1336974 24/03/2025 A: 1 |  |  |  |  |   |\n|  17644 HO 980 HORNO 10 LITROS ORBEGOZO |  | $-1,00$ | 41,4100 | $33+3+5$ | $-25,56$  |\n|  17899 HCC 5015 HORNO 15 L |  | $-1,00$ | 42,9000 | $3+5$ | $-39,53$  |\n|  18256 HO 990 HORNO 10L ORBEGOZO |  | $-1,00$ | 44,0000 | $33+3+5$ | $-27,17$  |\n|  13044 BB 5000 ESTUFA DE BAÑO ORBEGOZO |  | $-1,00$ | 24,2300 | $33+3+3+5$ | $-14,51$  |\n|  17922 DA 2000 DISPENSADOR DE AGUA ORB |  | $-1,00$ | 7,9000 | $33+5+3$ | $-4,88$  |\n|  ENV/2023/000002860 |  |  |  |  |   |\n|  |   |   |   |   |   |\n|  Vencimientos |  |  |  | TOTAL |   |\n|   |  | Base |  | $-111,65 €$ | $-140.91 €$  |\n|   |  | Cuota IVA | 21,0 | $-23,45 €$ |   |\n|   |  | Cuota REC. | 5,2 | $-5,81 €$ |   |",
+    "pages_content": [
+      "# SONIFER, S.A.\n\nAvda. de Santiago, 86 30007 MURCIA Telf. 968231600 - Fax: 968245362 E-mail:sonifer@sonifer.es\n\n## FRA. RECTIFICATIVA\n\n|  Cliente | C.I.F. | Número | Fecha  |\n| --- | --- | --- | --- |\n|  44047 | 75236270 G | 07421043 | 25/03/25  |\n|  Agencia |  | Forma de pago |   |\n|  TXT |  |  |   |\n|  Portes |  | Agente FERMOQUIM, S.L. |   |\n\n|  Código | Descripción | Cantidad | Precio | \\%Dto. | Importe  |\n| --- | --- | --- | --- | --- | --- |\n|  DEVOLUCION 1336974 24/03/2025 A: 1 |  |  |  |  |   |\n|  17644 HO 980 HORNO 10 LITROS ORBEGOZO |  | $-1,00$ | 41,4100 | $33+3+5$ | $-25,56$  |\n|  17899 HCC 5015 HORNO 15 L |  | $-1,00$ | 42,9000 | $3+5$ | $-39,53$  |\n|  18256 HO 990 HORNO 10L ORBEGOZO |  | $-1,00$ | 44,0000 | $33+3+5$ | $-27,17$  |\n|  13044 BB 5000 ESTUFA DE BAÑO ORBEGOZO |  | $-1,00$ | 24,2300 | $33+3+3+5$ | $-14,51$  |\n|  17922 DA 2000 DISPENSADOR DE AGUA ORB |  | $-1,00$ | 7,9000 | $33+5+3$ | $-4,88$  |\n|  ENV/2023/000002860 |  |  |  |  |   |\n|  |   |   |   |   |   |\n|  Vencimientos |  |  |  | TOTAL |   |\n|   |  | Base |  | $-111,65 €$ | $-140.91 €$  |\n|   |  | Cuota IVA | 21,0 | $-23,45 €$ |   |\n|   |  | Cuota REC. | 5,2 | $-5,81 €$ |   |"
+    ],
+    "extracted_images": [],
+    "page_count": 1,
+    "image_count": 0
+  }
+}

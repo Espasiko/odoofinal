@@ -1,5 +1,6 @@
 import React from 'react';
-import { ConfigProvider, Layout, theme } from 'antd';
+// Importa el componente App de antd
+import { App as AntdApp, ConfigProvider, Layout, theme } from 'antd';
 import { darkTheme } from './darkTheme';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Refine } from '@refinedev/core';
@@ -27,6 +28,7 @@ import Sales from './sales';
 import Customers from './customers';
 
 import Providers from './providers';
+import ImportExcelChunk from './src/ImportExcelChunk';
 
 
 
@@ -49,9 +51,11 @@ const App: React.FC = () => {
       <OdooProvider>
         <ConfigProvider theme={darkTheme}>
           <RefineKbarProvider>
-            <Refine
-              dataProvider={dataProvider(API_URL)}
-              notificationProvider={notificationProvider}
+            {/* Envuelve la aplicación con el componente App de Ant Design */}
+            <AntdApp>
+              <Refine
+                dataProvider={dataProvider(API_URL)}
+                notificationProvider={notificationProvider}
               routerProvider={routerBindings}
               resources={[
                 {
@@ -103,6 +107,14 @@ const App: React.FC = () => {
                     icon: "TeamOutlined",
                   },
                 },
+                {
+                  name: "import-excel",
+                  list: "/import-excel",
+                  meta: {
+                    label: "Importar Excel",
+                    icon: "InboxOutlined",
+                  },
+                },
 
               ]}
               options={{
@@ -129,14 +141,14 @@ const App: React.FC = () => {
                   <Route path="/customers" element={<Customers />} />
         
                   <Route path="/providers" element={<Providers />} />
-
-                  
+                  <Route path="/import-excel" element={<ImportExcelChunk />} />
                   <Route path="*" element={<ErrorComponent />} />
                 </Routes>
               </ThemedLayoutV2>
-              <RefineKbar />
-              <UnsavedChangesNotifier />
-            </Refine>
+                <RefineKbar />
+                <UnsavedChangesNotifier />
+              </Refine>
+            </AntdApp>
           </RefineKbarProvider>
         </ConfigProvider>
       </OdooProvider>

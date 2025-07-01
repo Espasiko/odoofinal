@@ -24,8 +24,8 @@ def main():
     print("=" * 50)
     
     # Verificar que estamos en el directorio correcto
-    if not Path("main_new.py").exists():
-        print("❌ Error: No se encuentra main_new.py en el directorio actual")
+    if not Path("main.py").exists():
+        print("❌ Error: No se encuentra main.py en el directorio actual")
         print(f"📁 Directorio actual: {os.getcwd()}")
         return False
     
@@ -41,7 +41,7 @@ def main():
     try:
         # Ejecutar servidor directamente con uvicorn.run
         uvicorn.run(
-            "main_new:app",
+            "main:app",
             host="0.0.0.0",
             port=8000,
             log_level="info",

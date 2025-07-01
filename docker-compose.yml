@@ -4,7 +4,7 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: manus_odoo-bd
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -13,11 +13,17 @@ services:
     restart: unless-stopped
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d manus_odoo-bd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   odoo:
     image: odoo:18.0
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8069:8069"
     environment:
@@ -30,6 +36,11 @@ services:
       - ./addons:/mnt/extra-addons
     restart: unless-stopped
     command: odoo --xmlrpc-interface=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   adminer:
     image: adminer
@@ -37,7 +48,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   fastapi:
     build:
@@ -50,7 +62,8 @@ services:
     volumes:
       - ./:/app
     depends_on:
-      - db
+      odoo:
+        condition: service_healthy
     environment:
       ODOO_URL: "http://odoo:8069"
       ODOO_DB: "manus_odoo-bd"

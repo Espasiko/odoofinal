@@ -11,7 +11,7 @@ class OdooBaseService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = self.config['url']  # Usar la URL de configuración para Odoo
+        self._url = self.config["url"]  # Usar siempre la URL de configuración/env
     
     def _get_connection(self):
         """Establece conexión con Odoo"""

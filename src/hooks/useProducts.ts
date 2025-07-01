@@ -34,12 +34,7 @@ export const useProducts = (): UseProductsReturn => {
       setLoading(true);
       setError(null);
       
-      const response: PaginatedResponse<Product> = await odooService.getProducts({
-        page: currentPage,
-        limit: pageSize,
-        search: searchTerm || undefined
-      });
-      
+      const response: PaginatedResponse<Product> = await odooService.getProducts(currentPage, pageSize, 'id', 'asc', searchTerm || '');
       setProducts(response.data);
       setTotalProducts(response.total);
     } catch (err) {
