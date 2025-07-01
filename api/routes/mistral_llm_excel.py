@@ -111,7 +111,8 @@ async def process_excel_file(
         A partir del siguiente texto extraído de una hoja de cálculo de un proveedor, extrae la lista de productos.
         El proveedor se llama '{proveedor_nombre}'.
         El formato de salida debe ser un objeto JSON con una única clave \"productos\", que contenga una lista de objetos.
-        Cada objeto debe representar un producto y tener las siguientes claves en español y minúsculas: \"nombre\", \"referencia_proveedor\", \"precio_coste\", \"categoria\", \"subcategoria\", \"marca\", \"descripcion\".
+        Cada objeto debe representar un producto y tener las siguientes claves en español y minúsculas: \"nombre\", \"referencia_proveedor\", \"precio_coste\", \"precio\", \"categoria\", \"subcategoria\", \"marca\", \"descripcion\".
+Si en la hoja de cálculo existe un precio de venta al público (PVP) o precio de lista, devuélvelo en la clave \"precio\".
         Si un campo no está disponible, omítelo o déjalo como null. No inventes datos.
         Asegúrate de que el JSON esté bien formado.
 

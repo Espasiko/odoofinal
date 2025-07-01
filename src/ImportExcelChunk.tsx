@@ -41,7 +41,12 @@ const ImportExcelChunk: React.FC = () => {
   const handleUpload = async () => {
     if (!isAuthenticated) {
       message.loading('Obteniendo token…', 1);
-      return;
+      // Espera breve a que el interceptor complete la solicitud de token
+      await new Promise(r => setTimeout(r, 1200));
+      if (!isAuthenticated) {
+        message.error('No se pudo obtener token. Intenta de nuevo en unos segundos.');
+        return;
+      }
     }
     if (!fileRef.current) {
       message.error('Selecciona un archivo Excel primero.');

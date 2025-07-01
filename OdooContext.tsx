@@ -124,6 +124,9 @@ export const OdooProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const t = await fetchTokenRequest();
             setAuth({ accessToken: t.access_token, refreshToken: t.refresh_token });
             axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${t.access_token}`;
+            if (error.config?.headers) {
+              (error.config.headers as any)['Authorization'] = `Bearer ${t.access_token}`;
+            }
             return axiosInstance(error.config!);
           } catch (e) {
             logout();

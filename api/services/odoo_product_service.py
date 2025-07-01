@@ -206,11 +206,25 @@ class OdooProductService(OdooBaseService):
             vals['name'] = product_data['nombre']
         if product_data.get('referencia_proveedor'):
             vals['default_code'] = str(product_data['referencia_proveedor'])
+        # Cost price
         if product_data.get('precio_coste') is not None:
             try:
                 vals['standard_price'] = float(product_data['precio_coste'])
             except (ValueError, TypeError):
                 logging.warning(f"No se pudo convertir 'precio_coste' a float para {product_data.get('nombre')}")
+
+        # Sale price (PVP)
+        posible_pvp_keys = [
+            'precio_venta', 'precio_pvp', 'precio_publico', 'pvp', 'precio_venta_publico',
+            'precio_final', 'precio_final_cliente', 'precio_venta_cliente', 'pvp_final', 'precio', 'precio_proveedor'
+        ]
+        for key in posible_pvp_keys:
+            if product_data.get(key) is not None:
+                try:
+                    vals['list_price'] = float(product_data[key])
+                except (ValueError, TypeError):
+                    logging.warning(f"No se pudo convertir '{key}' a float para {product_data.get('nombre')}")
+                break
         if product_data.get('descripcion'):
             vals['description_sale'] = product_data['descripcion']
         
