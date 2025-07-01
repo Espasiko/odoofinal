@@ -122,31 +122,12 @@ Si en la hoja de cálculo existe un precio de venta al público (PVP) o precio d
         ---
         """
         
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        data = {
-            "model": "mistral-large-latest",
-            "messages": [{"role": "user", "content": prompt}],
-            "response_format": {"type": "json_object"}
-        }
-
-        t_before_mistral = time.time()
-        logger.info("[PERF] Realizando llamada a la API de Mistral LLM...")
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.mistral.ai/v1/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=60.0
-            )
-        t_after_mistral = time.time()
-        logger.info(f"[PERF] Llamada a Mistral LLM completada en {t_after_mistral - t_before_mistral:.2f} segundos.")
-        
-        response.raise_for_status()
-        result = response.json()
+        from ..utils.mistral_llm_utils import call_llm
+        t_before_llm = time.time()
+        logger.info("[PERF] Llamando a proveedor LLM…")
+        result = await call_llm(prompt)
+        t_after_llm = time.time()
+        logger.info(f"[PERF] Llamada LLM completada en {t_after_llm - t_before_llm:.2f} s")
         
         productos = parse_mistral_response(result)
         

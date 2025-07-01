@@ -38,6 +38,9 @@ const ImportExcelChunk: React.FC = () => {
   const { auth, api, isAuthenticated } = useOdoo();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+  const CHUNK_SIZE = 10;
+  const RATE_LIMIT_MS = 12000; // 5 req/min
+
   const handleUpload = async () => {
     if (!isAuthenticated) {
       message.loading('Obteniendo token…', 1);
@@ -61,35 +64,52 @@ const ImportExcelChunk: React.FC = () => {
     setStatus('Subiendo archivo...');
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append('file', fileRef.current);
-    formData.append('start_row', '0');
-    formData.append('chunk_size', '25');
-    formData.append('proveedor_nombre', providerName.trim());
+    let startRow = 0;
 
     try {
-      const res = await api.post(`${API_URL}/api/v1/mistral-llm/process-excel`, formData, {
-        headers: {
-          
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (evt) => {
-          const pct = Math.round((evt.loaded * 100) / (evt.total ?? 1));
-          setProgress(pct);
-          setStatus(pct === 100 ? 'Procesando datos…' : `Subiendo: ${pct}%`);
-        },
-      });
+      let totalCreated = 0;
+      let totalFailed = 0;
+      let keepGoing = true;
 
-      const d = res.data;
-      setResults({
-        created: d.productos_creados ?? [],
-        failed: d.productos_fallidos ?? [],
-        totalIntentados: d.total_intentados ?? 0,
-        totalCreados: d.total_creados ?? 0,
-        totalFallidos: d.total_fallidos ?? 0,
-      });
-      setStatus('Importación completada.');
-      message.success(`Creados: ${d.total_creados}, fallidos: ${d.total_fallidos}`);
+      while (keepGoing) {
+        const formData = new FormData();
+        formData.append('file', fileRef.current!);
+        formData.append('start_row', String(startRow));
+        formData.append('chunk_size', String(CHUNK_SIZE));
+        formData.append('proveedor_nombre', providerName.trim());
+        formData.append('only_first_sheet', 'false');
+
+        const res = await api.post(`${API_URL}/api/v1/mistral-llm/process-excel`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (evt) => {
+            const pct = Math.round((evt.loaded * 100) / (evt.total ?? 1));
+            setProgress(pct);
+            setStatus(pct === 100 ? 'Procesando datos…' : `Subiendo filas: ${pct}%`);
+          },
+        });
+
+        const d = res.data;
+        totalCreated += d.total_creados ?? 0;
+        totalFailed += d.total_fallidos ?? 0;
+
+        setResults(prev => ({
+          created: [...(prev?.created ?? []), ...(d.productos_creados ?? [])],
+          failed: [...(prev?.failed ?? []), ...(d.productos_fallidos ?? [])],
+          totalIntentados: (prev?.totalIntentados ?? 0) + (d.total_intentados ?? 0),
+          totalCreados: totalCreated,
+          totalFallidos: totalFailed,
+        }));
+
+        if ((d.total_intentados ?? 0) < CHUNK_SIZE) {
+          keepGoing = false;
+          setStatus('Importación completada.');
+          message.success(`Creados: ${totalCreated}, fallidos: ${totalFailed}`);
+        } else {
+          startRow += CHUNK_SIZE;
+          setStatus('Esperando para continuar…');
+          await new Promise(res => setTimeout(res, RATE_LIMIT_MS));
+        }
+      }
     } catch (err: any) {
       console.error(err);
       setStatus('Error durante la importación');
