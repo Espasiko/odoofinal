@@ -162,18 +162,10 @@ async def process_excel_file(
 
         for idx, producto in enumerate(productos):
             try:
-                categoria_id = odoo_product_service.resolve_category(producto.get("categoria"), producto.get("subcategoria"))
-                supplier_id = odoo_product_service.resolve_supplier(proveedor_nombre)
-                
-                odoo_dict = odoo_product_service.front_to_odoo_product_dict(producto)
-                if categoria_id:
-                    odoo_dict['categ_id'] = categoria_id
-                if supplier_id:
-                    odoo_dict['supplier_id'] = supplier_id
-                
-                created_product_id = odoo_product_service.create_product(odoo_dict)
+                odoo_dict = odoo_product_service.front_to_odoo_product_dict(producto, proveedor_nombre)
+                created_product_id = odoo_product_service.create_or_update_product(odoo_dict)
                 if created_product_id:
-                    new_prod = odoo_service.get_product_by_id(created_product_id)
+                    new_prod = odoo_product_service.get_product_by_id(created_product_id)
                     created.append({"idx": idx, "name": new_prod.name, "id": new_prod.id})
                 else:
                     failed.append({"idx": idx, "name": odoo_dict.get("name"), "error": "No se pudo crear en Odoo"})

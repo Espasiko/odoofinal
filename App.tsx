@@ -28,7 +28,7 @@ import Sales from './sales';
 import Customers from './customers';
 
 import Providers from './providers';
-import ImportExcelChunk from './ImportExcelChunk';
+import ImportExcelChunk from './src/ImportExcelChunk';
 
 
 
