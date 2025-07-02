@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Card, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, message, Spin, Alert } from 'antd';
+import { Table, Card, Button, Tag, Space, Modal, Form, Input, InputNumber, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import type { TablePaginationConfig } from 'antd/es/table';
 import { odooService } from './src/services/odooService';
@@ -9,6 +9,7 @@ const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -20,12 +21,15 @@ const Products: React.FC = () => {
     showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} productos`,
   });
 
-  const fetchProducts = useCallback(async (params: TablePaginationConfig = pagination) => {
+  const fetchProducts = useCallback(async (params: TablePaginationConfig = pagination, term: string = searchTerm) => {
     setLoading(true);
     try {
       const response: PaginatedResponse<Product> = await odooService.getProducts(
         params.current,
-        params.pageSize
+        params.pageSize,
+        'id',
+        'asc',
+        term
       );
       setProducts(response.data);
       setPagination(prev => ({
@@ -40,14 +44,20 @@ const Products: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination]);
-
-  useEffect(() => {
-    fetchProducts();
   }, []);
 
+  useEffect(() => {
+    fetchProducts(pagination, searchTerm);
+  }, [fetchProducts, searchTerm]);
+
   const handleTableChange = (newPagination: TablePaginationConfig) => {
-    fetchProducts(newPagination);
+    fetchProducts(newPagination, searchTerm);
+  };
+
+  // Manejar búsqueda
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    fetchProducts({ ...pagination, current: 1 }, value);
   };
 
   const showModal = (product?: Product) => {
@@ -109,35 +119,43 @@ const Products: React.FC = () => {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 80,
       sorter: true,
+      render: (text: string) => <span style={{ color: '#ffffff' }}>{text}</span>,
     },
     {
       title: 'Nombre',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
+      render: (text: string) => <span style={{ color: '#ffffff' }}>{text}</span>,
     },
     {
       title: 'Código',
       dataIndex: 'default_code',
       key: 'default_code',
-      render: (code: string) => code || <Tag>N/A</Tag>,
+      sorter: true,
+      render: (text: string) => <span style={{ color: '#ffffff' }}>{text || 'Sin código'}</span>,
     },
     {
       title: 'Precio de Venta',
       dataIndex: 'list_price',
       key: 'list_price',
-      render: (price: number) => `€${price ? price.toFixed(2) : '0.00'}`,
+      render: (price: number | null | undefined) => (
+        <span style={{ color: '#ffffff' }}>
+          €{typeof price === 'number' && !isNaN(price) ? price.toFixed(2) : '0.00'}
+        </span>
+      ),
       sorter: true,
     },
     {
-        title: 'Estado',
-        dataIndex: 'active',
-        key: 'active',
-        render: (active: boolean) => (
-            <Tag color={active ? 'green' : 'red'}>{active ? 'Activo' : 'Archivado'}</Tag>
-        ),
+      title: 'Estado',
+      dataIndex: 'active',
+      key: 'active',
+      render: (active: boolean) => (
+        <Tag color={active ? 'green' : 'red'}>
+          {active ? 'Activo' : 'Inactivo'}
+        </Tag>
+      ),
     },
     {
       title: 'Acciones',
@@ -167,19 +185,28 @@ const Products: React.FC = () => {
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Productos de Odoo</h2>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={() => showModal()}
-        >
-          Añadir Producto
-        </Button>
-      </div>
-      <Card>
+    <div style={{ padding: '20px' }}>
+      <Card style={{ background: '#1f1f1f', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+          <h2 style={{ margin: 0, color: '#fff' }}>Productos de Odoo</h2>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Input.Search
+               placeholder="Buscar por nombre o código"
+               allowClear
+               onSearch={handleSearch}
+               style={{ maxWidth: 280 }}
+             />
+            <Button
+               type="primary"
+               icon={<PlusOutlined />}
+               size="large"
+               onClick={() => showModal()}
+             >
+              Añadir Producto
+            </Button>
+          </div>
+        </div>
+        
         <Table
           columns={columns}
           dataSource={products}
@@ -187,6 +214,9 @@ const Products: React.FC = () => {
           pagination={pagination}
           loading={loading}
           onChange={handleTableChange}
+          style={{
+            background: '#141414',
+          }}
         />
       </Card>
 

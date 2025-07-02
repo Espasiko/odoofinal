@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Menu, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Menu, Typography, Drawer } from 'antd';
 import {
   DashboardOutlined,
   ShoppingOutlined,
@@ -8,30 +8,75 @@ import {
   UserOutlined,
   SettingOutlined,
   TeamOutlined,
-
 } from '@ant-design/icons';
-import { useMenu } from '@refinedev/core';
-import { Link } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const { Sider: AntdSider } = Layout;
 const { Title: AntTitle } = Typography;
 
-const Sider: React.FC = () => {
-  const { menuItems, selectedKey } = useMenu();
+const menuItems = [
+  {
+    key: '/dashboard',
+    icon: <DashboardOutlined />,
+    label: 'Dashboard',
+    path: '/dashboard',
+  },
+  {
+    key: '/products',
+    icon: <ShoppingOutlined />,
+    label: 'Productos',
+    path: '/products',
+  },
+  {
+    key: '/inventory',
+    icon: <InboxOutlined />,
+    label: 'Inventario',
+    path: '/inventory',
+  },
+  {
+    key: '/sales',
+    icon: <ShoppingCartOutlined />,
+    label: 'Ventas',
+    path: '/sales',
+  },
+  {
+    key: '/customers',
+    icon: <UserOutlined />,
+    label: 'Clientes',
+    path: '/customers',
+  },
+  {
+    key: '/providers',
+    icon: <TeamOutlined />,
+    label: 'Proveedores',
+    path: '/providers',
+  },
+  {
+    key: '/import-excel',
+    icon: <InboxOutlined />,
+    label: 'Importar Excel',
+    path: '/import-excel',
+  },
+  {
+    key: '/settings',
+    icon: <SettingOutlined />,
+    label: 'Configuración',
+    path: '/settings',
+  },
+];
 
-  return (
-    <AntdSider
-      width={260}
-      style={{
-        backgroundColor: '#1f1f1f',
-        overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-      }}
-    >
+const Sider: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen = false, onMobileClose }) => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 992);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const siderContent = (
+    <>
       <div style={{ padding: '16px', textAlign: 'center' }}>
         <AntTitle level={4} style={{ color: '#fff', margin: '12px 0' }}>
           Electrodomésticos ERP
@@ -39,57 +84,47 @@ const Sider: React.FC = () => {
       </div>
       <Menu
         theme="dark"
-        selectedKeys={[selectedKey]}
+        selectedKeys={[location.pathname]}
         mode="inline"
-        style={{ backgroundColor: '#1f1f1f' }}
-        items={[
-          {
-            key: 'dashboard',
-            icon: <DashboardOutlined />,
-            label: <Link to="/dashboard">Dashboard</Link>,
+        style={{ height: '100%' }}
+        items={menuItems.map(item => ({
+          key: item.key,
+          icon: item.icon,
+          onClick: () => {
+            if (isMobile && onMobileClose) onMobileClose();
           },
-          {
-            key: 'products',
-            icon: <ShoppingOutlined />,
-            label: <Link to="/products">Productos</Link>,
-          },
-          {
-            key: 'inventory',
-            icon: <InboxOutlined />,
-            label: <Link to="/inventory">Inventario</Link>,
-          },
-          {
-            key: 'sales',
-            icon: <ShoppingCartOutlined />,
-            label: <Link to="/sales">Ventas</Link>,
-          },
-          {
-            key: 'customers',
-            icon: <UserOutlined />,
-            label: <Link to="/customers">Clientes</Link>,
-          },
-
-          {
-            key: 'providers',
-            icon: <TeamOutlined />,
-            label: <Link to="/providers">Proveedores</Link>,
-          },
-
-          {
-            key: 'import-excel',
-            icon: <InboxOutlined />,
-            label: <Link to="/import-excel">Importar Excel</Link>,
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: <Link to="/settings">Configuración</Link>,
-          },
-        ]}
+          label: (
+            <NavLink to={item.path} style={{ color: 'inherit' }}>
+              {item.label}
+            </NavLink>
+          )
+        }))}
       />
+    </>
+  );
+
+  return isMobile ? (
+    <Drawer
+      placement="left"
+      closable={false}
+      onClose={onMobileClose}
+      open={mobileOpen}
+      width={260}
+      styles={{ body: { padding: 0, background: '#1f1f1f' } }}
+    >
+      {siderContent}
       <div style={{ textAlign: 'center', position: 'absolute', bottom: '16px', width: '100%' }}>
         <Typography.Text style={{ color: '#888' }}>
-          v1.0.0 © 2025
+          v1.0.0 &copy; 2025
+        </Typography.Text>
+      </div>
+    </Drawer>
+  ) : (
+    <AntdSider width={260} style={{ background: '#1f1f1f', minHeight: '100vh', position: 'fixed', left: 0, top: 0 }}>
+      {siderContent}
+      <div style={{ textAlign: 'center', position: 'absolute', bottom: '16px', width: '100%' }}>
+        <Typography.Text style={{ color: '#888' }}>
+          v1.0.0 &copy; 2025
         </Typography.Text>
       </div>
     </AntdSider>

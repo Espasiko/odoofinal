@@ -40,7 +40,6 @@ const Header: React.FC<HeaderProps> = ({ collapsed, setCollapsed }) => {
           style={{ fontSize: '16px', width: 64, height: 64, color: '#fff' }}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img src="/logo.svg" alt="El Pelotazo" style={{ height: '32px', width: '32px' }} />
           <Text style={{ color: '#fff', fontSize: '16px', fontWeight: 'bold' }}>El Pelotazo</Text>
         </div>
       </div>
