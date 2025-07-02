@@ -1,5 +1,7 @@
 import xmlrpc.client
 import gc
+import os
+import logging
 from typing import Any, Optional
 from ..utils.config import config
 
@@ -11,30 +13,35 @@ class OdooBaseService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = self.config["url"]  # Usar siempre la URL de configuración/env
+        self._url = os.getenv("ODOO_URL", "http://localhost:8069")
+        self._db = os.getenv("ODOO_DB", "manus_odoo-bd")
+        self._username = os.getenv("ODOO_USERNAME", "admin")
+        self._password = os.getenv("ODOO_PASSWORD", "admin")
     
-    def _get_connection(self):
-        """Establece conexión con Odoo"""
+    def _get_connection(self) -> None:
+        """
+        Establece la conexión con Odoo usando las credenciales de entorno.
+        """
         try:
-            if not self._common:
-                self._common = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/common')
+            logging.info(f"Intentando conectar a Odoo en: {self._url}, DB: {self._db}")
             
-            if not self._uid:
-                self._uid = self._common.authenticate(
-                    self.config["db"],
-                    self.config["username"],
-                    self.config["password"],
-                    {}
-                )
-            
-            if not self._models and self._uid:
-                self._models = xmlrpc.client.ServerProxy(f'{self._url}/xmlrpc/2/object')
-            
-            return self._uid is not None
+            # Validar que la URL no contenga caracteres de control no válidos
+            if any(ord(char) < 32 for char in self._url):
+                logging.warning(f"URL de Odoo contiene caracteres no válidos, limpiando URL")
+                self._url = "".join(char for char in self._url if ord(char) >= 32)
+
+            self._common = xmlrpc.client.ServerProxy(f"{self._url}/xmlrpc/2/common")
+            logging.info("Conexión común establecida con Odoo.")
+            self._uid = self._common.authenticate(self._db, self._username, self._password, {})
+            logging.info(f"Autenticación exitosa con UID: {self._uid}")
+            self._models = xmlrpc.client.ServerProxy(f"{self._url}/xmlrpc/2/object")
+            logging.info("Conexión completa con Odoo.")
         except Exception as e:
-            print(f"Error detallado conectando con Odoo en {self._url}: {str(e)}")
+            logging.error(f"Error al conectar con Odoo: {e}", exc_info=True)
+            self._common = None
+            self._models = None
+            self._uid = None
             raise
-            return False
     
     def _cleanup_connection(self):
         """Limpia las conexiones y libera memoria"""
@@ -47,24 +54,31 @@ class OdooBaseService:
         gc.collect()
     
     def _execute_kw(self, model: str, method: str, args: list, kwargs: dict = None) -> Any:
-        """Ejecuta una llamada a Odoo"""
-        if not self._get_connection():
+        """Ejecuta una llamada a Odoo mediante XML-RPC.
+        Garantiza que la conexión esté establecida y reutiliza la existente
+        para evitar reconexiones innecesarias.
+        """
+        # Asegurar conexión
+        if self._models is None:
+            self._get_connection()
+        # Si continúa sin modelos, abortar
+        if self._models is None:
+            logging.error("No se pudo establecer la conexión con Odoo; _models es None")
             return None
-        
         try:
             if kwargs is None:
                 kwargs = {}
             return self._models.execute_kw(
-                self.config["db"],
+                self._db,
                 self._uid,
-                self.config["password"],
+                self._password,
                 model,
                 method,
                 args,
                 kwargs
             )
         except Exception as e:
-            print(f"Error ejecutando {method} en {model}: {e}")
+            logging.error(f"Error ejecutando {method} en {model}: {e}", exc_info=True)
             return None
     
     def _get_category_name(self, categ_id) -> str:

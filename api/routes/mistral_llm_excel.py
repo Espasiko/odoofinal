@@ -23,7 +23,7 @@ router = APIRouter(
 )
 
 # Utilidad para convertir Excel a texto plano (todas las hojas)
-def excel_to_full_text(file_path: str, start_row: int = 0, chunk_size: int = 25, only_first_sheet: bool = True) -> str:
+def excel_to_full_text(file_path: str, start_row: int = 0, chunk_size: int = 50, only_first_sheet: bool = True) -> str:
     xls = pd.ExcelFile(file_path)
     full_text = ""
     sheet_names = [xls.sheet_names[0]] if only_first_sheet else xls.sheet_names
@@ -81,7 +81,7 @@ async def process_excel_file(
     file: UploadFile = File(...),
     proveedor_nombre: str = Form(...),
     start_row: int = Form(0),
-    chunk_size: int = Form(25),
+    chunk_size: int = Form(50),
     only_first_sheet: bool = Form(True),
     current_user: User = Depends(get_current_active_user)
 ) -> JSONResponse:
@@ -106,21 +106,20 @@ async def process_excel_file(
         if not api_key:
             raise HTTPException(status_code=500, detail="No está configurada la API KEY de Mistral LLM")
 
-        prompt = f"""
-        Eres un asistente de extracción de datos para un ERP.
-        A partir del siguiente texto extraído de una hoja de cálculo de un proveedor, extrae la lista de productos.
-        El proveedor se llama '{proveedor_nombre}'.
-        El formato de salida debe ser un objeto JSON con una única clave \"productos\", que contenga una lista de objetos.
-        Cada objeto debe representar un producto y tener las siguientes claves en español y minúsculas: \"nombre\", \"referencia_proveedor\", \"precio_coste\", \"precio\", \"categoria\", \"subcategoria\", \"marca\", \"descripcion\".
-Si en la hoja de cálculo existe un precio de venta al público (PVP) o precio de lista, devuélvelo en la clave \"precio\".
-        Si un campo no está disponible, omítelo o déjalo como null. No inventes datos.
-        Asegúrate de que el JSON esté bien formado.
-
-        Texto a procesar:
-        ---
-        {texto_completo}
-        ---
-        """
+        prompt = (
+            f"Extrae la información de productos del siguiente texto de un archivo Excel. "
+            f"El proveedor es {proveedor_nombre}. "
+            f"El texto está estructurado en filas y columnas, donde cada fila representa un producto potencial. "
+            f"Las columnas contienen datos como código, descripción, precio, etc. "
+            f"Devuelve un JSON válido con una clave raíz 'productos' que contenga una lista de objetos. "
+            f"Cada objeto debe tener las claves 'codigo', 'nombre', 'precio_venta', 'precio_coste', y opcionalmente 'categoria' si se menciona. "
+            f"El campo 'codigo' es OBLIGATORIO y debe contener el código o referencia del producto; si no existe, usa 'SIN_CODIGO'. "
+            f"Si no hay precio de venta, asume que es un 30% mayor que el coste. "
+            f"Si no hay información de precio, usa 0.0. "
+            f"Extrae TODOS los productos válidos con nombre y al menos un precio o código, incluso si hay filas vacías o irrelevantes entre ellos. "
+            f"No ignores productos válidos bajo ninguna circunstancia; revisa cada fila con datos. "
+            f"Este es el texto extraído del Excel:\n\n{texto_completo}"
+        )
         
         from ..utils.mistral_llm_utils import call_llm
         t_before_llm = time.time()
@@ -130,33 +129,58 @@ Si en la hoja de cálculo existe un precio de venta al público (PVP) o precio d
         logger.info(f"[PERF] Llamada LLM completada en {t_after_llm - t_before_llm:.2f} s")
         
         productos = parse_mistral_response(result)
+        # Asegurarse de que todos los productos tengan 'codigo', asignar 'SIN_CODIGO' si falta
+        for prod in productos:
+            if 'codigo' not in prod or not prod['codigo']:
+                prod['codigo'] = 'SIN_CODIGO'
+        logger.info(f"Respuesta parseada con éxito. {len(productos)} productos encontrados.")
         
         if not productos:
             return JSONResponse(content={"message": "No se encontraron productos en la respuesta de la IA.", "raw_response": result})
 
-        created = []
-        failed = []
-        
+        logger.info(f"[PERF] Iniciando creación de productos en Odoo...")
         t_before_odoo = time.time()
-        logger.info("[PERF] Iniciando creación de productos en Odoo...")
-        odoo_service = OdooService()
+        creados = []
+        fallidos = []
         odoo_product_service = OdooProductService()
-
         for idx, producto in enumerate(productos):
             try:
-                odoo_dict = odoo_product_service.front_to_odoo_product_dict(producto, proveedor_nombre)
-                created_product_id = odoo_product_service.create_or_update_product(odoo_dict)
-                if created_product_id:
-                    new_prod = odoo_product_service.get_product_by_id(created_product_id)
-                    created.append({"idx": idx, "name": new_prod.name, "id": new_prod.id})
+                # Construir el diccionario de valores para Odoo usando la utilidad centralizada
+                product_vals = odoo_product_service.front_to_odoo_product_dict(producto, proveedor_nombre)
+
+                # Asegurar campos mínimos obligatorios
+                if 'name' not in product_vals:
+                    product_vals['name'] = producto.get('nombre', 'Producto sin nombre')
+                if 'default_code' not in product_vals:
+                    product_vals['default_code'] = producto.get('codigo', 'SIN_CODIGO')
+
+                # Valores numéricos seguros en caso de que Groq devuelva cadenas vacías
+                product_vals.setdefault('list_price', float(producto.get('precio_venta', 0.0) or 0.0))
+                product_vals.setdefault('standard_price', float(producto.get('precio_coste', 0.0) or 0.0))
+                
+                product_id = odoo_product_service.create_or_update_product(product_vals)
+                if product_id:
+                    creados.append({
+                        'idx': idx,
+                        'name': producto.get('nombre'),
+                        'id': product_id
+                    })
                 else:
-                    failed.append({"idx": idx, "name": odoo_dict.get("name"), "error": "No se pudo crear en Odoo"})
+                    fallidos.append({
+                        'idx': idx,
+                        'name': producto.get('nombre'),
+                        'error': 'No se pudo crear en Odoo'
+                    })
             except Exception as e:
-                failed.append({"idx": idx, "name": producto.get("name") or producto.get("nombre"), "error": str(e)})
-        
+                logger.error(f"Error al crear producto {producto.get('nombre')}: {e}")
+                fallidos.append({
+                    'idx': idx,
+                    'name': producto.get('nombre'),
+                    'error': str(e)
+                })
         t_after_odoo = time.time()
         logger.info(f"[PERF] Creación de productos en Odoo completada en {t_after_odoo - t_before_odoo:.2f} segundos.")
-        logger.info(f"[MISTRAL LLM EXCEL] Productos creados: {len(created)}, fallidos: {len(failed)}")
+        logger.info(f"[MISTRAL LLM EXCEL] Productos creados: {len(creados)}, fallidos: {len(fallidos)}")
 
         total_time = time.time() - start_time
         logger.info(f"[PERF] Proceso total completado en {total_time:.2f} segundos.")
@@ -164,18 +188,16 @@ Si en la hoja de cálculo existe un precio de venta al público (PVP) o precio d
         return JSONResponse(content={
             "proveedor": proveedor_nombre,
             "result": result,
-            "productos_creados": created,
-            "productos_fallidos": failed,
+            "productos_creados": creados,
+            "productos_fallidos": fallidos,
             "total_intentados": len(productos),
-            "total_creados": len(created),
-            "total_fallidos": len(failed)
+            "total_creados": len(creados),
+            "total_fallidos": len(fallidos)
         })
 
     except Exception as e:
-        logger.error(f"[MISTRAL LLM EXCEL] Exception: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Error al llamar a la API de Mistral LLM: {str(e)}")
+        logger.error(f"[MISTRAL LLM EXCEL] Exception: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error al procesar el archivo Excel: {str(e)}")
     finally:
         try:
             os.remove(temp_path)

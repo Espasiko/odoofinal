@@ -35,13 +35,22 @@ const ImportExcelChunk: React.FC = () => {
     totalFallidos: 0,
   });
 
-  const { auth, api, isAuthenticated } = useOdoo();
+  const { auth, api, isAuthenticated, login } = useOdoo();
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-  const CHUNK_SIZE = 10;
+  const CHUNK_SIZE = 50;
   const RATE_LIMIT_MS = 12000; // 5 req/min
 
   const handleUpload = async () => {
+    // Renovar token justo antes de empezar (evita expiración a mitad de proceso)
+    const ok = await login(
+      import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+      import.meta.env.VITE_ODOO_PASSWORD || 'admin'
+    );
+    if (!ok) {
+      message.error('No se pudo obtener token. Intenta de nuevo en unos segundos.');
+      return;
+    }
     if (!isAuthenticated) {
       message.loading('Obteniendo token…', 1);
       // Espera breve a que el interceptor complete la solicitud de token
@@ -56,7 +65,11 @@ const ImportExcelChunk: React.FC = () => {
       return;
     }
     if (!providerName.trim()) {
-      message.error('Introduce el nombre del proveedor.');
+      message.error('Debes indicar el nombre del proveedor');
+      return;
+    }
+    if (!isAuthenticated || !auth?.accessToken) {
+      message.error('No se ha podido autenticar con el backend. Intenta de nuevo más tarde.');
       return;
     }
 
@@ -80,7 +93,6 @@ const ImportExcelChunk: React.FC = () => {
         formData.append('only_first_sheet', 'false');
 
         const res = await api.post(`${API_URL}/api/v1/mistral-llm/process-excel`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (evt) => {
             const pct = Math.round((evt.loaded * 100) / (evt.total ?? 1));
             setProgress(pct);
@@ -100,7 +112,8 @@ const ImportExcelChunk: React.FC = () => {
           totalFallidos: totalFailed,
         }));
 
-        if ((d.total_intentados ?? 0) < CHUNK_SIZE) {
+        if ((d.total_intentados ?? 0) === 0) {
+          // El backend no encontró más productos en este bloque
           keepGoing = false;
           setStatus('Importación completada.');
           message.success(`Creados: ${totalCreated}, fallidos: ${totalFailed}`);

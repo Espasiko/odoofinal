@@ -245,21 +245,16 @@ class OdooProductService(OdooBaseService):
     def create_or_update_product(self, product_vals: Dict[str, Any]) -> Optional[int]:
         """
         Busca un producto por 'default_code'. Si existe, lo actualiza. Si no, lo crea.
-        Maneja la lógica de 'seller_ids' (product.supplierinfo) para evitar duplicados.
         """
-        if not self._models:
-            self._get_connection()
-
-        ref_code = product_vals.get('default_code')
-        if not ref_code:
-            logging.warning(f"Producto sin 'default_code' no puede ser procesado: {product_vals.get('name')}")
-            return None
-
-        # Separamos la información del proveedor del resto de datos del producto.
-        seller_ids_data = product_vals.pop('seller_ids', [])
-
         try:
-            logging.info(f"Odoo create_or_update: vals={product_vals}")
+            if not self._models:
+                self._get_connection()
+
+            ref_code = product_vals.get('default_code', 'SIN_CODIGO')
+            if not ref_code:
+                logging.warning(f"Producto sin 'default_code' no puede ser procesado: {product_vals.get('name')}")
+                return None
+            # Buscar por default_code
             product_ids = self._execute_kw('product.template', 'search', [[('default_code', '=', ref_code)]], {'limit': 1})
             
             if product_ids:
@@ -271,42 +266,11 @@ class OdooProductService(OdooBaseService):
                     self._execute_kw('product.template', 'write', [[product_id], product_vals])
                 logging.info(f"Producto '{product_vals.get('name', ref_code)}' (ID: {product_id}) actualizado.")
 
-                # Maneja la información del proveedor para actualizar o crear.
-                if seller_ids_data:
-                    # Extraemos el diccionario de datos del proveedor.
-                    supplier_info = seller_ids_data[0][2]
-                    partner_id = supplier_info.get('partner_id')
-                    
-                    if partner_id:
-                        # Buscamos si ya existe una línea de proveedor para este producto y proveedor.
-                        supplierinfo_ids = self._execute_kw('product.supplierinfo', 'search', [
-                            [('product_tmpl_id', '=', product_id), ('partner_id', '=', partner_id)]
-                        ], {'limit': 1})
-
-                        if supplierinfo_ids:
-                            # Si existe, la actualizamos.
-                            update_vals = {'price': supplier_info.get('price')}
-                            if 'product_code' in supplier_info:
-                                update_vals['product_code'] = supplier_info['product_code']
-                            self._execute_kw('product.supplierinfo', 'write', [supplierinfo_ids, update_vals])
-                            logging.info(f"Info de proveedor ID {partner_id} actualizada en producto ID {product_id}.")
-                        else:
-                            # Si no existe, la creamos.
-                            supplier_info['product_tmpl_id'] = product_id
-                            self._execute_kw('product.supplierinfo', 'create', [supplier_info])
-                            logging.info(f"Nueva info de proveedor ID {partner_id} añadida al producto ID {product_id}.")
                 return product_id
             else:
                 # --- LÓGICA DE CREACIÓN ---
                 # Volvemos a añadir los datos del proveedor para la creación.
-                if seller_ids_data:
-                    product_vals['seller_ids'] = seller_ids_data
-                
-                try:
-                    new_product_id = self._execute_kw('product.template', 'create', [product_vals])
-                except Exception as e:
-                    logging.error(f"Odoo create product error for {ref_code}: {e}")
-                    return None
+                new_product_id = self._execute_kw('product.template', 'create', [product_vals])
                 logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
                 return new_product_id
 
@@ -389,7 +353,7 @@ class OdooProductService(OdooBaseService):
         try:
             if not self._models:
                 self._get_connection()
-        
+
             print(f"ODOO_SERVICE: Obteniendo productos de Odoo con offset {offset} y límite {limit}...")
             odoo_products = self._execute_kw(
                 'product.product',
