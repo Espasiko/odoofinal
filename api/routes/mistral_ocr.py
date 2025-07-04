@@ -6,11 +6,15 @@ import os
 import logging
 from ..services.mistral_ocr_service import get_mistral_ocr_service
 from ..services.odoo_provider_service import odoo_provider_service
-from ..services.odoo_sales_service import odoo_sales_service
+from ..services.odoo_invoice_service import OdooInvoiceService
+from ..utils.parsing import parse_date, parse_decimal
 from ..services.auth_service import get_current_user
 from ..models.schemas import User
 
 logger = logging.getLogger(__name__)
+
+# Servicio de facturas
+odoo_invoice_service = OdooInvoiceService()
 
 router = APIRouter(
     prefix="/api/v1/mistral-ocr",
@@ -183,23 +187,46 @@ async def process_invoice(
                 supplier_vat = extracted_data.get('supplier_vat')
                 
                 if supplier_name:
-                    # Buscar proveedor existente
-                    providers = odoo_provider_service.get_providers(
-                        search_term=supplier_name,
-                        limit=1
-                    )
-                    
-                    if providers.get('providers'):
-                        supplier_id = providers['providers'][0]['id']
+                    # Buscar proveedor por NIF/VAT primero
+                    supplier_id: int | None = None
+                    if supplier_vat:
+                        vat_ids = odoo_provider_service._execute_kw('res.partner', 'search', [[['vat', '=', supplier_vat]]], {'limit': 1})
+                        if vat_ids:
+                            supplier_id = vat_ids[0]
+
+                    # Si no se encontró por VAT, buscar por nombre
+                    if not supplier_id and supplier_name:
+                        providers = odoo_provider_service.get_providers(search_term=supplier_name, limit=1)
+                        if providers:
+                            supplier_id = providers[0].id
+
+                    if supplier_id:
+                        # Actualizar datos faltantes
+                        update_vals = {
+                            'vat': supplier_vat or None,
+                            'email': extracted_data.get('supplier_email'),
+                            'phone': extracted_data.get('supplier_phone') or extracted_data.get('supplier_mobile'),
+                            'street': extracted_data.get('supplier_address'),
+                            'city': extracted_data.get('supplier_city')
+                        }
+                        update_vals = {k: v for k, v in update_vals.items() if v}
+                        if update_vals:
+                            odoo_provider_service.update_provider(supplier_id, update_vals)
                     else:
                         # Crear nuevo proveedor
-                        new_provider = odoo_provider_service.create_provider({
-                            'name': supplier_name,
+                        provider_vals = {
+                            'name': supplier_name or 'Proveedor sin nombre',
                             'vat': supplier_vat,
                             'is_company': True,
-                            'supplier_rank': 1
-                        })
-                        supplier_id = new_provider['id']
+                            'supplier_rank': 1,
+                            'email': extracted_data.get('supplier_email'),
+                            'phone': extracted_data.get('supplier_phone') or extracted_data.get('supplier_mobile'),
+                            'street': extracted_data.get('supplier_address'),
+                            'city': extracted_data.get('supplier_city')
+                        }
+                        provider_vals = {k: v for k, v in provider_vals.items() if v}
+                        new_provider = odoo_provider_service.create_provider(provider_vals)
+                        supplier_id = new_provider.id
                     
                     # Preparar datos de la factura para Odoo
                     invoice_lines = []
@@ -207,8 +234,9 @@ async def process_invoice(
                         if line_item.get('description'):
                             invoice_lines.append({
                                 'name': line_item.get('description', 'Producto/Servicio'),
-                                'quantity': float(line_item.get('quantity', 1)),
-                                'price_unit': float(line_item.get('unit_price', 0))
+                                'quantity': parse_decimal(line_item.get('quantity', 1)),
+                                'price_unit': parse_decimal(line_item.get('unit_price', 0)),
+                                'default_code': line_item.get('code')
                             })
                     
                     # Si no hay líneas específicas, crear una línea general
@@ -216,27 +244,18 @@ async def process_invoice(
                         invoice_lines.append({
                             'name': f"Factura {extracted_data.get('invoice_number', 'Sin número')}",
                             'quantity': 1,
-                            'price_unit': float(extracted_data.get('subtotal', extracted_data.get('total_amount', 0)))
+                            'price_unit': parse_decimal(extracted_data.get('subtotal', extracted_data.get('total_amount', 0)))
                         })
                     
                     # Crear factura en Odoo
-                    odoo_invoice_data = {
-                        'partner_id': supplier_id,
-                        'move_type': 'in_invoice',  # Factura de proveedor
-                        'ref': extracted_data.get('invoice_number'),
-                        'invoice_date': extracted_data.get('invoice_date'),
-                        'invoice_date_due': extracted_data.get('due_date'),
-                        'invoice_line_ids': invoice_lines
-                    }
-                    
-                    # Aquí se crearía la factura en Odoo usando el servicio de ventas
-                    # Por ahora, simulamos la creación
-                    response_data['odoo_invoice'] = {
-                        'created': True,
-                        'supplier_id': supplier_id,
-                        'invoice_data': odoo_invoice_data,
-                        'message': 'Factura creada exitosamente en Odoo'
-                    }
+                    invoice_date_iso = parse_date(extracted_data.get('invoice_date'))
+                    invoice_result = odoo_invoice_service.create_supplier_invoice(
+                        partner_id=supplier_id,
+                        invoice_number=extracted_data.get('invoice_number'),
+                        invoice_date=invoice_date_iso,
+                        lines=invoice_lines
+                    )
+                    response_data['odoo_invoice'] = invoice_result
                     
                 else:
                     response_data['odoo_invoice'] = {

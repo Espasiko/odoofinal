@@ -80,8 +80,12 @@ async def call_llm(prompt: str, provider: Optional[str] = None) -> Dict[str, Any
             logger.error(f"[LLM] Error de red: {exc}")
             raise HTTPException(status_code=502, detail="Error de red al comunicarse con el servicio de IA")
 
+        body = resp.json()
+        usage = body.get('usage')
+        if usage:
+            logger.info(f"[LLM] Tokens usados – prompt {usage.get('prompt_tokens')} + completion {usage.get('completion_tokens')} = {usage.get('total_tokens')}")
         logger.info("[LLM] Respuesta recibida correctamente")
-        return resp.json()
+        return body
 
 def parse_mistral_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
