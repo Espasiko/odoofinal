@@ -36,14 +36,21 @@ code {
 }
 
 /* Ensure content doesn't overlap with sidebar */
+/* Ajustes para el contenido principal */
+.ant-layout-content {
+  padding: 16px;
+  transition: all 0.3s;
+}
+
 .ant-layout-has-sider .ant-layout-content {
-  margin-left: 200px;
+  margin-left: 0;
 }
 
 /* Responsive sidebar adjustments */
+/* Ajustes responsive */
 @media (max-width: 992px) {
-  .ant-layout-has-sider .ant-layout-content {
-    margin-left: 0;
+  .ant-layout-content {
+    padding: 8px;
   }
 }
 
@@ -64,6 +71,41 @@ code {
   .ant-statistic {
     text-align: center;
   }
+}
+
+/* Estilos para tablas en modo oscuro */
+.ant-table {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+}
+
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td,
+.ant-table-cell {
+  background-color: #1f1f1f !important;
+  color: #ffffff !important;
+  border-color: #303030 !important;
+}
+
+/* Asegurar que el texto sea blanco */
+.ant-table-content,
+.ant-table-row,
+.ant-table-row-level-0 {
+  color: #ffffff !important;
+}
+
+/* Clase específica para forzar texto blanco */
+.white-text-table,
+.white-text-table th,
+.white-text-table td,
+.white-text-table .ant-table-cell {
+  color: #ffffff !important;
+  background-color: #1f1f1f !important;
+}
+
+.ant-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 /* Fix for dark theme cards */

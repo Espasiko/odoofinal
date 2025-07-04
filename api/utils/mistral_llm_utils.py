@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import httpx
+from fastapi import HTTPException
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,23 @@ async def call_llm(prompt: str, provider: Optional[str] = None) -> Dict[str, Any
 
     async with httpx.AsyncClient(timeout=120.0) as client:
         logger.info(f"[LLM] Enviando petición a {prov.upper()} (modelo {model})")
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
+        try:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if status == 429:
+                logger.error("[LLM] Límite de peticiones alcanzado (429).")
+                raise HTTPException(
+                    status_code=503,
+                    detail="El servicio de IA ha alcanzado el límite de peticiones. Intenta de nuevo en unos minutos."
+                )
+            logger.error(f"[LLM] Error HTTP {status}: {exc}")
+            raise HTTPException(status_code=502, detail="Error al comunicarse con el servicio de IA")
+        except httpx.RequestError as exc:
+            logger.error(f"[LLM] Error de red: {exc}")
+            raise HTTPException(status_code=502, detail="Error de red al comunicarse con el servicio de IA")
+
         logger.info("[LLM] Respuesta recibida correctamente")
         return resp.json()
 

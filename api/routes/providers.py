@@ -11,14 +11,16 @@ router = APIRouter(prefix="/api/v1", tags=["providers"])
 async def get_providers(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
+    search: str | None = Query(None),
     current_user: User = Depends(get_current_active_user)
 ):
     """Obtiene lista paginada de proveedores"""
     try:
         import logging
         logger = logging.getLogger("api.routes.providers")
+        logger.info(f"Llamada a /providers page={page} size={size} search={search}")
         logger.info(f"Llamada a /providers page={page} size={size}")
-        providers, total = odoo_service.get_paginated_providers(page=page, limit=size)
+        providers, total = odoo_service.get_paginated_providers(page=page, limit=size, search_term=search)
         logger.info(f"Respuesta de get_paginated_providers: {len(providers)} proveedores, total={total}")
         # Calcular páginas
         pages = (total + size - 1) // size if size else 1

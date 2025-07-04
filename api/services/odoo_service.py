@@ -83,11 +83,11 @@ class OdooServiceCompatible(OdooServiceRefactored):
     """Clase de compatibilidad que mantiene la interfaz original y delega a servicios especializados"""
 
     # -------- Proveedores --------
-    def get_paginated_providers(self, page: int = 1, limit: int = 10):
-        return odoo_provider_service.get_paginated_providers(page, limit)
+    def get_paginated_providers(self, page: int = 1, limit: int = 10, search_term: str | None = None):
+        return odoo_provider_service.get_paginated_providers(page, limit, search_term)
 
-    def get_providers(self):
-        return odoo_provider_service.get_providers()
+    def get_providers(self, search_term: str | None = None):
+        return odoo_provider_service.get_providers(search_term=search_term)
 
     def get_provider_by_id(self, provider_id: int):
         return odoo_provider_service.get_provider_by_id(provider_id)

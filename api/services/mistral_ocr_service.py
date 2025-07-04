@@ -5,6 +5,7 @@ import requests
 from mistralai import Mistral
 from ..utils.config import config
 import json
+from fastapi import HTTPException
 import logging
 
 logger = logging.getLogger(__name__)
@@ -248,20 +249,50 @@ class MistralOCRService:
             Si algún campo no se encuentra, usa null. Asegúrate de que la respuesta sea JSON válido.
             """
             
-            # Usar Mistral Chat API para procesar el prompt
-            chat_response = self.client.chat.complete(
-                model="mistral-large-latest",
-                messages=[
+            # Procesar prompt con Groq de forma sincrónica para evitar problemas de event loop
+            from ..utils.config import config
+            import requests
+            groq_url = getattr(config, 'GROQ_API_URL', 'https://api.groq.com/openai/v1/chat/completions')
+            import os
+            groq_key = getattr(config, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY')
+            if not groq_key:
+                raise ValueError('GROQ_API_KEY no definido en la configuración')
+            headers = {
+                'Authorization': f'Bearer {groq_key}',
+                'Content-Type': 'application/json'
+            }
+            payload = {
+                'model': getattr(config, 'GROQ_MODEL', 'llama3-8b-8192'),
+                'messages': [
                     {
-                        "role": "user",
-                        "content": extraction_prompt
+                        'role': 'user',
+                        'content': extraction_prompt
                     }
                 ],
-                response_format={"type": "json_object"}
-            )
-            
-            # Extraer y parsear la respuesta JSON
-            response_content = chat_response.choices[0].message.content
+                'response_format': {'type': 'json_object'}
+            }
+            try:
+                resp = requests.post(groq_url, json=payload, timeout=60)
+                resp.raise_for_status()
+                response_content = resp.json()['choices'][0]['message']['content']
+            except requests.HTTPError as e:
+                status = e.response.status_code
+                if status == 429:
+                    raise HTTPException(status_code=503, detail="Servicio LLM saturado (Groq)")
+                if status in (401, 403):
+                    logger.warning("Groq no autorizado o sin permisos; usando fallback Mistral")
+                    try:
+                        chat_response = self.client.chat.complete(
+                            model="mistral-large-latest",
+                            messages=[{"role": "user", "content": extraction_prompt}],
+                            response_format={"type": "json_object"}
+                        )
+                        response_content = chat_response.choices[0].message.content
+                    except Exception as e2:
+                        logger.error(f"Fallback a Mistral falló: {e2}")
+                        raise HTTPException(status_code=502, detail="LLM fallback failed")
+                else:
+                    raise
             
             try:
                 extracted_data = json.loads(response_content)

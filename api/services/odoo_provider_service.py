@@ -5,7 +5,7 @@ from ..models.schemas import Provider, ProviderCreate
 class OdooProviderService(OdooBaseService):
     """Servicio para gestión de proveedores en Odoo"""
 
-    def get_paginated_providers(self, page=1, limit=10):
+    def get_paginated_providers(self, page: int = 1, limit: int = 10, search_term: str | None = None):
         """Obtiene proveedores paginados y el total"""
         import logging
         logger = logging.getLogger("odoo_provider_service.paginated")
@@ -22,17 +22,21 @@ class OdooProviderService(OdooBaseService):
             logger.error(f"EXCEPCIÓN CRÍTICA en get_paginated_providers: {e}", exc_info=True)
             return [], 0
     
-    def get_providers(self, offset=0, limit=100) -> List[Provider]:
+    def get_providers(self, offset: int = 0, limit: int = 100, search_term: str | None = None) -> List[Provider]:
         """Obtiene proveedores desde Odoo"""
         try:
             if not self._models:
                 self._get_connection()
         
             print(f"ODOO_SERVICE: Obteniendo proveedores de Odoo con offset {offset} y límite {limit}...")
+            # Construir dominio de búsqueda dinámico
+            domain = [['is_company', '=', True], ['supplier_rank', '>', 0]]
+            if search_term:
+                domain.append(['name', 'ilike', search_term])
             odoo_providers = self._execute_kw(
                 'res.partner',
                 'search_read',
-                [[['is_company', '=', True], ['supplier_rank', '>', 0]]],
+                [domain],
                 {'offset': offset, 'limit': limit, 'fields': [
                     'id', 'name', 'email', 'phone', 'mobile', 'website',
                     'street', 'street2', 'city', 'state_id', 'zip', 'country_id',
@@ -385,12 +389,12 @@ class OdooProviderService(OdooBaseService):
         ]
 
 # Instancia global del servicio
-    def get_paginated_providers(self, page: int = 1, limit: int = 10):
+    def get_paginated_providers(self, page: int = 1, limit: int = 10, search_term: str | None = None):
         """Devuelve tupla (lista_proveedores, total) con paginación real o simulada"""
         # Calcular desplazamiento
         offset = (page - 1) * limit if limit else 0
         # Obtener lote
-        providers = self.get_providers(offset=offset, limit=limit)
+        providers = self.get_providers(offset=offset, limit=limit, search_term=search_term)
         try:
             total = self._execute_kw(
                 'res.partner',

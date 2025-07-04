@@ -41,6 +41,10 @@ class Config:
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
     # Configuración de Mistral LLM (Excel→JSON)
     MISTRAL_LLM_API_KEY: str = os.getenv("MISTRAL_LLM_API_KEY", "")
+
+    # Configuración de Groq LLM
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
     
     @classmethod
     def get_odoo_config(cls) -> dict:

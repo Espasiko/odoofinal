@@ -25,7 +25,13 @@ export const darkTheme: ThemeConfig = {
     Table: {
       headerBg: '#1f1f1f',
       headerColor: '#ffffff',
+      colorText: '#ffffff',
+      colorTextHeading: '#ffffff',
       rowHoverBg: '#303030',
+      borderColor: '#303030',
+      colorBgContainer: '#1f1f1f',
+      colorFillAlter: '#1f1f1f',
+      colorFillContent: '#ffffff',
     },
     Card: {
       colorBgContainer: '#1f1f1f',

@@ -123,8 +123,15 @@ async def process_excel_file(
         
         from ..utils.mistral_llm_utils import call_llm
         t_before_llm = time.time()
-        logger.info("[PERF] Llamando a proveedor LLM…")
-        result = await call_llm(prompt)
+        logger.info("[PERF] Llamando a Groq…")
+        try:
+            result = await call_llm(prompt, provider="groq")
+        except HTTPException as he:
+            if he.status_code in (502, 503):
+                logger.warning("Groq saturado o error, intentando fallback Mistral…")
+                result = await call_llm(prompt, provider="mistral")
+            else:
+                raise
         t_after_llm = time.time()
         logger.info(f"[PERF] Llamada LLM completada en {t_after_llm - t_before_llm:.2f} s")
         
@@ -195,6 +202,9 @@ async def process_excel_file(
             "total_fallidos": len(fallidos)
         })
 
+    except HTTPException as he:
+        # Propagar directamente excepciones HTTP (por ejemplo, 503 de límite LLM)
+        raise he
     except Exception as e:
         logger.error(f"[MISTRAL LLM EXCEL] Exception: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error al procesar el archivo Excel: {str(e)}")

@@ -4,6 +4,8 @@ import logging
 from ..models.schemas import Product, ProductCreate, OdooProductUpdate
 from fastapi import HTTPException
 import logging
+from .product_transform import prepare_product_vals
+from .product_lookup import find_existing_product
 
 class OdooProductService(OdooBaseService):
     """Servicio para gestión de productos en Odoo"""
@@ -45,6 +47,8 @@ class OdooProductService(OdooBaseService):
             return None
 
     def _prepare_product_data_for_odoo(self, product_data: Union[ProductCreate, OdooProductUpdate]) -> Dict:
+        """[DEPRECATED] Alias toward prepare_product_vals to preserve compatibility after refactor."""
+        return prepare_product_vals(product_data)
         """
         Prepara el diccionario de datos para Odoo, filtrando campos no existentes
         y manejando mapeos de nombres si es necesario.
@@ -78,7 +82,7 @@ class OdooProductService(OdooBaseService):
         """
         Crea un nuevo producto en Odoo.
         """
-        vals = self._prepare_product_data_for_odoo(product_data)
+        vals = prepare_product_vals(product_data)
         if not vals:
             raise HTTPException(status_code=400, detail="No se proporcionaron datos válidos para crear el producto.")
         
@@ -107,7 +111,7 @@ class OdooProductService(OdooBaseService):
         """
         Actualiza un producto existente en Odoo usando write().
         """
-        vals = self._prepare_product_data_for_odoo(update_data)
+        vals = prepare_product_vals(update_data)
 
         if not vals:
             logging.warning(f"No se proporcionaron campos válidos para actualizar el producto {product_id}. No se realizará ninguna acción.")
@@ -160,9 +164,18 @@ class OdooProductService(OdooBaseService):
                 self._get_connection()
             supplier_ids = self._execute_kw('res.partner', 'search', [[('name', 'ilike', supplier_name), ('is_company', '=', True)]], {'limit': 1})
             if supplier_ids:
-                return supplier_ids[0]
+                partner_id = supplier_ids[0]
+                # Asegurar supplier_rank > 0 para que aparezca como proveedor
+                rank = self._execute_kw('res.partner', 'read', [[partner_id], ['supplier_rank']])[0].get('supplier_rank', 0)
+                if rank == 0:
+                    self._execute_kw('res.partner', 'write', [[partner_id], {'supplier_rank': 1}])
+                return partner_id
             else:
-                new_supplier_id = self._execute_kw('res.partner', 'create', [{'name': supplier_name, 'is_company': True}])
+                new_supplier_id = self._execute_kw('res.partner', 'create', [{
+                    'name': supplier_name,
+                    'is_company': True,
+                    'supplier_rank': 1
+                }])
                 logging.info(f"Nuevo proveedor '{supplier_name}' creado con ID: {new_supplier_id}")
                 return new_supplier_id
         except Exception as e:
@@ -244,11 +257,37 @@ class OdooProductService(OdooBaseService):
 
     def create_or_update_product(self, product_vals: Dict[str, Any]) -> Optional[int]:
         """
-        Busca un producto por 'default_code'. Si existe, lo actualiza. Si no, lo crea.
+        Busca un producto por 'default_code' o 'barcode' (y opcionalmente proveedor).
+        Si existe, lo actualiza; si no, lo crea.
         """
         try:
             if not self._models:
                 self._get_connection()
+
+            ref_code = product_vals.get('default_code')
+            barcode = product_vals.get('barcode')
+            supplier_id = None
+
+            seller_ids = product_vals.get('seller_ids')
+            if seller_ids and isinstance(seller_ids, list) and len(seller_ids[0]) > 2:
+                seller_vals = seller_ids[0][2]
+                supplier_id = seller_vals.get('partner_id')
+
+            existing_id = find_existing_product(self, ref_code, barcode, supplier_id)
+
+            if existing_id:
+                if product_vals:
+                    self._execute_kw('product.template', 'write', [[existing_id], product_vals])
+                logging.info(f"Producto '{product_vals.get('name', ref_code)}' (ID: {existing_id}) actualizado (duplicado resuelto).")
+                return existing_id
+
+            new_product_id = self._execute_kw('product.template', 'create', [product_vals])
+            logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
+            return new_product_id
+
+        except Exception as e:
+            logging.error(f"Error en create_or_update_product: {e}", exc_info=True)
+            return None
 
             ref_code = product_vals.get('default_code', 'SIN_CODIGO')
             if not ref_code:

@@ -29,6 +29,7 @@ import Customers from './customers';
 
 import Providers from './providers';
 import ImportExcelChunk from './src/ImportExcelChunk';
+import ImportInvoice from './src/ImportInvoice';
 
 
 
@@ -124,6 +125,14 @@ const App: React.FC = () => {
                     icon: "InboxOutlined",
                   },
                 },
+                {
+                  name: "import-invoice",
+                  list: "/import-invoice",
+                  meta: {
+                    label: "Importar Factura",
+                    icon: "FilePdfOutlined",
+                  },
+                },
 
               ]}
               options={{
@@ -168,6 +177,7 @@ const App: React.FC = () => {
                       <Route path="/customers" element={<Customers />} />
                       <Route path="/providers" element={<Providers />} />
                       <Route path="/import-excel" element={<ImportExcelChunk />} />
+                      <Route path="/import-invoice" element={<ImportInvoice />} />
                       <Route path="*" element={<ErrorComponent />} />
                     </Routes>
                     <RefineKbar />

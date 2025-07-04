@@ -58,6 +58,12 @@ const menuItems = [
     path: '/import-excel',
   },
   {
+    key: '/import-invoice',
+    icon: <InboxOutlined />,
+    label: 'Importar Factura',
+    path: '/import-invoice',
+  },
+  {
     key: '/settings',
     icon: <SettingOutlined />,
     label: 'Configuración',
