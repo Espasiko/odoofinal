@@ -90,8 +90,11 @@ class OdooProductService(OdooBaseService):
             if not self._models:
                 self._get_connection()
 
+            # Sanitizar valores None para evitar errores de XML-RPC
+            sanitized_vals = self._sanitize_values(vals) if hasattr(self, '_sanitize_values') else vals
+            
             product_id = self._execute_kw(
-                'product.template', 'create', [vals]
+                'product.template', 'create', [sanitized_vals]
             )
             
             if product_id:
@@ -99,13 +102,15 @@ class OdooProductService(OdooBaseService):
                 if created_product:
                     return created_product.model_dump()
                 else:
-                    raise HTTPException(status_code=404, detail=f"Producto creado con ID {product_id} pero no se pudo recuperar.")
+                    logging.warning(f"Producto creado con ID {product_id} pero no se pudo recuperar.")
+                    return {"id": product_id, "name": vals.get("name", "Producto sin nombre")}
             else:
-                raise HTTPException(status_code=500, detail="No se pudo crear el producto en Odoo, no se devolvió ID.")
+                logging.error("No se pudo crear el producto en Odoo, no se devolvió ID.")
+                return None
                 
         except Exception as e:
             logging.error(f"Error al crear producto en Odoo: {e}")
-            raise HTTPException(status_code=500, detail=f"Ocurrió un error al comunicarse con Odoo: {str(e)}")
+            return None
 
     def update_product(self, product_id: int, update_data: OdooProductUpdate) -> Optional[Product]:
         """
@@ -212,46 +217,118 @@ class OdooProductService(OdooBaseService):
             logging.error(f"Error resolviendo categoría '{category_name}': {e}")
             return None
 
-    def front_to_odoo_product_dict(self, product_data: Dict[str, Any], supplier_name: str) -> Dict[str, Any]:
+    def front_to_odoo_product_dict(self, product_data: Dict[str, Any], supplier_name: str = None) -> Dict[str, Any]:
         """Convierte un dict de la IA a un dict para Odoo, incluyendo seller_ids."""
-        vals = {}
+        # Inicializar con valores por defecto para evitar nulos
+        vals = {
+            'type': 'consu',  # Tipo por defecto: producto consumible (en Odoo 18 los valores válidos son 'consu', 'service', 'combo')
+            'sale_ok': True,    # Se puede vender
+            'purchase_ok': True, # Se puede comprar
+            'active': True,     # Activo por defecto
+            'standard_price': 0.0, # Precio de coste por defecto
+            'list_price': 0.0,  # Precio de venta por defecto
+            'categ_id': 1       # Categoría por defecto (All)
+        }
+        
+        # Nombre del producto (obligatorio)
         if product_data.get('nombre'):
             vals['name'] = product_data['nombre']
+        elif product_data.get('name'):
+            vals['name'] = product_data['name']
+        else:
+            logging.warning("Producto sin nombre, usando valor por defecto")
+            vals['name'] = "Producto sin nombre"
+            
+        # Código/Referencia del producto
         if product_data.get('referencia_proveedor'):
             vals['default_code'] = str(product_data['referencia_proveedor'])
-        # Cost price
-        if product_data.get('precio_coste') is not None:
-            try:
-                vals['standard_price'] = float(product_data['precio_coste'])
-            except (ValueError, TypeError):
-                logging.warning(f"No se pudo convertir 'precio_coste' a float para {product_data.get('nombre')}")
+        elif product_data.get('default_code'):
+            vals['default_code'] = str(product_data['default_code'])
+        elif product_data.get('codigo'):
+            vals['default_code'] = str(product_data['codigo'])
+        
+        # Código de barras
+        if product_data.get('barcode'):
+            vals['barcode'] = str(product_data['barcode'])
+        elif product_data.get('codigo_barras'):
+            vals['barcode'] = str(product_data['codigo_barras'])
+            
+        # Cost price (precio de coste)
+        cost_price_keys = ['precio_coste', 'coste', 'cost_price', 'standard_price']
+        for key in cost_price_keys:
+            if product_data.get(key) is not None:
+                try:
+                    vals['standard_price'] = float(product_data[key])
+                    break
+                except (ValueError, TypeError):
+                    logging.warning(f"No se pudo convertir '{key}' a float para {product_data.get('nombre', 'Producto sin nombre')}")
 
         # Sale price (PVP)
-        posible_pvp_keys = [
+        sale_price_keys = [
             'precio_venta', 'precio_pvp', 'precio_publico', 'pvp', 'precio_venta_publico',
-            'precio_final', 'precio_final_cliente', 'precio_venta_cliente', 'pvp_final', 'precio', 'precio_proveedor'
+            'precio_final', 'precio_final_cliente', 'precio_venta_cliente', 'pvp_final', 'precio', 
+            'precio_proveedor', 'list_price', 'sale_price'
         ]
-        for key in posible_pvp_keys:
+        for key in sale_price_keys:
             if product_data.get(key) is not None:
                 try:
                     vals['list_price'] = float(product_data[key])
+                    break
                 except (ValueError, TypeError):
-                    logging.warning(f"No se pudo convertir '{key}' a float para {product_data.get('nombre')}")
-                break
-        if product_data.get('descripcion'):
-            vals['description_sale'] = product_data['descripcion']
+                    logging.warning(f"No se pudo convertir '{key}' a float para {product_data.get('nombre', 'Producto sin nombre')}")
         
-        category_id = self.resolve_category(product_data.get('categoria'), product_data.get('subcategoria'))
+        # Descripción
+        description_keys = ['descripcion', 'description', 'description_sale']
+        for key in description_keys:
+            if product_data.get(key):
+                vals['description_sale'] = product_data[key]
+                break
+        
+        # Categoría
+        category_id = None
+        if hasattr(self, 'resolve_category'):
+            category_keys = ['categoria', 'category', 'category_name', 'categ_id']
+            subcategory_keys = ['subcategoria', 'subcategory', 'subcategory_name']
+            
+            categoria = None
+            subcategoria = None
+            
+            for key in category_keys:
+                if product_data.get(key):
+                    categoria = product_data[key]
+                    break
+                    
+            for key in subcategory_keys:
+                if product_data.get(key):
+                    subcategoria = product_data[key]
+                    break
+                    
+            category_id = self.resolve_category(categoria, subcategoria)
+            
         if category_id:
             vals['categ_id'] = category_id
 
-        supplier_id = self.resolve_supplier(supplier_name)
-        if supplier_id and 'standard_price' in vals:
-            vals['seller_ids'] = [(0, 0, {
-                'partner_id': supplier_id,
-                'price': vals['standard_price'],
-                'product_code': product_data.get('referencia_proveedor')
-            })]
+        # Proveedor
+        if supplier_name is None:
+            # Intentar obtener el nombre del proveedor del diccionario
+            supplier_keys = ['proveedor', 'supplier', 'supplier_name', 'vendor']
+            for key in supplier_keys:
+                if product_data.get(key):
+                    supplier_name = product_data[key]
+                    break
+        
+        # Añadir información del proveedor si está disponible
+        if supplier_name and hasattr(self, 'resolve_supplier'):
+            supplier_id = self.resolve_supplier(supplier_name)
+            if supplier_id:
+                vals['seller_ids'] = [(0, 0, {
+                    'partner_id': supplier_id,
+                    'price': vals['standard_price'],
+                    'product_code': product_data.get('referencia_proveedor', product_data.get('default_code', ''))
+                })]
+                
+        # Log para depuración
+        logging.info(f"Valores preparados para Odoo: {vals}")
         
         return vals
 
@@ -263,36 +340,55 @@ class OdooProductService(OdooBaseService):
         try:
             if not self._models:
                 self._get_connection()
+                
+            # Validar datos mínimos requeridos
+            if not product_vals.get('name'):
+                logging.warning("Intento de crear producto sin nombre")
+                return None
+                
+            # Sanitizar valores None para evitar errores XML-RPC
+            sanitized_vals = self._sanitize_values(product_vals) if hasattr(self, '_sanitize_values') else product_vals
+            
+            # Asegurar que campos críticos tengan valores por defecto
+            if 'list_price' not in sanitized_vals or sanitized_vals['list_price'] is None:
+                sanitized_vals['list_price'] = 0.0
+            if 'standard_price' not in sanitized_vals or sanitized_vals['standard_price'] is None:
+                sanitized_vals['standard_price'] = 0.0
+            if 'type' not in sanitized_vals or not sanitized_vals['type']:
+                sanitized_vals['type'] = 'product'
+            if 'categ_id' not in sanitized_vals or not sanitized_vals['categ_id']:
+                sanitized_vals['categ_id'] = 1  # Categoría por defecto (All)
 
-            ref_code = product_vals.get('default_code')
-            barcode = product_vals.get('barcode')
+            ref_code = sanitized_vals.get('default_code')
+            barcode = sanitized_vals.get('barcode')
             supplier_id = None
 
-            seller_ids = product_vals.get('seller_ids')
-            if seller_ids and isinstance(seller_ids, list) and len(seller_ids[0]) > 2:
+            seller_ids = sanitized_vals.get('seller_ids')
+            if seller_ids and isinstance(seller_ids, list) and len(seller_ids) > 0 and len(seller_ids[0]) > 2:
                 seller_vals = seller_ids[0][2]
                 supplier_id = seller_vals.get('partner_id')
 
             existing_id = find_existing_product(self, ref_code, barcode, supplier_id)
 
             if existing_id:
-                if product_vals:
-                    self._execute_kw('product.template', 'write', [[existing_id], product_vals])
-                logging.info(f"Producto '{product_vals.get('name', ref_code)}' (ID: {existing_id}) actualizado (duplicado resuelto).")
+                if sanitized_vals:
+                    self._execute_kw('product.template', 'write', [[existing_id], sanitized_vals])
+                logging.info(f"Producto '{sanitized_vals.get('name', ref_code)}' (ID: {existing_id}) actualizado (duplicado resuelto).")
                 return existing_id
 
-            new_product_id = self._execute_kw('product.template', 'create', [product_vals])
-            logging.info(f"Producto '{product_vals.get('name')}' creado con ID: {new_product_id}.")
+            # Log para depuración
+            logging.info(f"Creando nuevo producto con datos: {sanitized_vals}")
+            
+            new_product_id = self._execute_kw('product.template', 'create', [sanitized_vals])
+            logging.info(f"Producto '{sanitized_vals.get('name')}' creado con ID: {new_product_id}.")
             return new_product_id
 
         except Exception as e:
             logging.error(f"Error en create_or_update_product: {e}", exc_info=True)
+            # Mostrar detalles adicionales para diagnóstico
+            if 'product_vals' in locals():
+                logging.error(f"Datos del producto que causó el error: {product_vals}")
             return None
-
-            ref_code = product_vals.get('default_code', 'SIN_CODIGO')
-            if not ref_code:
-                logging.warning(f"Producto sin 'default_code' no puede ser procesado: {product_vals.get('name')}")
-                return None
             # Buscar por default_code
             product_ids = self._execute_kw('product.template', 'search', [[('default_code', '=', ref_code)]], {'limit': 1})
             
@@ -665,61 +761,8 @@ class OdooProductService(OdooBaseService):
             return self._get_fallback_product_by_id(product_id)
         finally:
             self._cleanup_connection()
-    
-    def create_product(self, product_data: ProductCreate) -> Optional[Product]:
-        """Crea un nuevo producto en Odoo"""
-        try:
-            # Preparar datos del producto
-            vals = {
-                'name': product_data.name,
-                'default_code': product_data.default_code or '',
-                'list_price': product_data.list_price or 0.0,
-                'standard_price': product_data.standard_price or 0.0,
-                'type': product_data.type or 'product',
-                'categ_id': product_data.categ_id or 1,  # Categoría por defecto
-                'sale_ok': product_data.sale_ok if product_data.sale_ok is not None else True,
-                'purchase_ok': product_data.purchase_ok if product_data.purchase_ok is not None else True,
-                'active': product_data.active if product_data.active is not None else True,
-                'barcode': product_data.barcode or False,
-                'weight': product_data.weight or 0.0,
-                'description_sale': product_data.description_sale or '',
-                'description_purchase': product_data.description_purchase or ''
-            }
-            
-            # Crear producto
-            product_id = self._execute_kw(
-                'product.product',
-                'create',
-                [vals]
-            )
-            
-            if product_id:
-                # Obtener el producto creado
-                product = self.get_product_by_id(product_id)
-                # Obtener el template_id real desde product.product
-                template_id = None
-                try:
-                    product_data = self._execute_kw(
-                        'product.product',
-                        'read',
-                        [product_id],
-                        {'fields': ['product_tmpl_id']}
-                    )
-                    if product_data and 'product_tmpl_id' in product_data[0]:
-                        template_id = product_data[0]['product_tmpl_id'][0]
-                except Exception as e:
-                    print(f"Error obteniendo template_id para product_id {product_id}: {e}")
-                # Adjunta el template_id como atributo extra (hack rápido)
-                if product:
-                    product.template_id = template_id
-                return product
-            else:
-                print("Error: No se pudo crear el producto")
-                return None
-                
-        except Exception as e:
-            print(f"Error creando producto: {e}")
-            return None
+    # La implementación duplicada de create_product ha sido eliminada
+    # y consolidada en la versión superior de esta función
     
     def get_product_count(self):
         """Obtiene el número total de productos"""

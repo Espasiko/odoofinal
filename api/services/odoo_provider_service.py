@@ -224,7 +224,8 @@ class OdooProviderService(OdooBaseService):
 
             if existing_ids:
                 logger.info(f"Proveedor duplicado detectado, id existente: {existing_ids[0]}. No se crea uno nuevo.")
-                return existing_ids[0]
+                provider_data = self._execute_kw('res.partner','read',[[existing_ids[0]]],{'fields':['id','name','vat','email','phone']})
+                return Provider(**provider_data[0])
 
             # Saneamiento de campos string
             all_string_fields = [
@@ -280,16 +281,11 @@ class OdooProviderService(OdooBaseService):
                 return None
             
             logger.info(f"Creando proveedor en Odoo con valores: {vals}")
-            provider_id = self._execute_kw('res.partner', 'create', [vals])
-            
-            if not provider_id:
-                logger.error("Error: Odoo no devolvió un ID para el nuevo proveedor.")
-                return None
-
-            logger.info(f"Proveedor creado con ID: {provider_id}. Leyendo datos de vuelta...")
-            
-            # Leer el proveedor recién creado para devolver el objeto completo
-            created_provider_data = self._execute_kw('res.partner', 'read', [provider_id], {'fields': list(vals.keys())})
+            new_id = self._execute_kw('res.partner','create',[vals])
+            logger.info(f"Proveedor creado con ID {new_id}")
+            # Leer y devolver como Provider
+            provider_data = self._execute_kw('res.partner','read',[[new_id]],{'fields':['id','name','vat','email','phone']})
+            return Provider(**provider_data[0])
             
             if not created_provider_data:
                 logger.error(f"No se pudo leer el proveedor con ID {provider_id} después de crearlo.")

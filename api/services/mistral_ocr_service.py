@@ -198,7 +198,7 @@ class MistralOCRService:
                 'error': str(e)
             }
     
-    def extract_invoice_data_with_ai(self, ocr_result: Dict[str, Any]) -> Dict[str, Any]:
+    async def extract_invoice_data_with_ai(self, ocr_result: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extrae datos específicos de factura usando el texto procesado por Mistral OCR
         
@@ -249,50 +249,58 @@ class MistralOCRService:
             Si algún campo no se encuentra, usa null. Asegúrate de que la respuesta sea JSON válido.
             """
             
-            # Procesar prompt con Groq de forma sincrónica para evitar problemas de event loop
+            # Importar la función call_llm mejorada
+            from ..utils.mistral_llm_utils import call_llm
             from ..utils.config import config
-            import requests
-            groq_url = getattr(config, 'GROQ_API_URL', 'https://api.groq.com/openai/v1/chat/completions')
-            import os
-            groq_key = getattr(config, 'GROQ_API_KEY', None) or os.getenv('GROQ_API_KEY')
-            if not groq_key:
-                raise ValueError('GROQ_API_KEY no definido en la configuración')
-            headers = {
-                'Authorization': f'Bearer {groq_key}',
-                'Content-Type': 'application/json'
-            }
-            payload = {
-                'model': getattr(config, 'GROQ_MODEL', 'llama3-8b-8192'),
-                'messages': [
-                    {
-                        'role': 'user',
-                        'content': extraction_prompt
-                    }
-                ],
-                'response_format': {'type': 'json_object'}
-            }
+            
+            # Usar el proveedor configurado en .env (por defecto "mistral")
+            default_provider = config.LLM_PROVIDER.lower() if hasattr(config, 'LLM_PROVIDER') else "mistral"
+            logger.info(f"[OCR] Llamando a {default_provider.upper()} para extracción de datos de factura...")
+            
             try:
-                resp = requests.post(groq_url, json=payload, timeout=60)
-                resp.raise_for_status()
-                response_content = resp.json()['choices'][0]['message']['content']
-            except requests.HTTPError as e:
-                status = e.response.status_code
-                if status == 429:
-                    raise HTTPException(status_code=503, detail="Servicio LLM saturado (Groq)")
-                if status in (401, 403):
-                    logger.warning("Groq no autorizado o sin permisos; usando fallback Mistral")
-                    try:
-                        chat_response = self.client.chat.complete(
-                            model="mistral-large-latest",
-                            messages=[{"role": "user", "content": extraction_prompt}],
-                            response_format={"type": "json_object"}
-                        )
-                        response_content = chat_response.choices[0].message.content
-                    except Exception as e2:
-                        logger.error(f"Fallback a Mistral falló: {e2}")
-                        raise HTTPException(status_code=502, detail="LLM fallback failed")
+                # Intentar con el proveedor principal configurado
+                result = await call_llm(extraction_prompt, provider=default_provider)
+                logger.info(f"[OCR] Respuesta exitosa de {default_provider.upper()}")
+                
+                # Extraer el contenido de la respuesta según el formato del proveedor
+                if default_provider in ("mistral", "openai"):
+                    response_content = result["choices"][0]["message"]["content"]
+                elif default_provider == "groq":
+                    response_content = result["choices"][0]["message"]["content"]
                 else:
-                    raise
+                    raise ValueError(f"Formato de respuesta desconocido para proveedor {default_provider}")
+                    
+            except Exception as e:
+                logger.warning(f"[OCR] Error con {default_provider}: {str(e)}")
+                # Si falla, intentar con el proveedor alternativo
+                fallback_provider = "groq" if default_provider == "mistral" else "mistral"
+                logger.warning(f"[OCR] Intentando fallback con {fallback_provider.upper()}...")
+                
+                try:
+                    result = await call_llm(extraction_prompt, provider=fallback_provider)
+                    logger.info(f"[OCR] Respuesta exitosa del fallback {fallback_provider.upper()}")
+                    
+                    # Extraer el contenido de la respuesta según el formato del proveedor
+                    if fallback_provider in ("mistral", "openai"):
+                        response_content = result["choices"][0]["message"]["content"]
+                    elif fallback_provider == "groq":
+                        response_content = result["choices"][0]["message"]["content"]
+                    else:
+                        raise ValueError(f"Formato de respuesta desconocido para proveedor {fallback_provider}")
+                        
+                except Exception as e2:
+                    logger.error(f"[OCR] Fallback a {fallback_provider} también falló: {e2}")
+                    # Intentar con OpenAI como último recurso si está configurado
+                    if config.OPENAI_API_KEY:
+                        logger.warning(f"[OCR] Intentando último fallback con OpenAI...")
+                        try:
+                            result = await call_llm(extraction_prompt, provider="openai")
+                            response_content = result["choices"][0]["message"]["content"]
+                        except Exception as e3:
+                            logger.error(f"[OCR] Todos los proveedores LLM fallaron: {e3}")
+                            raise HTTPException(status_code=503, detail="Todos los proveedores LLM fallaron")
+                    else:
+                        raise HTTPException(status_code=503, detail=f"Todos los proveedores LLM disponibles fallaron")
             
             try:
                 extracted_data = json.loads(response_content)

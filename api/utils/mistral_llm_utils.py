@@ -11,152 +11,157 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mistral").lower()
 
 # Mistral
 MISTRAL_API_URL = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1/chat/completions")
+# Usar solo MISTRAL_API_KEY para Mistral, no mezclar con otras claves
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
+
 # Groq (OpenAI-compatible)
 GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama3-70b-8192")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("MISTRAL_LLM_API_KEY")  # Usar MISTRAL_LLM_API_KEY como fallback para Groq
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")  # Usar el modelo correcto para Groq
+
 # OpenAI
 OPENAI_API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 async def call_llm(prompt: str, provider: Optional[str] = None) -> Dict[str, Any]:
-    """Realiza una petición a la IA indicada y devuelve la respuesta raw (json)."""
-    prov = (provider or LLM_PROVIDER).lower()
+    """
+    Realiza una petición a la IA indicada y devuelve la respuesta raw (json).
+    Intenta con los proveedores configurados en orden de preferencia.
+    """
+    logger = logging.getLogger(__name__)
+    prov = provider or LLM_PROVIDER
+    providers = [prov]
+    if prov != "groq":
+        providers.append("groq")
+    if prov != "openai" and "openai" not in providers:
+        providers.append("openai")
+    last_error = None
 
-    if prov == "mistral":
-        url, key, model = MISTRAL_API_URL, MISTRAL_API_KEY, MISTRAL_MODEL
-    elif prov == "groq":
-        url, key, model = GROQ_API_URL, GROQ_API_KEY, GROQ_MODEL
-    elif prov == "openai":
-        url, key, model = OPENAI_API_URL, OPENAI_API_KEY, OPENAI_MODEL
-    else:
-        raise ValueError(f"Proveedor LLM no soportado: {prov}")
-
-    if not key:
-        raise ValueError(f"No hay API KEY para el proveedor {prov.upper()}")
-
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    system_json_prompt = (
-        "Eres un asistente que devuelve EXCLUSIVAMENTE un objeto JSON válido sin texto extra. "
-        "Escapa las comillas internas con \\\" y no incluyas bloques markdown. "
-        "La clave raíz debe ser \"productos\"."
-    )
-
-    payload = {
-        "model": model,
-        "temperature": 0,
-        "messages": [
-            {"role": "system", "content": system_json_prompt},
-            {"role": "user", "content": prompt},
-        ],
-    }
-    # response_format sólo para los LLM que lo soportan
-    if prov in ("mistral", "openai"):
-        payload["response_format"] = {"type": "json_object"}
-
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        logger.info(f"[LLM] Enviando petición a {prov.upper()} (modelo {model})")
+    for current_prov in providers:
         try:
-            resp = await client.post(url, json=payload, headers=headers)
-            resp.raise_for_status()
+            if current_prov == "mistral":
+                url = MISTRAL_API_URL
+                key = MISTRAL_API_KEY
+                model = MISTRAL_MODEL
+            elif current_prov == "groq":
+                url = GROQ_API_URL
+                key = GROQ_API_KEY
+                model = GROQ_MODEL
+                if "llama3-" in model:
+                    model = model.replace("llama3-", "llama-3-")
+                if model not in ["llama-3.1-8b-instant", "llama-3-70b", "llama-3-8b"]:
+                    model = "llama-3.1-8b-instant"
+            elif current_prov == "openai":
+                url = OPENAI_API_URL
+                key = OPENAI_API_KEY
+                model = OPENAI_MODEL
+            else:
+                continue
+
+            if not key:
+                logger.warning(f"[LLM] Falta API KEY para {current_prov.upper()}. Probando siguiente proveedor.")
+                continue
+
+            headers = {
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+            payload = {
+                "model": model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Eres un asistente que devuelve EXCLUSIVAMENTE un objeto JSON válido sin texto extra. Asegúrate de que tu respuesta sea un JSON válido con la estructura exacta que se te pide."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.1,
+            }
+            if current_prov in ("mistral", "openai"):
+                payload["response_format"] = {"type": "json_object"}
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code != 200:
+                    logger.error(f"[LLM] Error HTTP {resp.status_code} de {current_prov.upper()}")
+                    logger.error(f"[LLM] Respuesta de error: {resp.text[:500]}")
+                    if resp.status_code in [401, 404, 429, 502, 503]:
+                        last_error = f"Error {resp.status_code} con {current_prov}: {resp.text[:100]}"
+                        continue
+                    resp.raise_for_status()
+                body = resp.json()
+                logger.info(f"[LLM] Respuesta exitosa de {current_prov.upper()}")
+                return body
+
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
-            if status == 429:
-                logger.error("[LLM] Límite de peticiones alcanzado (429).")
-                raise HTTPException(
-                    status_code=503,
-                    detail="El servicio de IA ha alcanzado el límite de peticiones. Intenta de nuevo en unos minutos."
-                )
-            logger.error(f"[LLM] Error HTTP {status}: {exc}")
-            raise HTTPException(status_code=502, detail="Error al comunicarse con el servicio de IA")
-        except httpx.RequestError as exc:
-            logger.error(f"[LLM] Error de red: {exc}")
-            raise HTTPException(status_code=502, detail="Error de red al comunicarse con el servicio de IA")
+            error_text = exc.response.text[:300]
+            last_error = f"Error HTTP {status} con {current_prov}: {error_text[:100]}"
+            logger.error(f"[LLM] {last_error}")
+            continue
+        except Exception as e:
+            last_error = f"Error general con {current_prov}: {str(e)}"
+            logger.error(f"[LLM] {last_error}")
+            continue
 
-        body = resp.json()
-        usage = body.get('usage')
-        if usage:
-            logger.info(f"[LLM] Tokens usados – prompt {usage.get('prompt_tokens')} + completion {usage.get('completion_tokens')} = {usage.get('total_tokens')}")
-        logger.info("[LLM] Respuesta recibida correctamente")
-        return body
+    error_msg = last_error or "Todos los proveedores LLM fallaron por razones desconocidas"
+    logger.error(f"[LLM] Fallo en todos los proveedores: {error_msg}")
+    raise HTTPException(status_code=503, detail=f"No se pudo obtener respuesta de ningún proveedor LLM. {error_msg}")
 
 def parse_mistral_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Analiza la respuesta JSON de la API de Mistral y extrae la lista de productos.
+    Parsea la respuesta de la API de Mistral/Groq/OpenAI y devuelve la lista de productos
     """
-    logger.debug(f"Recibida respuesta de Mistral para parsear: {response}")
-
+    logger.info(f"[LLM] Parseando respuesta: {str(response)[:200]}...")
+    
+    # Intentar extraer el contenido JSON del mensaje
     try:
-        content_str = response['choices'][0]['message']['content']
-        logger.debug(f"[LLM RAW FULL] {content_str}")
-        logger.debug(f"[LLM RAW] {content_str[:500]}")
-        import re, json as _json
-        # Sanear posibles faltas de coma entre objetos dentro de la lista
-        inner = content_str  # copia
-        # unir objetos consecutivos "}{" -> "},{"
-        inner = re.sub(r'}\s*{', '},{', inner)
-        # Si el array "productos" no se cierra, ciérralo correctamente
-        if '"productos"' in inner and not inner.rstrip().endswith(']}'):
-            last_brace = inner.rfind('}')
-            if last_brace != -1:
-                inner = inner[:last_brace+1] + ']}'
-        # Intentar cargar tras saneo
-        try:
-            data_saneada = _json.loads(inner)
-            if isinstance(data_saneada, dict) and 'productos' in data_saneada:
-                logger.info(f"Respuesta parseada tras saneo. {len(data_saneada['productos'])} productos.")
-                return data_saneada['productos']
-        except Exception as e:
-            logger.debug(f"[SANITIZED FALLÓ] {e}. Intentaré con json5. Contenido: {inner[:500]}")
-            try:
-                import json5
-                data_saneada = json5.loads(inner)
-                if isinstance(data_saneada, dict) and 'productos' in data_saneada:
-                    logger.info(f"Respuesta parseada con json5. {len(data_saneada['productos'])} productos.")
-                    return data_saneada['productos']
-            except Exception as e2:
-                logger.debug(f"json5 también falló: {e2}")
-        # Intentar extraer JSON puro incluso si viene rodeado de texto o bloque ```json
-        if '```' in content_str:
-            # Mantener sólo la parte dentro del último bloque ```json ... ``` o ``` ... ```
-            parts = content_str.split('```')
-            for part in parts:
-                if part.strip().startswith('{'):
-                    content_str = part.strip()
-                    break
-        else:
-            # Recortar cualquier prefijo antes del primer '{' y sufijo después del último '}'
-            first = content_str.find('{')
-            last = content_str.rfind('}')
-            if first != -1 and last != -1:
-                content_str = content_str[first:last+1]
-        data = json.loads(content_str)
-
-        if isinstance(data, dict) and 'productos' in data:
-            productos = data['productos']
-            if isinstance(productos, list):
-                logger.info(f"Respuesta parseada con éxito. {len(productos)} productos encontrados.")
-                return productos
-            else:
-                logger.error(f"La clave 'productos' no contiene una lista. Contenido: {productos}")
-                return []
-        else:
-            logger.error(f"La respuesta de la IA no es un diccionario o no contiene la clave 'productos'. Respuesta: {data}")
+        choices = response.get("choices", [])
+        if not choices:
+            logger.error("[LLM] No hay choices en la respuesta")
             return []
-
-    except (KeyError, IndexError) as e:
-        logger.error(f"Error de estructura en la respuesta de Mistral: {e}. Respuesta completa: {response}")
-        return []
-    except json.JSONDecodeError as e:
-        logger.error(f"Error al decodificar el JSON de la respuesta de Mistral: {e}. Contenido: {content_str}")
-        return []
+        
+        message = choices[0].get("message", {})
+        content = message.get("content", "")
+        
+        if not content:
+            logger.error("[LLM] Contenido vacío en la respuesta")
+            return []
+        
+        logger.info(f"[LLM] Contenido extraído: {content[:200]}...")
+        
+        # Parsear el JSON del contenido
+        try:
+            # A veces el modelo puede envolver el JSON en comillas o añadir texto adicional
+            # Intentamos primero con el contenido tal cual
+            data = json.loads(content)
+            products = data.get("productos", [])
+            if products:
+                logger.info(f"[LLM] Productos encontrados: {len(products)}")
+                return products
+            else:
+                logger.warning("[LLM] No se encontraron productos en el JSON")
+                return []
+        except json.JSONDecodeError as e:
+            logger.error(f"[LLM] Error decodificando JSON: {e}")
+            # Intentar extraer el JSON si está entre caracteres especiales
+            import re
+            json_pattern = r'(\{.*\})'
+            match = re.search(json_pattern, content, re.DOTALL)
+            if match:
+                try:
+                    data = json.loads(match.group(1))
+                    products = data.get("productos", [])
+                    if products:
+                        logger.info(f"[LLM] Productos encontrados después de regex: {len(products)}")
+                        return products
+                except:
+                    pass
+            logger.error(f"[LLM] No se pudo extraer JSON válido: {content[:500]}")
+            return []
     except Exception as e:
-        logger.error(f"Error inesperado al parsear la respuesta de Mistral: {e}. Respuesta: {response}")
+        logger.error(f"[LLM] Error parseando respuesta: {e}")
         return []

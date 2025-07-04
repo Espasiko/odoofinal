@@ -64,14 +64,18 @@ services:
     depends_on:
       odoo:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      ODOO_URL: "http://odoo:8069"
-      ODOO_DB: "manus_odoo-bd"
-      ODOO_USERNAME: "yo@mail.com"
-      ODOO_PASSWORD: "admin"
-      MISTRAL_API_KEY: "${MISTRAL_API_KEY:-}"
-      LLM_PROVIDER: "${LLM_PROVIDER:-mistral}"
-      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      ODOO_URL: ${ODOO_URL}
+      ODOO_DB: ${ODOO_DB}
+      ODOO_USERNAME: ${ODOO_USERNAME}
+      ODOO_PASSWORD: ${ODOO_PASSWORD}
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+      MISTRAL_LLM_API_KEY: ${MISTRAL_LLM_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mistral}
     command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 volumes:

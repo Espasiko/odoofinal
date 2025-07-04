@@ -8,6 +8,7 @@ from ..services.mistral_ocr_service import get_mistral_ocr_service
 from ..services.odoo_provider_service import odoo_provider_service
 from ..services.odoo_invoice_service import OdooInvoiceService
 from ..utils.parsing import parse_date, parse_decimal
+from ..utils.price_utils import adjust_price_for_supplier
 from ..services.auth_service import get_current_user
 from ..models.schemas import User
 
@@ -164,12 +165,32 @@ async def process_invoice(
                 detail="No se pudo procesar el documento con OCR"
             )
         
-        # Extraer datos específicos de factura
-        invoice_data = service.extract_invoice_data_with_ai(ocr_result)
+        # Inicializar invoice_data como un diccionario vacío
+        invoice_data = {
+            'extracted_data': {},
+            'confidence': 'low'
+        }
+        
+        # Extraer datos de factura con IA si es un documento de factura
+        try:
+            if ocr_result.get('document_type') == 'invoice':
+                invoice_data = await service.extract_invoice_data_with_ai(ocr_result)
+            else:
+                # Si no es una factura, intentar extraer datos genéricos
+                invoice_data = {
+                    'extracted_data': {
+                        'document_type': ocr_result.get('document_type', 'unknown'),
+                        'text': ocr_result.get('text', '')[:1000]  # Limitar texto para evitar respuestas muy grandes
+                    },
+                    'confidence': ocr_result.get('confidence', 0)
+                }
+        except Exception as e:
+            logger.error(f"Error al extraer datos de factura con IA: {e}")
+            # No propagar la excepción, usar datos vacíos
         
         response_data = {
             "success": True,
-            "message": "Factura procesada exitosamente",
+            "message": "Documento procesado exitosamente",
             "filename": file.filename,
             "file_type": file_extension,
             "processed_by": current_user.username,
@@ -235,7 +256,7 @@ async def process_invoice(
                             invoice_lines.append({
                                 'name': line_item.get('description', 'Producto/Servicio'),
                                 'quantity': parse_decimal(line_item.get('quantity', 1)),
-                                'price_unit': parse_decimal(line_item.get('unit_price', 0)),
+                                'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(line_item.get('unit_price', 0))),
                                 'default_code': line_item.get('code')
                             })
                     
@@ -244,7 +265,7 @@ async def process_invoice(
                         invoice_lines.append({
                             'name': f"Factura {extracted_data.get('invoice_number', 'Sin número')}",
                             'quantity': 1,
-                            'price_unit': parse_decimal(extracted_data.get('subtotal', extracted_data.get('total_amount', 0)))
+                            'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(extracted_data.get('subtotal', extracted_data.get('total_amount', 0))))
                         })
                     
                     # Crear factura en Odoo
@@ -256,6 +277,23 @@ async def process_invoice(
                         lines=invoice_lines
                     )
                     response_data['odoo_invoice'] = invoice_result
+
+                    # ---- Trazabilidad de inserciones (punto 11) ----
+                    try:
+                        from datetime import datetime
+                        import csv, pathlib
+                        log_path = pathlib.Path(__file__).parent.parent / 'logs'
+                        log_path.mkdir(exist_ok=True)
+                        log_file = log_path / 'invoice_import_log.csv'
+                        log_row = [datetime.utcnow().isoformat(), file.filename, invoice_result.get('id'), supplier_id, extracted_data.get('invoice_number')]
+                        write_header = not log_file.exists()
+                        with log_file.open('a', newline='') as f:
+                            writer = csv.writer(f)
+                            if write_header:
+                                writer.writerow(['timestamp_utc', 'filename', 'invoice_id', 'supplier_id', 'invoice_number'])
+                            writer.writerow(log_row)
+                    except Exception as e:
+                        logger.warning(f"No se pudo registrar trazabilidad de factura: {e}")
                     
                 else:
                     response_data['odoo_invoice'] = {
@@ -320,6 +358,12 @@ async def process_document_from_url(
         )
         
         logger.info(f"Documento desde URL procesado exitosamente por usuario {current_user.username}: {document_url}")
+        
+        # Extraer datos de factura con IA si es un documento de factura
+        invoice_data = None
+        if ocr_result.get('document_type') == 'invoice':
+            invoice_data = await service.extract_invoice_data_with_ai(ocr_result)
+            ocr_result['invoice_data'] = invoice_data
         
         return JSONResponse(
             status_code=status.HTTP_200_OK,

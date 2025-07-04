@@ -68,19 +68,45 @@ class OdooBaseService:
         try:
             if kwargs is None:
                 kwargs = {}
+                
+            # Sanitizar valores None en args para evitar errores de XML-RPC
+            sanitized_args = self._sanitize_values(args)
+            
+            # Configurar el servidor XML-RPC para permitir valores None
+            if not hasattr(self._models, '_ServerProxy__allow_none') or not self._models._ServerProxy__allow_none:
+                # Crear un nuevo ServerProxy con allow_none=True si es necesario
+                self._models = xmlrpc.client.ServerProxy(
+                    f"{self._url}/xmlrpc/2/object",
+                    allow_none=True
+                )
+                logging.info("Reconectado a Odoo con allow_none=True")
+                
             return self._models.execute_kw(
                 self._db,
                 self._uid,
                 self._password,
                 model,
                 method,
-                args,
+                sanitized_args,
                 kwargs
             )
         except Exception as e:
             logging.error(f"Error ejecutando {method} en {model}: {e}", exc_info=True)
             return None
     
+    def _sanitize_values(self, value):
+        """Sanitiza valores para XML-RPC, reemplazando None por valores vacíos apropiados"""
+        if value is None:
+            return False  # XML-RPC usa False en lugar de None
+        elif isinstance(value, list):
+            return [self._sanitize_values(item) for item in value]
+        elif isinstance(value, dict):
+            return {k: self._sanitize_values(v) for k, v in value.items()}
+        elif isinstance(value, str) and not value.strip():
+            # Cadenas vacías o solo espacios se convierten a False
+            return False
+        return value
+            
     def _get_category_name(self, categ_id) -> str:
         """Obtiene el nombre de una categoría"""
         if not categ_id:

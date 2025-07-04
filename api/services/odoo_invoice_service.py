@@ -17,6 +17,8 @@ class OdooInvoiceService(OdooBaseService):
             {"limit": 1}
         )
         self.INVOICE_TAX_ID = tax_ids[0] if tax_ids else 0
+        re_ids = self._execute_kw("account.tax", "search", [[["type_tax_use","=","purchase"],["amount","=",5.2]]], {"limit":1})
+        self.RE_TAX_ID = re_ids[0] if re_ids else 0
 
     def find_supplier_invoice(self, partner_id: int, ref: str) -> Optional[int]:
         """Devuelve el ID de la factura si existe ya."""
@@ -69,7 +71,7 @@ class OdooInvoiceService(OdooBaseService):
                 "name": l.get("name"),
                 "quantity": l.get("quantity", 1.0),
                 "price_unit": l.get("price_unit", 0.0),
-                "tax_ids": [(6, 0, [self.INVOICE_TAX_ID])],
+                "tax_ids": [(6, 0, [t for t in [self.INVOICE_TAX_ID, self.RE_TAX_ID] if t])],
             }))
         vals = {
             "move_type": "in_invoice",

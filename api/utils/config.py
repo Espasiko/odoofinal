@@ -41,10 +41,21 @@ class Config:
     MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
     # Configuración de Mistral LLM (Excel→JSON)
     MISTRAL_LLM_API_KEY: str = os.getenv("MISTRAL_LLM_API_KEY", "")
+    MISTRAL_API_URL: str = os.getenv("MISTRAL_API_URL", "https://api.mistral.ai/v1/chat/completions")
+    MISTRAL_MODEL: str = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
 
     # Configuración de Groq LLM
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+    GROQ_API_URL: str = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3-70b")  # Modelo actualizado al formato correcto para Groq
+    
+    # Configuración de OpenAI (fallback)
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_API_URL: str = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+    
+    # Proveedor LLM por defecto
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mistral")
     
     @classmethod
     def get_odoo_config(cls) -> dict:

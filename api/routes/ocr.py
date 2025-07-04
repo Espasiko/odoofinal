@@ -332,11 +332,27 @@ async def process_invoice(file: UploadFile = File(...)):
         text = ''.join([pytesseract.image_to_string(img, lang='spa', config='--dpi 300 --psm 6') for img in processed_images])
 
         # Extract structured data from OCR text
-        invoice_data = extract_invoice_data(text)
+        try:
+            invoice_data = extract_invoice_data(text)
+        except Exception as e:
+            logger.error(f"Error al extraer datos de la factura: {e}")
+            invoice_data = {
+                'number': 'Unknown',
+                'date': None,
+                'partner_name': 'Unknown Supplier',
+                'amount_total': 0.0,
+                'lines': [],
+                'due_dates': [],
+                'customer_order_ref': None
+            }
 
         # Search for supplier ID using the extracted partner name
-        supplier = odoo_service.get_supplier_by_name(invoice_data['partner_name'])
-        supplier_id = supplier['id'] if supplier else None
+        try:
+            supplier = odoo_service.get_supplier_by_name(invoice_data['partner_name'])
+            supplier_id = supplier['id'] if supplier else None
+        except Exception as e:
+            logger.error(f"Error al buscar proveedor: {e}")
+            supplier_id = None
 
         if supplier_id is None:
             # Crear proveedor si no existe
