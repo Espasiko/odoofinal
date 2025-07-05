@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Card, Typography, Input, Checkbox, Button, Progress, message } from 'antd';
 
-import { useOdoo } from '../OdooContext';
+import { useOdoo } from './OdooContext';
 
 const { Title, Paragraph } = Typography;
 

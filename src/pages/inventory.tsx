@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, Card, Typography, Space, Button, Tag, Spin, Alert, Input } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useInventory } from './src/hooks/useInventory';
+import { useInventory } from "../hooks/useInventory";
 
 const { Title } = Typography;
 const { Search } = Input;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Typography, Space, Button, Tag, Form, Input, Select, Modal, message } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, TeamOutlined } from '@ant-design/icons';
-import { odooService, Provider } from './src/services/odooService';
+import { odooService, Provider } from "../services/odooService";
 
 const { Title } = Typography;
 const { Option } = Select;

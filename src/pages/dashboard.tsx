@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Typography, Progress, Space } from 'antd';
 import { ShoppingOutlined, InboxOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons';
-import { odooService, DashboardStats, CategoryData } from './src/services/odooService';
+import { odooService, DashboardStats, CategoryData } from '../services/odooService';
 
 const { Title } = Typography;
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 import os
 from pathlib import Path
@@ -12,6 +12,50 @@ router = APIRouter(
     tags=["Web UI"],
     responses={404: {"description": "Not found"}}
 )
+
+@router.get("/{full_path:path}", response_class=HTMLResponse)
+async def serve_react_app(request: Request, full_path: str):
+    """
+    Servir la aplicación React para cualquier ruta que no sea API
+    Esto permite que las rutas del frontend funcionen correctamente al recargar la página
+    """
+    # Verificar si es una ruta de API o una ruta existente
+    if full_path.startswith("api/") or full_path in ["ocr", "mapeo", "docs-ui", "health", "docs", "redoc", "openapi.json"]:
+        # No manejar rutas de API o rutas ya definidas
+        return HTMLResponse(content="Not Found", status_code=404)
+    
+    # Servir el archivo index.html para cualquier otra ruta
+    # Primero intentamos servirlo desde la raíz del proyecto
+    frontend_path = Path(__file__).parent.parent.parent / "index.html"
+    
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
+    
+    # Si no está en la raíz, intentamos en /static
+    static_frontend_path = Path(__file__).parent.parent.parent / "static" / "index.html"
+    if static_frontend_path.exists():
+        return FileResponse(static_frontend_path)
+    
+    # Si no existe el archivo index.html en ninguna ubicación, mostrar error
+    return HTMLResponse(
+        content="""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error: Archivo no encontrado</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+                .error { color: red; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <h1 class="error">Error: No se encontró el archivo index.html</h1>
+            <p>No se pudo encontrar el archivo principal de la aplicación React.</p>
+        </body>
+        </html>
+        """,
+        status_code=404
+    )
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):

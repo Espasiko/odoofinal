@@ -17,19 +17,19 @@ import {
 } from '@refinedev/antd';
 
 // Importar componentes
-import Sider from './sider';
-import Header from './header';
+import Sider from './components/sider';
+import Header from './components/header';
 
 // Importar páginas existentes
-import Dashboard from './dashboard';
-import Products from './products';
-import Inventory from './inventory';
-import Sales from './sales';
-import Customers from './customers';
+import Dashboard from './pages/dashboard';
+import Products from './pages/products';
+import Inventory from './pages/inventory';
+import Sales from './pages/sales';
+import Customers from './pages/customers';
 
-import Providers from './providers';
-import ImportExcelChunk from './src/ImportExcelChunk';
-import ImportInvoice from './src/ImportInvoice';
+import Providers from './pages/providers';
+import ImportExcelChunk from './ImportExcelChunk';
+import ImportInvoice from './ImportInvoice';
 
 
 

@@ -7,9 +7,9 @@ Configura las variables ODOO_URL, ODOO_DB, ODOO_USER y ODOO_PASSWORD según tu e
 import xmlrpc.client
 
 # CONFIGURACIÓN: AJUSTA ESTOS DATOS SEGÚN TU INSTANCIA
-ODOO_URL = "http://localhost:8070"  # Cambia el puerto si es necesario
+ODOO_URL = "http://localhost:8069"  # Cambia el puerto si es necesario
 ODOO_DB = "manus_odoo-bd"           # Nombre de la base de datos
-ODOO_USER = "admin"                 # Usuario admin
+ODOO_USER = "yo@mail.com"                 # Usuario admin
 ODOO_PASSWORD = "admin"             # Contraseña admin
 
 # NUEVOS DATOS DE LA EMPRESA

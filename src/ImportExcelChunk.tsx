@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Button, Card, Input, List, message, Progress, Typography } from 'antd';
 import axios from 'axios';
-import { useOdoo } from '../OdooContext';
+import { useOdoo } from './OdooContext';
 
 const { Title, Text } = Typography;
 

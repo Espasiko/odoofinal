@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Card, Button, Tag, Space, Modal, Form, Input, InputNumber, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import type { TablePaginationConfig } from 'antd/es/table';
-import { odooService } from './src/services/odooService';
-import { Product, PaginatedResponse } from './src/services/odooService';
+import { odooService } from "../services/odooService";
+import { Product, PaginatedResponse } from '../services/odooService';
 
 const Products: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);

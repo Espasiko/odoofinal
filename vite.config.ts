@@ -1,12 +1,8 @@
 import { defineConfig } from 'vite';
-import react from "@vitejs/plugin-react";
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  define: {
-    'process.env': {},
-    global: 'globalThis',
-  },
   server: {
     port: 3001,
     host: "0.0.0.0",
@@ -42,7 +38,12 @@ export default defineConfig({
       "3001-ishxvgs1vcbjdsxvwnkcc-72b27711.manusvm.computer"
     ]
   },
+  define: {
+    'process.env': {},
+    global: 'globalThis',
+  },
   build: {
+    assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',
     terserOptions: {

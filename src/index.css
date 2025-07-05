@@ -1,3 +1,14 @@
+/**
+ * Estilos globales para El Pelotazo ERP
+ * 
+ * Este archivo contiene solo los estilos básicos y ajustes responsivos
+ * que no pueden configurarse a través del tema de Ant Design.
+ * 
+ * La mayoría de las personalizaciones de componentes se han movido a darkTheme.ts
+ * para centralizar la configuración de estilos y evitar duplicaciones.
+ */
+
+/* Estilos básicos */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -23,21 +34,13 @@ code {
   box-sizing: border-box;
 }
 
-/* Fix for responsive layout and overlapping issues */
+/* Ajustes de layout y contenido */
 .ant-layout {
   min-height: 100vh;
 }
 
 .ant-layout-content {
   overflow-x: hidden;
-  padding: 16px;
-  margin-left: 0;
-  transition: margin-left 0.2s;
-}
-
-/* Ensure content doesn't overlap with sidebar */
-/* Ajustes para el contenido principal */
-.ant-layout-content {
   padding: 16px;
   transition: all 0.3s;
 }
@@ -46,15 +49,13 @@ code {
   margin-left: 0;
 }
 
-/* Responsive sidebar adjustments */
-/* Ajustes responsive */
+/* Ajustes responsivos */
 @media (max-width: 992px) {
   .ant-layout-content {
     padding: 8px;
   }
 }
 
-/* Mobile responsive fixes */
 @media (max-width: 768px) {
   .ant-layout-content {
     padding: 8px;
@@ -73,59 +74,13 @@ code {
   }
 }
 
-/* Estilos para tablas en modo oscuro */
-.ant-table {
-  background-color: #1f1f1f !important;
-  color: #ffffff !important;
-}
-
-.ant-table-thead > tr > th,
-.ant-table-tbody > tr > td,
-.ant-table-cell {
-  background-color: #1f1f1f !important;
-  color: #ffffff !important;
-  border-color: #303030 !important;
-}
-
-/* Asegurar que el texto sea blanco */
-.ant-table-content,
-.ant-table-row,
-.ant-table-row-level-0 {
-  color: #ffffff !important;
-}
-
-/* Clase específica para forzar texto blanco */
-.white-text-table,
-.white-text-table th,
-.white-text-table td,
-.white-text-table .ant-table-cell {
-  color: #ffffff !important;
-  background-color: #1f1f1f !important;
-}
-
+/* Ajustes para tablas */
 .ant-table-wrapper {
   overflow-x: auto;
   max-width: 100%;
 }
 
-/* Fix for dark theme cards */
-.ant-card {
-  background: #1f1f1f !important;
-  border: 1px solid #303030 !important;
-  margin-bottom: 16px;
-}
-
-.ant-card-head {
-  background: #1f1f1f !important;
-  border-bottom: 1px solid #303030 !important;
-  color: #fff !important;
-}
-
-.ant-card-head-title {
-  color: #fff !important;
-}
-
-/* Dashboard specific fixes */
+/* Ajustes para el dashboard */
 .dashboard-container {
   width: 100%;
   max-width: 100%;
@@ -145,14 +100,12 @@ code {
   padding-right: 8px;
 }
 
-/* Ensure charts and content don't overflow */
 .dashboard-container .ant-card {
   width: 100%;
   max-width: 100%;
   overflow: hidden;
 }
 
-/* Mobile responsive improvements */
 @media (max-width: 768px) {
   .dashboard-container {
     padding: 10px;

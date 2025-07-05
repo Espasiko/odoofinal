@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Card, Typography, Space, Button, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { odooService, Sale } from './src/services/odooService';
+import { odooService, Sale } from '../services/odooService';
 
 const { Title } = Typography;
 
