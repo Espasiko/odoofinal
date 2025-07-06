@@ -48,11 +48,9 @@ async def call_llm(prompt: str, provider: Optional[str] = None) -> Dict[str, Any
             elif current_prov == "groq":
                 url = GROQ_API_URL
                 key = GROQ_API_KEY
-                model = GROQ_MODEL
-                if "llama3-" in model:
-                    model = model.replace("llama3-", "llama-3-")
-                if model not in ["llama-3.1-8b-instant", "llama-3-70b", "llama-3-8b"]:
-                    model = "llama-3.1-8b-instant"
+                # FORZAR el modelo correcto SIEMPRE
+                model = "llama-3.1-8b-instant"
+                logger.info(f"[LLM] FORZADO modelo Groq: {model}")
             elif current_prov == "openai":
                 url = OPENAI_API_URL
                 key = OPENAI_API_KEY

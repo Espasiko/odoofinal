@@ -287,6 +287,7 @@ class OdooProductService(OdooBaseService):
         # Categoría
         category_id = None
         if hasattr(self, 'resolve_category'):
+            # Primero intentamos obtener la categoría explícita de los datos del producto
             category_keys = ['categoria', 'category', 'category_name', 'categ_id']
             subcategory_keys = ['subcategoria', 'subcategory', 'subcategory_name']
             
@@ -303,7 +304,20 @@ class OdooProductService(OdooBaseService):
                     subcategoria = product_data[key]
                     break
                     
-            category_id = self.resolve_category(categoria, subcategoria)
+            # Si tenemos una categoría explícita, la resolvemos
+            if categoria:
+                category_id = self.resolve_category(categoria, subcategoria)
+            else:
+                # Si no hay categoría explícita, intentamos inferirla del nombre del producto
+                try:
+                    from .product_categorization import get_category_for_product
+                    product_name = product_data.get('nombre') or product_data.get('name') or ''
+                    category_id = get_category_for_product(product_name, supplier_name)
+                    if category_id and category_id != 1:
+                        logging.info(f"Categoría inferida automáticamente para '{product_name}': {category_id}")
+                except Exception as e:
+                    logging.warning(f"Error al inferir categoría: {e}")
+                    category_id = None
             
         if category_id:
             vals['categ_id'] = category_id
