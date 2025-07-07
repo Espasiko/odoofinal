@@ -10,7 +10,10 @@ router = APIRouter(prefix="/api/v1", tags=["products"])
 # Helper para no instanciar el servicio en cada ruta
 # FastAPI lo manejará como un singleton en el scope de la request
 def get_product_service():
-    return OdooProductService()
+    service = OdooProductService()
+    # Inicializar campos personalizados al arrancar
+    service.initialize_custom_fields()
+    return service
 
 @router.get("/products", response_model=PaginatedResponse[Product])
 async def get_products(
