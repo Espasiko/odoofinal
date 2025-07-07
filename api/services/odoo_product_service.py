@@ -605,6 +605,7 @@ class OdooProductService(OdooBaseService):
                     'list_price': p.get('list_price', 0.0),
                     'standard_price': p.get('standard_price', 0.0),
                     'categ_id': categ_id,
+                    'categ_name': categ_name,  # Campo adicional para compatibilidad con frontend
                     'category': categ_name,
                     'active': p.get('active', True),
                     'is_published': p.get('is_published', False),
@@ -780,6 +781,269 @@ class OdooProductService(OdooBaseService):
         except Exception as e:
             logging.error(f"Error en find_or_create_category para '{category_name}': {e}")
             raise
+
+# Instancia global para evitar errores de importación circular
+    def front_to_odoo_product_dict(self, producto, proveedor_nombre):
+        """
+        Convierte un producto del formato frontend/Excel al formato Odoo para crear o actualizar.
+        
+        Args:
+            producto: Diccionario con datos del producto desde el frontend o Excel
+            proveedor_nombre: Nombre del proveedor para asociar al producto
+            
+        Returns:
+            Diccionario con formato compatible con Odoo para crear/actualizar producto
+        """
+        import logging
+        logger = logging.getLogger("odoo_product_service.transform")
+        
+        try:
+            # Buscar ID del proveedor por nombre
+            proveedor_id = None
+            if proveedor_nombre:
+                proveedores = self._execute_kw(
+                    'res.partner',
+                    'search_read',
+                    [[('name', '=', proveedor_nombre), ('supplier_rank', '>', 0)]],
+                    {'fields': ['id', 'name'], 'limit': 1}
+                )
+                
+                if proveedores and len(proveedores) > 0:
+                    proveedor_id = proveedores[0]['id']
+                    logger.info(f"Proveedor encontrado: {proveedor_nombre} (ID: {proveedor_id})")
+                else:
+                    logger.warning(f"Proveedor no encontrado: {proveedor_nombre}. Se creará el producto sin proveedor.")
+            
+            # Buscar o crear categoría
+            categoria_id = 1  # Categoría por defecto 'All'
+            categoria_nombre = producto.get('categoria', '').strip()
+            subcategoria_nombre = producto.get('subcategoria', '').strip()
+            
+            if categoria_nombre:
+                # Buscar categoría existente
+                categorias = self._execute_kw(
+                    'product.category',
+                    'search_read',
+                    [[('name', '=', categoria_nombre)]],
+                    {'fields': ['id', 'name'], 'limit': 1}
+                )
+                
+                if categorias and len(categorias) > 0:
+                    categoria_id = categorias[0]['id']
+                    logger.info(f"Categoría encontrada: {categoria_nombre} (ID: {categoria_id})")
+                else:
+                    # Crear nueva categoría
+                    categoria_id = self._execute_kw(
+                        'product.category',
+                        'create',
+                        [{'name': categoria_nombre, 'parent_id': 1}]  # parent_id: 1 = 'All'
+                    )
+                    logger.info(f"Categoría creada: {categoria_nombre} (ID: {categoria_id})")
+                
+                # Manejar subcategoría si existe
+                if subcategoria_nombre:
+                    subcategorias = self._execute_kw(
+                        'product.category',
+                        'search_read',
+                        [[('name', '=', subcategoria_nombre), ('parent_id', '=', categoria_id)]],
+                        {'fields': ['id', 'name'], 'limit': 1}
+                    )
+                    
+                    if subcategorias and len(subcategorias) > 0:
+                        categoria_id = subcategorias[0]['id']  # Usar la subcategoría como categoría final
+                    else:
+                        # Crear subcategoría
+                        subcategoria_id = self._execute_kw(
+                            'product.category',
+                            'create',
+                            [{'name': subcategoria_nombre, 'parent_id': categoria_id}]
+                        )
+                        categoria_id = subcategoria_id  # Usar la subcategoría como categoría final
+                        logger.info(f"Subcategoría creada: {subcategoria_nombre} (ID: {subcategoria_id})")
+            
+            # Preparar valores para Odoo
+            nombre_producto = producto.get('nombre', '').strip()
+            referencia = producto.get('referencia_proveedor', '').strip()
+            precio_coste = float(producto.get('precio_coste', 0) or 0)
+            descripcion = producto.get('descripcion', '').strip()
+            
+            # Calcular precio de venta con un margen del 30% por defecto si no se especifica
+            precio_venta = float(producto.get('precio_venta', 0) or 0)
+            if precio_venta <= 0 and precio_coste > 0:
+                precio_venta = precio_coste * 1.3  # 30% de margen por defecto
+            
+            # Crear diccionario para Odoo
+            odoo_dict = {
+                'name': nombre_producto,
+                'default_code': referencia,
+                'standard_price': precio_coste,
+                'list_price': precio_venta,
+                'categ_id': categoria_id,
+                'type': 'product',  # product = almacenable, consu = consumible, service = servicio
+                'sale_ok': True,
+                'purchase_ok': True,
+                'active': True,
+                'description': descripcion
+            }
+            
+            # Añadir información de proveedor si existe
+            if proveedor_id:
+                # La información del proveedor se añadirá después de crear el producto
+                odoo_dict['supplier_id'] = proveedor_id
+                odoo_dict['supplier_code'] = referencia
+                odoo_dict['supplier_price'] = precio_coste
+            
+            return odoo_dict
+            
+        except Exception as e:
+            logger.error(f"Error al convertir producto para Odoo: {e}", exc_info=True)
+            raise Exception(f"Error al preparar producto para Odoo: {str(e)}")
+            
+    def create_or_update_product(self, product_data):
+        """
+        Crea o actualiza un producto en Odoo y asocia el proveedor si es necesario.
+        
+        Args:
+            product_data: Diccionario con datos del producto en formato Odoo
+            
+        Returns:
+            ID del producto creado o actualizado, o None si falla
+        """
+        import logging
+        logger = logging.getLogger("odoo_product_service.create")
+        
+        try:
+            if not self._models:
+                self._get_connection()
+            
+            # Extraer información del proveedor si existe
+            supplier_id = product_data.pop('supplier_id', None)
+            supplier_code = product_data.pop('supplier_code', None)
+            supplier_price = product_data.pop('supplier_price', 0.0)
+            
+            # Buscar si el producto ya existe por referencia
+            product_id = None
+            if product_data.get('default_code'):
+                existing_products = self._execute_kw(
+                    'product.template',
+                    'search_read',
+                    [[('default_code', '=', product_data['default_code'])]],
+                    {'fields': ['id'], 'limit': 1}
+                )
+                
+                if existing_products and len(existing_products) > 0:
+                    product_id = existing_products[0]['id']
+                    logger.info(f"Producto encontrado con referencia {product_data['default_code']}, ID: {product_id}")
+            
+            # Crear o actualizar el producto
+            if product_id:
+                # Actualizar producto existente
+                self._execute_kw(
+                    'product.template',
+                    'write',
+                    [[product_id], product_data]
+                )
+                logger.info(f"Producto actualizado con ID: {product_id}")
+            else:
+                # Crear nuevo producto
+                product_id = self._execute_kw(
+                    'product.template',
+                    'create',
+                    [product_data]
+                )
+                logger.info(f"Nuevo producto creado con ID: {product_id}")
+            
+            # Asociar proveedor si existe
+            if product_id and supplier_id:
+                # Verificar si ya existe una relación proveedor-producto
+                existing_supplier = self._execute_kw(
+                    'product.supplierinfo',
+                    'search_read',
+                    [[('product_tmpl_id', '=', product_id), ('partner_id', '=', supplier_id)]],
+                    {'fields': ['id'], 'limit': 1}
+                )
+                
+                supplier_data = {
+                    'product_tmpl_id': product_id,
+                    'partner_id': supplier_id,
+                    'product_code': supplier_code,
+                    'price': supplier_price,
+                    'min_qty': 1.0,
+                    'delay': 1  # Días de entrega
+                }
+                
+                if existing_supplier and len(existing_supplier) > 0:
+                    # Actualizar relación existente
+                    supplier_info_id = existing_supplier[0]['id']
+                    self._execute_kw(
+                        'product.supplierinfo',
+                        'write',
+                        [[supplier_info_id], supplier_data]
+                    )
+                    logger.info(f"Información de proveedor actualizada para producto {product_id} y proveedor {supplier_id}")
+                else:
+                    # Crear nueva relación
+                    supplier_info_id = self._execute_kw(
+                        'product.supplierinfo',
+                        'create',
+                        [supplier_data]
+                    )
+                    logger.info(f"Nueva información de proveedor creada para producto {product_id} y proveedor {supplier_id}")
+            
+            return product_id
+            
+        except Exception as e:
+            logger.error(f"Error al crear/actualizar producto en Odoo: {e}", exc_info=True)
+            return None
+            
+    def archive_product(self, product_id):
+        """
+        Archiva (desactiva) un producto en Odoo.
+        
+        Args:
+            product_id: ID del producto a archivar
+            
+        Returns:
+            bool: True si se archivó correctamente, False en caso contrario
+        """
+        import logging
+        logger = logging.getLogger("odoo_product_service.archive")
+        
+        try:
+            if not self._models:
+                self._get_connection()
+            
+            # Verificar que el producto existe
+            product = self._execute_kw(
+                'product.template',
+                'search_read',
+                [[('id', '=', product_id)]],
+                {'fields': ['id', 'active'], 'limit': 1}
+            )
+            
+            if not product:
+                logger.warning(f"No se encontró el producto con ID {product_id} para archivar")
+                return False
+            
+            # Si ya está archivado (inactivo), no hacer nada
+            if product[0].get('active') is False:
+                logger.info(f"El producto con ID {product_id} ya está archivado")
+                return True
+            
+            # Archivar el producto (establecer active=False)
+            result = self._execute_kw(
+                'product.template',
+                'write',
+                [[product_id], {'active': False}]
+            )
+            
+            logger.info(f"Producto con ID {product_id} archivado correctamente")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error al archivar producto con ID {product_id}: {e}", exc_info=True)
+            return False
+
 
 # Instancia global para evitar errores de importación circular
 odoo_product_service = OdooProductService()
