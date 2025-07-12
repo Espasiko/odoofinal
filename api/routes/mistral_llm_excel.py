@@ -187,6 +187,10 @@ async def process_excel_file(
                 logger.warning(f"Producto '{nombre}' sin código, se asignará 'SIN_CODIGO_{idx}'")
                 prod['codigo'] = f"SIN_CODIGO_{idx}"
             
+            # Mapear 'codigo' a 'referencia_proveedor' para compatibilidad con odoo_product_service
+            if 'codigo' in prod:
+                prod['referencia_proveedor'] = prod['codigo']
+            
             # Sanitizar valores numéricos
             precio_keys = ['precio_venta', 'precio_pvp', 'precio_coste', 'coste', 'pvp']
             for key in precio_keys:
@@ -222,7 +226,18 @@ async def process_excel_file(
                 logger.info(f"Procesando producto {idx}: {producto.get('nombre', 'Sin nombre')}")
                 
                 # Construir el diccionario de valores para Odoo usando la utilidad centralizada
+                logger.info(f"Antes de front_to_odoo_product_dict - producto: {producto}")
                 product_vals = odoo_product_service.front_to_odoo_product_dict(producto, proveedor_nombre)
+                
+                # Asegurar que no haya campos problemáticos
+                if 'detailed_type' in product_vals:
+                    logger.warning(f"¡DETECTADO CAMPO PROBLEMÁTICO detailed_type! Eliminando...")
+                    del product_vals['detailed_type']
+                
+                # Asegurar que type está presente y es válido
+                if 'type' not in product_vals:
+                    logger.warning(f"Añadiendo campo type='consu' que faltaba")
+                    product_vals['type'] = 'consu'
                 
                 # Log para depuración
                 logger.info(f"Valores preparados para Odoo: {product_vals}")
@@ -243,6 +258,9 @@ async def process_excel_file(
                     product_vals['standard_price'] = float(producto.get('precio_coste', 0.0) or 0.0)
                 except (ValueError, TypeError):
                     product_vals['standard_price'] = 0.0
+                
+                # Log detallado para depuración
+                logger.info(f"Valores finales enviados a Odoo para producto {producto.get('nombre', 'Sin nombre')}: {product_vals}")
                 
                 # Crear o actualizar producto en Odoo
                 product_id = odoo_product_service.create_or_update_product(product_vals)

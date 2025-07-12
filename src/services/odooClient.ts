@@ -11,7 +11,7 @@ class OdooClient {
 
   constructor() {
     this.baseURL = import.meta.env.VITE_ODOO_URL || 'http://localhost:8070';
-    this.database = import.meta.env.VITE_ODOO_DB || 'manus_odoo-bd';
+    this.database = import.meta.env.VITE_ODOO_DB || 'fresh_odoo_db';
     this.username = import.meta.env.VITE_ODOO_USERNAME || 'admin';
     this.password = import.meta.env.VITE_ODOO_PASSWORD || 'admin';
     this.apiKey = import.meta.env.VITE_ODOO_API_KEY || '7917ee3d696b77614504060c27da891e62115148';

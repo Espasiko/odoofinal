@@ -83,6 +83,14 @@ export interface ApiError {
   details?: any;
 }
 
+export interface SessionResponse {
+  uid: number | null;
+  username: string | null;
+  name: string | null;
+  session_id: string | null;
+  is_authenticated: boolean;
+}
+
 class OdooService {
   private apiClient: AxiosInstance;
   private token: string | null = null;
@@ -94,7 +102,7 @@ class OdooService {
 
   constructor() {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    this.username = import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com';
+    this.username = import.meta.env.VITE_ODOO_USERNAME || 'admin';
     this.password = import.meta.env.VITE_ODOO_PASSWORD || 'admin';
     this.apiClient = axios.create({
       baseURL: apiUrl,
@@ -159,8 +167,8 @@ class OdooService {
       const formData = new FormData();
       formData.append('username', this.username);
       formData.append('password', this.password);
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/token`,
+      const response = await this.apiClient.post(
+        '/token',
         formData,
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
@@ -275,6 +283,40 @@ class OdooService {
 
   isLoggedIn(): boolean {
     return this.isAuthenticated && !!this.token;
+  }
+
+  async getSession(): Promise<SessionResponse> {
+    await this.ensureToken();
+    try {
+      // Si tenemos un token válido, decodificarlo para obtener información de sesión
+      if (this.token) {
+        const payload = JSON.parse(atob(this.token.split('.')[1]));
+        return {
+          uid: payload.sub || null,
+          username: payload.username || this.username,
+          name: payload.name || this.username,
+          session_id: this.token,
+          is_authenticated: this.isAuthenticated
+        };
+      } else {
+        return {
+          uid: null,
+          username: null,
+          name: null,
+          session_id: null,
+          is_authenticated: false
+        };
+      }
+    } catch (error) {
+      console.error('Error getting session:', error);
+      return {
+        uid: null,
+        username: null,
+        name: null,
+        session_id: null,
+        is_authenticated: false
+      };
+    }
   }
   // Métodos CRUD para proveedores
   async getProviders(page: number = 1, limit: number = 10, search: string = ''): Promise<PaginatedResponse<Provider>> {

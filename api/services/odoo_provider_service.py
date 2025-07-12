@@ -195,6 +195,79 @@ class OdooProviderService(OdooBaseService):
     # Alias para mantener compatibilidad con interfaz anterior
     def create_provider(self, supplier_data):
         return self.create_supplier(supplier_data)
+    
+    def find_or_create_provider(self, provider_name: str) -> Optional[dict]:
+        """
+        Busca un proveedor por nombre. Si existe, devuelve su ID y nombre.
+        Si no existe, lo crea y devuelve su ID y nombre.
+        
+        Args:
+            provider_name: Nombre del proveedor a buscar o crear
+            
+        Returns:
+            dict con 'id' y 'name' del proveedor, o None si hay error
+        """
+        import logging
+        logger = logging.getLogger("odoo_provider_service.find_or_create_provider")
+        
+        try:
+            if not provider_name or not provider_name.strip():
+                logger.error("Nombre de proveedor vacío o inválido")
+                return None
+                
+            provider_name = provider_name.strip()
+            
+            if not self._models:
+                self._get_connection()
+            
+            # 1. Buscar proveedor existente por nombre exacto
+            existing_providers = self._execute_kw(
+                'res.partner',
+                'search_read',
+                [[('name', '=', provider_name), ('supplier_rank', '>', 0)]],
+                {'fields': ['id', 'name'], 'limit': 1}
+            )
+            
+            if existing_providers and len(existing_providers) > 0:
+                provider = existing_providers[0]
+                logger.info(f"Proveedor encontrado: {provider['name']} (ID: {provider['id']})")
+                return {
+                    'id': provider['id'],
+                    'name': provider['name'],
+                    'action': 'found'
+                }
+            
+            # 2. Si no existe, crear nuevo proveedor
+            logger.info(f"Proveedor '{provider_name}' no encontrado. Creando nuevo proveedor...")
+            
+            provider_data = {
+                'name': provider_name,
+                'is_company': True,
+                'supplier_rank': 1,
+                'customer_rank': 0,
+                'active': True
+            }
+            
+            new_provider_id = self._execute_kw(
+                'res.partner',
+                'create',
+                [provider_data]
+            )
+            
+            if new_provider_id:
+                logger.info(f"Proveedor '{provider_name}' creado con ID: {new_provider_id}")
+                return {
+                    'id': new_provider_id,
+                    'name': provider_name,
+                    'action': 'created'
+                }
+            else:
+                logger.error(f"No se pudo crear el proveedor '{provider_name}'")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error al buscar o crear proveedor '{provider_name}': {e}", exc_info=True)
+            return None
 
     def create_supplier(self, supplier_data) -> Optional[Provider]:
         """
@@ -403,6 +476,103 @@ class OdooProviderService(OdooBaseService):
             # En caso de error de conexión, usar longitud del lote
             total = len(providers)
         return providers, total
+
+    def front_to_odoo_partner_dict(self, partner_data):
+        """
+        Convierte datos de proveedor del formato frontend/OCR al formato Odoo para crear o actualizar.
+        
+        Args:
+            partner_data: Diccionario con datos del proveedor desde el frontend o OCR
+            
+        Returns:
+            Diccionario con formato compatible con Odoo para crear/actualizar proveedor
+        """
+        import logging
+        logger = logging.getLogger("odoo_provider_service.transform")
+        
+        try:
+            # Mapeo de claves del frontend (español) a Odoo (inglés)
+            field_mapping = {
+                "nombre": "name",
+                "correo_electronico": "email",
+                "email": "email",
+                "telefono": "phone",
+                "phone": "phone",
+                "nif": "vat",
+                "vat": "vat",
+                "cif": "vat",
+                "sitio_web": "website",
+                "website": "website",
+                "movil": "mobile",
+                "mobile": "mobile",
+                "calle": "street",
+                "street": "street",
+                "direccion": "street",
+                "calle2": "street2",
+                "street2": "street2",
+                "ciudad": "city",
+                "city": "city",
+                "codigo_postal": "zip",
+                "zip": "zip",
+                "cp": "zip",
+                "estado": "state",
+                "state": "state",
+                "provincia": "state",
+                "pais": "country",
+                "country": "country",
+                "comentarios": "comment",
+                "comment": "comment",
+                "notas": "comment",
+                "activo": "active",
+                "active": "active"
+            }
+            
+            # Normalizar el diccionario de datos usando el mapeo
+            normalized_data = {}
+            for key, value in partner_data.items():
+                odoo_key = field_mapping.get(key, key)
+                normalized_data[odoo_key] = value
+            
+            # Saneamiento de campos string
+            all_string_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile', 
+                'street', 'street2', 'city', 'zip', 'state', 'country'
+            ]
+            for k in all_string_fields:
+                if k in normalized_data and (normalized_data[k] is False or normalized_data[k] is None):
+                    normalized_data[k] = ""
+                elif k in normalized_data and isinstance(normalized_data[k], str):
+                    normalized_data[k] = normalized_data[k].strip()
+            
+            # Construir el diccionario de valores para Odoo
+            vals = {}
+            all_fields = [
+                'name', 'email', 'phone', 'comment', 'vat', 'website', 'mobile',
+                'street', 'street2', 'city', 'zip', 'state', 'country',
+                'active', 'is_company', 'supplier_rank', 'customer_rank'
+            ]
+
+            for field in all_fields:
+                if field in normalized_data and normalized_data[field] is not None:
+                    vals[field] = normalized_data[field]
+
+            # Establecer valores por defecto para campos clave si no se proporcionan
+            vals.setdefault('is_company', True)
+            vals.setdefault('supplier_rank', 1)
+            vals.setdefault('customer_rank', 0)
+            vals.setdefault('active', True)
+            
+            # Asegurar que hay un nombre (obligatorio)
+            if not vals.get('name'):
+                logger.warning("No se proporcionó nombre para el proveedor, usando 'Proveedor sin nombre'")
+                vals['name'] = "Proveedor sin nombre"
+            
+            return vals
+            
+        except Exception as e:
+            logger.error(f"Error al convertir proveedor para Odoo: {e}", exc_info=True)
+            # En caso de error, devolver un diccionario mínimo válido
+            return {"name": "Proveedor sin nombre", "is_company": True, "supplier_rank": 1}
 
 # Instancia global del servicio
 odoo_provider_service = OdooProviderService()

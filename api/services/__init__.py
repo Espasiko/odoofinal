@@ -5,6 +5,7 @@ from .odoo_customer_service import OdooCustomerService
 from .odoo_sales_service import OdooSalesService
 from .odoo_service import OdooService
 from .mistral_ocr_service import MistralOCRService
+from .mistral_free_ocr_service import MistralFreeOCRService
 from .auth_service import *
 
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     'OdooCustomerService',
     'OdooSalesService',
     'OdooService',
-    'MistralOCRService'
+    'MistralOCRService',
+    'MistralFreeOCRService'
 ]

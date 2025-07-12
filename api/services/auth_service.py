@@ -20,15 +20,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 fake_users_db = {
     "admin": {
         "username": "admin",
-        "full_name": "Administrador",
-        "email": "admin@example.com",
-        "hashed_password": "admin_password_secure",
-        "disabled": False,
-    },
-    "yo@mail.com": {
-        "username": "yo@mail.com",
         "full_name": "Usuario Odoo",
-        "email": "yo@mail.com",
+        "email": "admin@example.com",
         "hashed_password": "admin",
         "disabled": False,
     }
