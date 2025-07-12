@@ -1,0 +1,692 @@
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
+from fastapi.responses import JSONResponse
+from typing import Optional, Dict, Any
+import tempfile
+import os
+import logging
+from ..services.mistral_ocr_service import get_mistral_ocr_service
+from ..services.odoo_provider_service import odoo_provider_service
+from ..services.odoo_invoice_service import OdooInvoiceService
+from ..utils.parsing import parse_date, parse_decimal
+from ..utils.price_utils import adjust_price_for_supplier
+from ..services.auth_service import get_current_user
+from ..models.schemas import User
+
+logger = logging.getLogger(__name__)
+
+# Servicio de facturas
+odoo_invoice_service = OdooInvoiceService()
+
+router = APIRouter(
+    prefix="/api/v1/mistral-ocr",
+    tags=["Mistral OCR"],
+    responses={404: {"description": "Not found"}}
+)
+
+@router.post("/save-verified-invoice")
+async def save_verified_invoice(
+    invoice_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Guarda una factura en Odoo después de que el usuario ha verificado y posiblemente editado los datos.
+    
+    Args:
+        invoice_data: Datos de la factura verificados por el usuario
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con el resultado de la operación
+    """
+    logger.info(f"Guardando factura verificada por usuario {current_user.username}")
+    
+    try:
+        # Extraer datos del proveedor
+        supplier_name = invoice_data.get('supplier_name')
+        supplier_vat = invoice_data.get('supplier_vat')
+        
+        logger.info(f"Procesando proveedor verificado: {supplier_name}, VAT: {supplier_vat}")
+        
+        # Verificar si tenemos suficiente información para identificar/crear un proveedor
+        if not supplier_name and not supplier_vat:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "success": False,
+                    "message": "Se requiere al menos el nombre o el NIF/VAT del proveedor"
+                }
+            )
+        
+        # Buscar proveedor por NIF/VAT primero
+        supplier_id: int | None = None
+        if supplier_vat:
+            vat_ids = odoo_provider_service._execute_kw('res.partner', 'search', [[['vat', '=', supplier_vat]]], {'limit': 1})
+            if vat_ids:
+                supplier_id = vat_ids[0]
+                logger.info(f"Proveedor encontrado por VAT: ID {supplier_id}")
+
+        # Si no se encontró por VAT, buscar por nombre
+        if not supplier_id and supplier_name:
+            providers = odoo_provider_service.get_providers(search_term=supplier_name, limit=1)
+            if providers:
+                supplier_id = providers[0].id
+                logger.info(f"Proveedor encontrado por nombre: ID {supplier_id}")
+
+        # Preparar datos del proveedor para Odoo
+        provider_vals = odoo_provider_service.front_to_odoo_partner_dict(invoice_data)
+        
+        if supplier_id:
+            # Actualizar proveedor existente
+            logger.info(f"Actualizando proveedor existente ID {supplier_id} con datos: {provider_vals}")
+            updated_provider = odoo_provider_service.update_provider(supplier_id, provider_vals)
+            if updated_provider:
+                logger.info(f"Proveedor actualizado correctamente: {updated_provider.name} (ID: {updated_provider.id})")
+            else:
+                logger.error(f"Error al actualizar proveedor ID {supplier_id}")
+                return JSONResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content={
+                        "success": False,
+                        "message": f"Error al actualizar el proveedor ID {supplier_id}"
+                    }
+                )
+        else:
+            # Crear nuevo proveedor
+            # Asegurar que tenga un nombre
+            if not provider_vals.get('name'):
+                provider_vals['name'] = supplier_name or 'Proveedor sin nombre'
+            
+            logger.info(f"Creando nuevo proveedor con datos: {provider_vals}")
+            new_provider = odoo_provider_service.create_supplier(provider_vals)
+            
+            if new_provider:
+                logger.info(f"Nuevo proveedor creado correctamente: {new_provider.name} (ID: {new_provider.id})")
+                supplier_id = new_provider.id
+            else:
+                logger.error("Error al crear nuevo proveedor")
+                return JSONResponse(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    content={
+                        "success": False,
+                        "message": "Error al crear el nuevo proveedor"
+                    }
+                )
+        
+        # Preparar datos de la factura para Odoo
+        invoice_lines = []
+        for line_item in invoice_data.get('line_items', []):
+            if line_item.get('name') or line_item.get('description'):
+                invoice_lines.append({
+                    'name': line_item.get('description') or line_item.get('name', 'Producto/Servicio'),
+                    'quantity': parse_decimal(line_item.get('quantity', 1)),
+                    'price_unit': parse_decimal(line_item.get('price_unit') or line_item.get('unit_price', 0)),
+                    'default_code': line_item.get('default_code') or line_item.get('code')
+                })
+        
+        # Si no hay líneas específicas, crear una línea general
+        if not invoice_lines and invoice_data.get('total_amount'):
+            invoice_lines.append({
+                'name': f"Factura {invoice_data.get('invoice_number', 'Sin número')}",
+                'quantity': 1,
+                'price_unit': parse_decimal(invoice_data.get('subtotal', invoice_data.get('total_amount', 0)))
+            })
+        
+        # Crear factura en Odoo
+        invoice_date_iso = parse_date(invoice_data.get('invoice_date'))
+        invoice_result = odoo_invoice_service.create_supplier_invoice(
+            partner_id=supplier_id,
+            invoice_number=invoice_data.get('invoice_number'),
+            invoice_date=invoice_date_iso,
+            lines=invoice_lines
+        )
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Factura guardada correctamente en Odoo",
+                "odoo_invoice": invoice_result,
+                "supplier_id": supplier_id
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error guardando factura verificada: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "success": False,
+                "message": f"Error al guardar la factura: {str(e)}"
+            }
+        )
+
+@router.post("/process-document")
+async def process_document(
+    file: UploadFile = File(...),
+    include_images: bool = True,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa un documento (PDF o imagen) usando Mistral OCR
+    
+    Args:
+        file: Archivo a procesar (PDF, PNG, JPG, JPEG, AVIF)
+        include_images: Si incluir imágenes extraídas en base64
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos extraídos del documento
+    """
+    temp_file_path = None
+    
+    try:
+        # Validar formato de archivo
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        service = get_mistral_ocr_service()
+        supported_formats = service.get_supported_formats()
+        
+        if file_extension not in supported_formats:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Formato de archivo no soportado. Formatos válidos: {', '.join(supported_formats)}"
+            )
+        
+        # Crear archivo temporal
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+        
+        # Validar tamaño de archivo
+        if not service.validate_file_size(temp_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="El archivo excede el límite de 50MB"
+            )
+        
+        # Procesar documento según el tipo
+        if file_extension == '.pdf':
+            ocr_result = service.process_pdf_document(
+                temp_file_path, 
+                include_images=include_images
+            )
+        else:
+            ocr_result = service.process_image_document(
+                temp_file_path, 
+                include_images=include_images
+            )
+        
+        logger.info(f"Documento procesado exitosamente por usuario {current_user.username}: {file.filename}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Documento procesado exitosamente",
+                "filename": file.filename,
+                "file_type": file_extension,
+                "processed_by": current_user.username,
+                "data": ocr_result
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error procesando documento {file.filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando el documento: {str(e)}"
+        )
+    finally:
+        # Limpiar archivo temporal
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"No se pudo eliminar archivo temporal {temp_file_path}: {e}")
+
+@router.post("/process-invoice")
+async def process_invoice(
+    file: UploadFile = File(None),
+    create_in_odoo: bool = False,
+    verified_data: Dict[str, Any] = None,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa una factura usando Mistral OCR y opcionalmente la crea en Odoo.
+    Puede recibir un archivo para procesar o datos ya verificados por el usuario.
+    
+    Args:
+        file: Archivo de factura a procesar (opcional si se proporcionan verified_data)
+        create_in_odoo: Si crear la factura en Odoo automáticamente
+        verified_data: Datos de factura ya verificados por el usuario (opcional si se proporciona file)
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos de la factura extraídos o procesados
+    """
+    temp_file_path = None
+    invoice_data = None
+    response_data = {}
+    
+    # Determinar si estamos procesando un archivo o datos verificados
+    processing_file = file is not None
+    processing_verified_data = verified_data is not None
+    
+    if not processing_file and not processing_verified_data:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "success": False,
+                "message": "Debe proporcionar un archivo o datos verificados"
+            }
+        )
+    
+    try:
+        # Caso 1: Procesando un archivo con OCR
+        if processing_file:
+            # Validar tipo de archivo
+            file_extension = os.path.splitext(file.filename)[1].lower()
+            if file_extension not in [".pdf", ".png", ".jpg", ".jpeg", ".avif"]:
+                return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={
+                        "success": False,
+                        "message": f"Formato de archivo no soportado: {file_extension}. Use PDF, PNG, JPG, JPEG o AVIF."
+                    }
+                )
+            
+            # Guardar archivo temporalmente
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+                temp_file_path = temp_file.name
+                content = await file.read()
+                temp_file.write(content)
+            
+            # Procesar con OCR
+            ocr_service = get_mistral_ocr_service()
+            invoice_data = ocr_service.process_invoice(temp_file_path)
+            
+            # Preparar respuesta
+            response_data = {
+                "success": True,
+                "message": "Factura procesada exitosamente con Mistral Free OCR",
+                "filename": file.filename,
+                "file_type": file_extension,
+                "processed_by": current_user.username,
+                "invoice_data": invoice_data,
+                "ocr_confidence": "unknown",
+                "ocr_id": f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{os.path.splitext(file.filename)[0]}"
+            }
+        
+        # Caso 2: Procesando datos ya verificados por el usuario
+        else:
+            logger.info(f"Procesando datos verificados por usuario {current_user.username}")
+            invoice_data = verified_data
+            
+            # Preparar respuesta
+            response_data = {
+                "success": True,
+                "message": "Datos de factura verificados recibidos correctamente",
+                "processed_by": current_user.username,
+                "invoice_data": invoice_data,
+                "ocr_id": f"{datetime.now().strftime('%Y%m%d%H%M%S')}_verified"
+            }
+        
+        # Si se solicita, crear la factura en Odoo
+        if create_in_odoo:
+            try:
+                # Los datos pueden estar directamente en invoice_data o dentro de extracted_data
+                if 'extracted_data' in invoice_data:
+                    extracted_data = invoice_data.get('extracted_data', {})
+                else:
+                    # Si no hay extracted_data, usar directamente invoice_data
+                    extracted_data = invoice_data
+                
+                # Buscar o crear proveedor en Odoo
+                supplier_name = extracted_data.get('supplier_name')
+                supplier_vat = extracted_data.get('supplier_vat')
+                
+                logger.info(f"Procesando proveedor: {supplier_name}, VAT: {supplier_vat}")
+                logger.info(f"Datos completos de la factura: {extracted_data}")
+                
+                # Verificar si tenemos suficiente información para crear un proveedor
+                if supplier_name or supplier_vat:
+                    # Buscar proveedor por NIF/VAT primero
+                    supplier_id: int | None = None
+                    if supplier_vat:
+                        vat_ids = odoo_provider_service._execute_kw('res.partner', 'search', [[['vat', '=', supplier_vat]]], {'limit': 1})
+                        if vat_ids:
+                            supplier_id = vat_ids[0]
+
+                    # Si no se encontró por VAT, buscar por nombre
+                    if not supplier_id and supplier_name:
+                        providers = odoo_provider_service.get_providers(search_term=supplier_name, limit=1)
+                        if providers:
+                            supplier_id = providers[0].id
+
+                    if supplier_id:
+                        # Actualizar datos faltantes usando el método front_to_odoo_partner_dict
+                        update_vals = odoo_provider_service.front_to_odoo_partner_dict(extracted_data)
+                        if update_vals:
+                            logger.info(f"Actualizando proveedor existente ID {supplier_id} con datos: {update_vals}")
+                            updated_provider = odoo_provider_service.update_provider(supplier_id, update_vals)
+                            if updated_provider:
+                                logger.info(f"Proveedor actualizado correctamente: {updated_provider.name} (ID: {updated_provider.id})")
+                            else:
+                                logger.error(f"Error al actualizar proveedor ID {supplier_id}")
+                    else:
+                        # Crear nuevo proveedor usando el método front_to_odoo_partner_dict
+                        provider_vals = odoo_provider_service.front_to_odoo_partner_dict(extracted_data)
+                        # Asegurar que tenga un nombre
+                        if not provider_vals.get('name'):
+                            provider_vals['name'] = supplier_name or 'Proveedor sin nombre'
+                        
+                        logger.info(f"Creando nuevo proveedor con datos: {provider_vals}")
+                        # Usar create_supplier en lugar de create_provider para asegurar compatibilidad
+                        new_provider = odoo_provider_service.create_supplier(provider_vals)
+                        
+                        if new_provider:
+                            logger.info(f"Nuevo proveedor creado correctamente: {new_provider.name} (ID: {new_provider.id})")
+                            supplier_id = new_provider.id
+                        else:
+                            logger.error("Error al crear nuevo proveedor")
+                            supplier_id = None
+                    
+                    # Preparar datos de la factura para Odoo
+                    invoice_lines = []
+                    for line_item in extracted_data.get('line_items', []):
+                        if line_item.get('description'):
+                            invoice_lines.append({
+                                'name': line_item.get('description', 'Producto/Servicio'),
+                                'quantity': parse_decimal(line_item.get('quantity', 1)),
+                                'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(line_item.get('unit_price', 0))),
+                                'default_code': line_item.get('code')
+                            })
+                    
+                    # Si no hay líneas específicas, crear una línea general
+                    if not invoice_lines and extracted_data.get('total_amount'):
+                        invoice_lines.append({
+                            'name': f"Factura {extracted_data.get('invoice_number', 'Sin número')}",
+                            'quantity': 1,
+                            'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(extracted_data.get('subtotal', extracted_data.get('total_amount', 0))))
+                        })
+                    
+                    # Crear factura en Odoo
+                    invoice_date_iso = parse_date(extracted_data.get('invoice_date'))
+                    invoice_result = odoo_invoice_service.create_supplier_invoice(
+                        partner_id=supplier_id,
+                        invoice_number=extracted_data.get('invoice_number'),
+                        invoice_date=invoice_date_iso,
+                        lines=invoice_lines
+                    )
+                    response_data['odoo_invoice'] = invoice_result
+
+                    # ---- Trazabilidad de inserciones (punto 11) ----
+                    if invoice_result.get('created', False):
+                        logger.info(f"Factura creada en Odoo: {invoice_result}")
+                    else:
+                        logger.warning(f"No se pudo crear la factura en Odoo: {invoice_result}")
+                    
+                else:
+                    response_data['odoo_invoice'] = {
+                        'created': False,
+                        'message': 'No se pudo identificar el proveedor para crear la factura en Odoo'
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Error creando factura en Odoo: {e}")
+                response_data['odoo_invoice'] = {
+                    'created': False,
+                    'error': str(e),
+                    'message': 'Error al crear la factura en Odoo'
+                }
+        
+        logger.info(f"Factura procesada exitosamente por usuario {current_user.username}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=response_data
+        )
+                    'extracted_data': {
+                        'document_type': ocr_result.get('document_type', 'unknown'),
+                        'text': ocr_result.get('text', '')[:1000]  # Limitar texto para evitar respuestas muy grandes
+                    },
+                    'confidence': ocr_result.get('confidence', 0)
+                }
+        except Exception as e:
+            logger.error(f"Error al extraer datos de factura con IA: {e}")
+            # No propagar la excepción, usar datos vacíos
+        
+        response_data = {
+            "success": True,
+            "message": "Documento procesado exitosamente",
+            "filename": file.filename,
+            "file_type": file_extension,
+            "processed_by": current_user.username,
+            "invoice_data": invoice_data,
+            "ocr_confidence": invoice_data.get('confidence', 'unknown')
+        }
+        
+        # Si se solicita, crear la factura en Odoo
+        if create_in_odoo:
+            try:
+                # Los datos pueden estar directamente en invoice_data o dentro de extracted_data
+                if 'extracted_data' in invoice_data:
+                    extracted_data = invoice_data.get('extracted_data', {})
+                else:
+                    # Si no hay extracted_data, usar directamente invoice_data
+                    extracted_data = invoice_data
+                
+                # Buscar o crear proveedor en Odoo
+                supplier_name = extracted_data.get('supplier_name')
+                supplier_vat = extracted_data.get('supplier_vat')
+                
+                logger.info(f"Procesando proveedor: {supplier_name}, VAT: {supplier_vat}")
+                logger.info(f"Datos completos de la factura: {extracted_data}")
+                
+                # Verificar si tenemos suficiente información para crear un proveedor
+                if supplier_name or supplier_vat:
+                    # Buscar proveedor por NIF/VAT primero
+                    supplier_id: int | None = None
+                    if supplier_vat:
+                        vat_ids = odoo_provider_service._execute_kw('res.partner', 'search', [[['vat', '=', supplier_vat]]], {'limit': 1})
+                        if vat_ids:
+                            supplier_id = vat_ids[0]
+
+                    # Si no se encontró por VAT, buscar por nombre
+                    if not supplier_id and supplier_name:
+                        providers = odoo_provider_service.get_providers(search_term=supplier_name, limit=1)
+                        if providers:
+                            supplier_id = providers[0].id
+
+                    if supplier_id:
+                        # Actualizar datos faltantes usando el método front_to_odoo_partner_dict
+                        update_vals = odoo_provider_service.front_to_odoo_partner_dict(extracted_data)
+                        if update_vals:
+                            logger.info(f"Actualizando proveedor existente ID {supplier_id} con datos: {update_vals}")
+                            updated_provider = odoo_provider_service.update_provider(supplier_id, update_vals)
+                            if updated_provider:
+                                logger.info(f"Proveedor actualizado correctamente: {updated_provider.name} (ID: {updated_provider.id})")
+                            else:
+                                logger.error(f"Error al actualizar proveedor ID {supplier_id}")
+                    else:
+                        # Crear nuevo proveedor usando el método front_to_odoo_partner_dict
+                        provider_vals = odoo_provider_service.front_to_odoo_partner_dict(extracted_data)
+                        # Asegurar que tenga un nombre
+                        if not provider_vals.get('name'):
+                            provider_vals['name'] = supplier_name or 'Proveedor sin nombre'
+                        
+                        logger.info(f"Creando nuevo proveedor con datos: {provider_vals}")
+                        # Usar create_supplier en lugar de create_provider para asegurar compatibilidad
+                        new_provider = odoo_provider_service.create_supplier(provider_vals)
+                        
+                        if new_provider:
+                            logger.info(f"Nuevo proveedor creado correctamente: {new_provider.name} (ID: {new_provider.id})")
+                            supplier_id = new_provider.id
+                        else:
+                            logger.error("Error al crear nuevo proveedor")
+                            supplier_id = None
+                    
+                    # Preparar datos de la factura para Odoo
+                    invoice_lines = []
+                    for line_item in extracted_data.get('line_items', []):
+                        if line_item.get('description'):
+                            invoice_lines.append({
+                                'name': line_item.get('description', 'Producto/Servicio'),
+                                'quantity': parse_decimal(line_item.get('quantity', 1)),
+                                'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(line_item.get('unit_price', 0))),
+                                'default_code': line_item.get('code')
+                            })
+                    
+                    # Si no hay líneas específicas, crear una línea general
+                    if not invoice_lines and extracted_data.get('total_amount'):
+                        invoice_lines.append({
+                            'name': f"Factura {extracted_data.get('invoice_number', 'Sin número')}",
+                            'quantity': 1,
+                            'price_unit': adjust_price_for_supplier(supplier_name, parse_decimal(extracted_data.get('subtotal', extracted_data.get('total_amount', 0))))
+                        })
+                    
+                    # Crear factura en Odoo
+                    invoice_date_iso = parse_date(extracted_data.get('invoice_date'))
+                    invoice_result = odoo_invoice_service.create_supplier_invoice(
+                        partner_id=supplier_id,
+                        invoice_number=extracted_data.get('invoice_number'),
+                        invoice_date=invoice_date_iso,
+                        lines=invoice_lines
+                    )
+                    response_data['odoo_invoice'] = invoice_result
+
+                    # ---- Trazabilidad de inserciones (punto 11) ----
+                    try:
+                        from datetime import datetime
+                        import csv, pathlib
+                        log_path = pathlib.Path(__file__).parent.parent / 'logs'
+                        log_path.mkdir(exist_ok=True)
+                        log_file = log_path / 'invoice_import_log.csv'
+                        log_row = [datetime.utcnow().isoformat(), file.filename, invoice_result.get('id'), supplier_id, extracted_data.get('invoice_number')]
+                        write_header = not log_file.exists()
+                        with log_file.open('a', newline='') as f:
+                            writer = csv.writer(f)
+                            if write_header:
+                                writer.writerow(['timestamp_utc', 'filename', 'invoice_id', 'supplier_id', 'invoice_number'])
+                            writer.writerow(log_row)
+                    except Exception as e:
+                        logger.warning(f"No se pudo registrar trazabilidad de factura: {e}")
+                    
+                else:
+                    response_data['odoo_invoice'] = {
+                        'created': False,
+                        'message': 'No se pudo identificar el proveedor para crear la factura en Odoo'
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Error creando factura en Odoo: {e}")
+                response_data['odoo_invoice'] = {
+                    'created': False,
+                    'error': str(e),
+                    'message': 'Error al crear la factura en Odoo'
+                }
+        
+        logger.info(f"Factura procesada exitosamente por usuario {current_user.username}: {file.filename}")
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=response_data
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error procesando factura {file.filename}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando la factura: {str(e)}"
+        )
+    finally:
+        # Limpiar archivo temporal
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"No se pudo eliminar archivo temporal {temp_file_path}: {e}")
+
+@router.post("/process-from-url")
+async def process_document_from_url(
+    document_url: str,
+    include_images: bool = True,
+    current_user: User = Depends(get_current_user)
+) -> JSONResponse:
+    """
+    Procesa un documento desde una URL usando Mistral OCR
+    
+    Args:
+        document_url: URL del documento a procesar
+        include_images: Si incluir imágenes extraídas en base64
+        current_user: Usuario autenticado
+        
+    Returns:
+        JSONResponse con los datos extraídos del documento
+    """
+    try:
+        # Procesar documento desde URL
+        service = get_mistral_ocr_service()
+        ocr_result = service.process_document_from_url(
+            document_url, 
+            include_images=include_images
+        )
+        
+        logger.info(f"Documento desde URL procesado exitosamente por usuario {current_user.username}: {document_url}")
+        
+        # Extraer datos de factura con IA si es un documento de factura
+        invoice_data = None
+        if ocr_result.get('document_type') == 'invoice':
+            invoice_data = await service.extract_invoice_data_with_ai(ocr_result)
+            ocr_result['invoice_data'] = invoice_data
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "message": "Documento procesado exitosamente",
+                "document_url": document_url,
+                "processed_by": current_user.username,
+                "data": ocr_result
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error procesando documento desde URL {document_url}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando el documento: {str(e)}"
+        )
+
+@router.get("/supported-formats")
+async def get_supported_formats() -> JSONResponse:
+    """
+    Obtiene los formatos de archivo soportados por Mistral OCR
+    
+    Returns:
+        JSONResponse con la lista de formatos soportados
+    """
+    try:
+        service = get_mistral_ocr_service()
+        supported_formats = service.get_supported_formats()
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "success": True,
+                "supported_formats": supported_formats,
+                "max_file_size": "50MB",
+                "description": "Formatos de archivo soportados por Mistral OCR"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo formatos soportados: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
