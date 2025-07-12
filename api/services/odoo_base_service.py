@@ -13,10 +13,17 @@ class OdooBaseService:
         self._common = None
         self._models = None
         self._uid = None
-        self._url = os.getenv("ODOO_URL", "http://localhost:8069")
-        self._db = os.getenv("ODOO_DB", "manus_odoo-bd")
-        self._username = os.getenv("ODOO_USERNAME", "admin")
-        self._password = os.getenv("ODOO_PASSWORD", "admin")
+        # Usar la configuración del objeto config en lugar de leer directamente las variables de entorno
+        self._url = self.config["url"]
+        self._db = self.config["db"]
+        self._username = self.config["username"]
+        self._password = self.config["password"]
+        
+        # Asegurarse de que la URL no contenga caracteres de control
+        if any(ord(char) < 32 for char in self._url):
+            self._url = "".join(char for char in self._url if ord(char) >= 32)
+        
+        logging.info(f"Inicializando OdooBaseService con URL: {self._url}, DB: {self._db}, Usuario: {self._username}")
     
     def _get_connection(self) -> None:
         """
@@ -25,16 +32,25 @@ class OdooBaseService:
         try:
             logging.info(f"Intentando conectar a Odoo en: {self._url}, DB: {self._db}")
             
-            # Validar que la URL no contenga caracteres de control no válidos
-            if any(ord(char) < 32 for char in self._url):
-                logging.warning(f"URL de Odoo contiene caracteres no válidos, limpiando URL")
-                self._url = "".join(char for char in self._url if ord(char) >= 32)
+            # Asegurarse de que estamos usando la URL correcta de Odoo
+            if not self._url or not self._url.startswith("http"):
+                self._url = "http://odoo:8069"  # URL por defecto dentro de Docker
+                logging.warning(f"URL de Odoo no válida, usando URL por defecto: {self._url}")
+            
+            # Añadir log para depuración de conexión
+            logging.info(f"Configuración de conexión: URL={self._url}, DB={self._db}, Usuario={self._username}")
 
-            self._common = xmlrpc.client.ServerProxy(f"{self._url}/xmlrpc/2/common")
+            # Asegurarse de que la URL esté correctamente formateada
+            clean_url = self._url.strip()
+            if clean_url.endswith("/"):
+                clean_url = clean_url[:-1]  # Eliminar barra final si existe
+                
+            logging.info(f"Conectando a Odoo con URL limpia: {clean_url}")
+            self._common = xmlrpc.client.ServerProxy(f"{clean_url}/xmlrpc/2/common")
             logging.info("Conexión común establecida con Odoo.")
             self._uid = self._common.authenticate(self._db, self._username, self._password, {})
             logging.info(f"Autenticación exitosa con UID: {self._uid}")
-            self._models = xmlrpc.client.ServerProxy(f"{self._url}/xmlrpc/2/object")
+            self._models = xmlrpc.client.ServerProxy(f"{clean_url}/xmlrpc/2/object")
             logging.info("Conexión completa con Odoo.")
         except Exception as e:
             logging.error(f"Error al conectar con Odoo: {e}", exc_info=True)
@@ -75,8 +91,13 @@ class OdooBaseService:
             # Configurar el servidor XML-RPC para permitir valores None
             if not hasattr(self._models, '_ServerProxy__allow_none') or not self._models._ServerProxy__allow_none:
                 # Crear un nuevo ServerProxy con allow_none=True si es necesario
+                # Limpiar la URL antes de reconectar
+                clean_url = self._url.strip()
+                if clean_url.endswith("/"):
+                    clean_url = clean_url[:-1]  # Eliminar barra final si existe
+                    
                 self._models = xmlrpc.client.ServerProxy(
-                    f"{self._url}/xmlrpc/2/object",
+                    f"{clean_url}/xmlrpc/2/object",
                     allow_none=True
                 )
                 logging.info("Reconectado a Odoo con allow_none=True")

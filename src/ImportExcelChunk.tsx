@@ -7,9 +7,10 @@ import { useOdoo } from './OdooContext';
 const { Title, Text } = Typography;
 
 interface ProductInfo {
-  id: number;
+  odoo_id?: number;
   name: string;
   error?: string;
+  idx?: number;
 }
 interface ImportResult {
   created: ProductInfo[];
@@ -44,7 +45,7 @@ const ImportExcelChunk: React.FC = () => {
   const handleUpload = async () => {
     // Renovar token justo antes de empezar (evita expiración a mitad de proceso)
     const ok = await login(
-      import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+      import.meta.env.VITE_ODOO_USERNAME || 'admin',
       import.meta.env.VITE_ODOO_PASSWORD || 'admin'
     );
     if (!ok) {
@@ -83,6 +84,7 @@ const ImportExcelChunk: React.FC = () => {
       let totalCreated = 0;
       let totalFailed = 0;
       let keepGoing = true;
+      let currentChunk = 1;
 
       while (keepGoing) {
         const formData = new FormData();
@@ -92,20 +94,21 @@ const ImportExcelChunk: React.FC = () => {
         formData.append('proveedor_nombre', providerName.trim());
         formData.append('only_first_sheet', 'false');
 
-        const res = await api.post(`${API_URL}/api/v1/mistral-llm/process-excel`, formData, {
+        const res = await api.post(`${API_URL}/api/v1/importer/`, formData, {
           onUploadProgress: (evt) => {
             const pct = Math.round((evt.loaded * 100) / (evt.total ?? 1));
             setProgress(pct);
-            setStatus(pct === 100 ? 'Procesando datos…' : `Subiendo filas: ${pct}%`);
           },
         });
 
         const d = res.data;
-        totalCreated += d.total_creados ?? 0;
+        setStatus(`Procesado chunk ${currentChunk}. Productos: ${d.total_creados_o_actualizados ?? 0} creados, ${d.total_fallidos ?? 0} fallidos.`);
+        totalCreated += d.total_creados_o_actualizados ?? 0;
         totalFailed += d.total_fallidos ?? 0;
+        currentChunk++;
 
         setResults(prev => ({
-          created: [...(prev?.created ?? []), ...(d.productos_creados ?? [])],
+          created: [...(prev?.created ?? []), ...(d.productos_creados_o_actualizados ?? [])],
           failed: [...(prev?.failed ?? []), ...(d.productos_fallidos ?? [])],
           totalIntentados: (prev?.totalIntentados ?? 0) + (d.total_intentados ?? 0),
           totalCreados: totalCreated,
@@ -118,9 +121,10 @@ const ImportExcelChunk: React.FC = () => {
           setStatus('Importación completada.');
           message.success(`Creados: ${totalCreated}, fallidos: ${totalFailed}`);
         } else {
+          // Avanzar al siguiente bloque
           startRow += CHUNK_SIZE;
-          setStatus('Esperando para continuar…');
-          await new Promise(res => setTimeout(res, RATE_LIMIT_MS));
+          await new Promise(r => setTimeout(r, RATE_LIMIT_MS)); // Esperar para no sobrecargar la API
+          setStatus(`Procesando siguiente bloque desde fila ${startRow}...`);
         }
       }
     } catch (err: any) {
@@ -191,7 +195,7 @@ const ImportExcelChunk: React.FC = () => {
                 size="small"
                 bordered
                 dataSource={results.created}
-                renderItem={(it) => <List.Item>{it.name} (ID: {it.id})</List.Item>}
+                renderItem={(it) => <List.Item>{it.name} (ID: {it.odoo_id})</List.Item>}
                 style={{ margin: '8px 0', maxHeight: 200, overflowY: 'auto' }}
               />
             </>

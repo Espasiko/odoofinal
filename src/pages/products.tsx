@@ -114,11 +114,26 @@ const Products: React.FC = () => {
     });
   };
 
+  // Función para calcular el margen
+  const calculateMargin = (listPrice: number, standardPrice: number): number => {
+    if (!listPrice || !standardPrice || standardPrice === 0) return 0;
+    return ((listPrice - standardPrice) / listPrice) * 100;
+  };
+
+  // Función para obtener el nombre del proveedor principal
+  const getSupplierName = (sellerIds: any[]): string => {
+    if (!sellerIds || sellerIds.length === 0) return 'Sin proveedor';
+    // Buscar el proveedor principal (sequence más bajo o primer elemento)
+    const mainSupplier = sellerIds.find(seller => seller.sequence === 1) || sellerIds[0];
+    return mainSupplier?.partner_name || mainSupplier?.name || 'Sin nombre';
+  };
+
   const columns = [
     {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
+      width: 80,
       sorter: true,
       render: (text: string) => <span style={{ color: '#ffffff' }}>{text}</span>,
     },
@@ -126,6 +141,7 @@ const Products: React.FC = () => {
       title: 'Nombre',
       dataIndex: 'name',
       key: 'name',
+      width: 200,
       sorter: true,
       render: (text: string) => <span style={{ color: '#ffffff' }}>{text}</span>,
     },
@@ -133,6 +149,7 @@ const Products: React.FC = () => {
       title: 'Código',
       dataIndex: 'default_code',
       key: 'default_code',
+      width: 120,
       sorter: true,
       render: (text: string) => <span style={{ color: '#ffffff' }}>{text || 'Sin código'}</span>,
     },
@@ -140,17 +157,71 @@ const Products: React.FC = () => {
       title: 'Precio de Venta',
       dataIndex: 'list_price',
       key: 'list_price',
+      width: 130,
       render: (price: number | null | undefined) => (
-        <span style={{ color: '#ffffff' }}>
+        <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
           €{typeof price === 'number' && !isNaN(price) ? price.toFixed(2) : '0.00'}
         </span>
       ),
       sorter: true,
     },
     {
+      title: 'Precio de Compra',
+      dataIndex: 'standard_price',
+      key: 'standard_price',
+      width: 140,
+      render: (price: number | null | undefined) => (
+        <span style={{ color: '#ff7875', fontWeight: 'bold' }}>
+          €{typeof price === 'number' && !isNaN(price) ? price.toFixed(2) : '0.00'}
+        </span>
+      ),
+      sorter: true,
+    },
+    {
+      title: 'Proveedor',
+      dataIndex: 'seller_ids',
+      key: 'supplier',
+      width: 150,
+      render: (sellerIds: any[]) => (
+        <span style={{ color: '#ffffff' }}>
+          {getSupplierName(sellerIds)}
+        </span>
+      ),
+    },
+    {
+      title: 'Categoría',
+      dataIndex: 'categ_id',
+      key: 'categ_id',
+      render: (categId: any) => (
+        <span style={{ color: '#ffffff' }}>
+          {categId && Array.isArray(categId) && categId[1] ? categId[1] : 'Sin categoría'}
+        </span>
+      ),
+    },
+    {
+      title: 'Margen (%)',
+      key: 'margin',
+      width: 100,
+      render: (_: any, record: Product) => {
+        const margin = calculateMargin(record.list_price, record.standard_price);
+        const color = margin > 30 ? '#52c41a' : margin > 15 ? '#faad14' : '#ff4d4f';
+        return (
+          <span style={{ color, fontWeight: 'bold' }}>
+            {margin.toFixed(1)}%
+          </span>
+        );
+      },
+      sorter: (a: Product, b: Product) => {
+        const marginA = calculateMargin(a.list_price, a.standard_price);
+        const marginB = calculateMargin(b.list_price, b.standard_price);
+        return marginA - marginB;
+      },
+    },
+    {
       title: 'Estado',
       dataIndex: 'active',
       key: 'active',
+      width: 100,
       render: (active: boolean) => (
         <Tag color={active ? 'green' : 'red'}>
           {active ? 'Activo' : 'Inactivo'}
@@ -160,6 +231,7 @@ const Products: React.FC = () => {
     {
       title: 'Acciones',
       key: 'actions',
+      width: 150,
       render: (_: any, record: Product) => (
         <Space size="middle">
           <Button
@@ -255,6 +327,49 @@ const Products: React.FC = () => {
           >
             <InputNumber min={0} step={0.01} precision={2} style={{ width: '100%' }} />
           </Form.Item>
+
+          {/* Campos informativos (solo lectura) */}
+          {editingProduct && (
+            <>
+              <Form.Item
+                label="Precio de Compra (€) - Solo lectura"
+                name="standard_price"
+              >
+                <InputNumber 
+                  disabled 
+                  min={0} 
+                  step={0.01} 
+                  precision={2} 
+                  style={{ width: '100%', backgroundColor: '#2a2a2a', color: '#ff7875' }} 
+                  formatter={(value) => `€ ${value}`}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Proveedor Principal - Solo lectura"
+              >
+                <Input 
+                  disabled 
+                  value={editingProduct?.seller_ids ? getSupplierName(editingProduct.seller_ids) : 'Sin proveedor'}
+                  style={{ backgroundColor: '#2a2a2a', color: '#ffffff' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Margen (%) - Calculado automáticamente"
+              >
+                <Input 
+                  disabled 
+                  value={editingProduct ? `${calculateMargin(editingProduct.list_price, editingProduct.standard_price).toFixed(1)}%` : '0.0%'}
+                  style={{ 
+                    backgroundColor: '#2a2a2a', 
+                    color: editingProduct && calculateMargin(editingProduct.list_price, editingProduct.standard_price) > 30 ? '#52c41a' : 
+                           editingProduct && calculateMargin(editingProduct.list_price, editingProduct.standard_price) > 15 ? '#faad14' : '#ff4d4f'
+                  }}
+                />
+              </Form.Item>
+            </>
+          )}
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
