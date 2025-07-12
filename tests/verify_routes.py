@@ -16,7 +16,7 @@ def check_routes():
     """Verifica las rutas disponibles en el servidor"""
     try:
         print("Verificando rutas disponibles...")
-        response = requests.get("http://localhost:8001/openapi.json")
+        response = requests.get("http://localhost:8000/openapi.json")
         
         if response.status_code == 200:
             openapi_data = response.json()
@@ -62,7 +62,7 @@ def test_auth():
         
         for endpoint in auth_endpoints:
             try:
-                url = f"http://localhost:8001{endpoint}"
+                url = f"http://localhost:8000{endpoint}"
                 print(f"Probando: {url}")
                 response = requests.post(url, data=auth_data)
                 print(f"  Status: {response.status_code}")
@@ -117,7 +117,7 @@ def main():
                 # Probar el endpoint de productos
                 headers = {"Authorization": f"Bearer {token}"}
                 print("\nProbando /api/v1/products/all...")
-                response = requests.get("http://localhost:8001/api/v1/products/all", headers=headers)
+                response = requests.get("http://localhost:8000/api/v1/products/all", headers=headers)
                 
                 print(f"Status Code: {response.status_code}")
                 if response.status_code == 200:

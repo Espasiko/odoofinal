@@ -21,7 +21,7 @@ def test_endpoint():
         }
         
         print("Obteniendo token...")
-        auth_response = requests.post("http://localhost:8001/api/v1/auth/login", data=auth_data)
+        auth_response = requests.post("http://localhost:8000/api/v1/auth/login", data=auth_data)
         
         if auth_response.status_code != 200:
             print(f"Error en autenticación: {auth_response.status_code}")
@@ -33,7 +33,7 @@ def test_endpoint():
         
         # Probar el endpoint /products/all
         print("Probando /api/v1/products/all...")
-        response = requests.get("http://localhost:8001/api/v1/products/all", headers=headers)
+        response = requests.get("http://localhost:8000/api/v1/products/all", headers=headers)
         
         print(f"Status Code: {response.status_code}")
         if response.status_code == 200:

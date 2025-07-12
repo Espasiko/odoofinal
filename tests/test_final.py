@@ -22,7 +22,7 @@ def test_products_all_endpoint():
         
         print("🔐 Obteniendo token de acceso...")
         auth_response = requests.post(
-            "http://localhost:8001/api/v1/auth/login", 
+            "http://localhost:8000/api/v1/auth/login", 
             data=auth_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
@@ -40,7 +40,7 @@ def test_products_all_endpoint():
         headers = {"Authorization": f"Bearer {access_token}"}
         
         print("📦 Probando endpoint /api/v1/products/all...")
-        response = requests.get("http://localhost:8001/api/v1/products/all", headers=headers)
+        response = requests.get("http://localhost:8000/api/v1/products/all", headers=headers)
         
         print(f"Status Code: {response.status_code}")
         
@@ -62,7 +62,7 @@ def test_products_all_endpoint():
             return False
             
     except requests.exceptions.ConnectionError:
-        print("❌ No se puede conectar al servidor en localhost:8001")
+        print("❌ No se puede conectar al servidor en localhost:8000")
         return False
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
@@ -80,7 +80,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        print("🚀 Iniciando servidor en puerto 8001...")
+        print("🚀 Iniciando servidor en puerto 8000...")
         server_process = start_server()
         
         # Esperar a que el servidor se inicie completamente
@@ -89,7 +89,7 @@ def main():
         
         # Verificar que el servidor esté respondiendo
         try:
-            health_check = requests.get("http://localhost:8001/", timeout=5)
+            health_check = requests.get("http://localhost:8000/", timeout=5)
             if health_check.status_code == 200:
                 print("✅ Servidor iniciado correctamente")
             else:

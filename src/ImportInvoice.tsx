@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Card, Typography, Input, Checkbox, Button, Progress, message, Tabs, Divider, Space, Table, Select, Spin } from 'antd';
+import { Card, Typography, Input, Checkbox, Button, Progress, message, Tabs, Divider, Space, Table, Select, Spin, Upload, InputNumber, DatePicker, App } from 'antd';
+import dayjs from 'dayjs';
 import type { TabsProps } from 'antd';
 
 import { useOdoo } from './OdooContext';
@@ -15,6 +16,7 @@ interface Provider {
 
 const ImportInvoice: React.FC = () => {
   const { isAuthenticated, auth, api, login } = useOdoo();
+  const { message: messageApi } = App.useApp();
   const fileRef = useRef<File | null>(null);
   const freeFileRef = useRef<File | null>(null);
 
@@ -27,9 +29,10 @@ const ImportInvoice: React.FC = () => {
   const [status, setStatus] = useState('');
   const [freeStatus, setFreeStatus] = useState('');
   const [createInOdoo, setCreateInOdoo] = useState(true);
-  const [freeCreateInOdoo, setFreeCreateInOdoo] = useState(true);
+  const [freeCreateInOdoo, setFreeCreateInOdoo] = useState(false);
   const [responseJson, setResponseJson] = useState<any>(null);
   const [freeResponseJson, setFreeResponseJson] = useState<any>(null);
+  const [editableInvoiceData, setEditableInvoiceData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('1');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState<boolean>(false);
@@ -46,7 +49,7 @@ const ImportInvoice: React.FC = () => {
       setProviders(response.data || []);
     } catch (err: any) {
       console.error('Error al cargar proveedores:', err);
-      message.error('No se pudieron cargar los proveedores');
+      messageApi.error('No se pudieron cargar los proveedores');
     } finally {
       setLoadingProviders(false);
     }
@@ -58,19 +61,31 @@ const ImportInvoice: React.FC = () => {
     }
   }, [isAuthenticated]);
 
+  // Cuando cambian los datos OCR, actualizar los datos editables
+  useEffect(() => {
+    if (freeResponseJson?.invoice_data) {
+      setEditableInvoiceData({
+        ...freeResponseJson.invoice_data,
+        line_items: freeResponseJson.invoice_data.line_items?.map((item: any) => ({
+          ...item
+        })) || []
+      });
+    }
+  }, [freeResponseJson]);
+
   const handleUpload = async () => {
     if (!fileRef.current) {
-      message.error('Selecciona un archivo de factura (PDF / imagen).');
+      messageApi.error('Selecciona un archivo de factura (PDF / imagen).');
       return;
     }
 
     // Renovar/asegurar token antes de llamar al backend
     const ok = await login(
-      import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+      import.meta.env.VITE_ODOO_USERNAME || 'admin',
       import.meta.env.VITE_ODOO_PASSWORD || 'admin'
     );
     if (!ok && !isAuthenticated) {
-      message.error('No se pudo autenticar con el backend.');
+      messageApi.error('No se pudo autenticar con el backend.');
       return;
     }
 
@@ -86,7 +101,7 @@ const ImportInvoice: React.FC = () => {
         `/api/v1/mistral-ocr/process-invoice?create_in_odoo=${createInOdoo}`,
         formData,
         {
-          onUploadProgress: (evt) => {
+          onUploadProgress: (evt: any) => {
             const pct = Math.round((evt.loaded * 100) / (evt.total ?? 1));
             setProgress(pct);
           },
@@ -95,11 +110,11 @@ const ImportInvoice: React.FC = () => {
 
       setResponseJson(res.data);
       setStatus('Factura procesada correctamente.');
-      message.success('Factura procesada.');
+      messageApi.success('Factura procesada.');
     } catch (err: any) {
       console.error(err);
       setStatus('Error al procesar la factura');
-      message.error(err?.response?.data?.detail ?? err?.message ?? 'Error desconocido');
+      messageApi.error(err?.response?.data?.detail ?? err?.message ?? 'Error desconocido');
     } finally {
       setUploading(false);
     }
@@ -107,17 +122,17 @@ const ImportInvoice: React.FC = () => {
 
   const handleFreeUpload = async () => {
     if (!freeFileRef.current) {
-      message.error('Selecciona un archivo de factura (PDF / imagen).');
+      messageApi.error('Selecciona un archivo de factura (PDF / imagen).');
       return;
     }
 
     // Renovar/asegurar token antes de llamar al backend
     const ok = await login(
-      import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+      import.meta.env.VITE_ODOO_USERNAME || 'admin',
       import.meta.env.VITE_ODOO_PASSWORD || 'admin'
     );
     if (!ok && !isAuthenticated) {
-      message.error('No se pudo autenticar con el backend.');
+      messageApi.error('No se pudo autenticar con el backend.');
       return;
     }
 
@@ -142,7 +157,7 @@ const ImportInvoice: React.FC = () => {
 
       setFreeResponseJson(res.data);
       setFreeStatus('Factura procesada correctamente con Mistral Free OCR.');
-      message.success('Factura procesada con Mistral Free OCR.');
+      messageApi.success('Factura procesada con Mistral Free OCR.');
       
       // Si se detectó un proveedor, buscar su ID en la lista de proveedores
       if (res.data?.invoice_data?.supplier_name) {
@@ -159,7 +174,7 @@ const ImportInvoice: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       setFreeStatus('Error al procesar la factura con Mistral Free OCR');
-      message.error(err?.response?.data?.detail ?? err?.message ?? 'Error desconocido');
+      messageApi.error(err?.response?.data?.detail ?? err?.message ?? 'Error desconocido');
     } finally {
       setFreeUploading(false);
     }
@@ -168,7 +183,7 @@ const ImportInvoice: React.FC = () => {
   // Función para enviar la factura a Odoo con el proveedor corregido
   const createInvoiceWithCorrectedSupplier = async () => {
     if (!freeResponseJson || !selectedProvider) {
-      message.error('Selecciona un proveedor antes de crear la factura');
+      messageApi.error('Selecciona un proveedor antes de crear la factura');
       return;
     }
 
@@ -178,33 +193,59 @@ const ImportInvoice: React.FC = () => {
       // Clonamos los datos de la factura para modificarlos
       const modifiedInvoiceData = { ...freeResponseJson };
       
-      // Reemplazamos el ID del proveedor con el seleccionado manualmente
+      // Reemplazamos el ID del proveedor con el seleccionado manualmente y usamos los datos editados
       const res = await api.post('/api/v1/mistral-free-ocr/create-invoice', {
-        ocr_data: modifiedInvoiceData,
+        ocr_data: {
+          ...modifiedInvoiceData,
+          invoice_data: editableInvoiceData // Usar los datos editados por el usuario
+        },
         supplier_id: selectedProvider,
         update_if_exists: updateIfExists
       });
       
-      message.success('Factura creada en Odoo con proveedor correcto');
+      messageApi.success('Factura creada en Odoo con proveedor correcto');
       // Actualizar el estado con la respuesta
       setFreeResponseJson(res.data);
       
     } catch (err: any) {
       console.error(err);
-      message.error(err?.response?.data?.detail ?? err?.message ?? 'Error al crear la factura');
+      messageApi.error(err?.response?.data?.detail ?? err?.message ?? 'Error al crear la factura');
     } finally {
       setFreeUploading(false);
     }
   };
 
+  // Manejadores para editar campos de la factura
+  const handleInvoiceFieldChange = (field: string, value: any) => {
+    setEditableInvoiceData((prev: any) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleLineItemChange = (index: number, field: string, value: any) => {
+    setEditableInvoiceData((prev: any) => {
+      const newLineItems = [...prev.line_items];
+      newLineItems[index] = {
+        ...newLineItems[index],
+        [field]: field === 'quantity' || field === 'price_unit' ? parseFloat(value) : value
+      };
+      return {
+        ...prev,
+        line_items: newLineItems
+      };
+    });
+  };
+
   const renderInvoiceData = (data: any) => {
-    if (!data || !data.invoice_data) return null;
+    if (!data || !data.invoice_data || !editableInvoiceData) return null;
     
-    const invoiceData = data.invoice_data;
+    const invoiceData = editableInvoiceData; // Usar los datos editables
     
     // Preparar datos para la tabla de líneas de factura
     const lineItems = invoiceData.line_items?.map((item: any, index: number) => ({
       key: index,
+      index: index,
       name: item.name,
       quantity: item.quantity,
       price_unit: item.price_unit,
@@ -213,11 +254,67 @@ const ImportInvoice: React.FC = () => {
     })) || [];
     
     const columns = [
-      { title: 'Descripción', dataIndex: 'name', key: 'name' },
-      { title: 'Cantidad', dataIndex: 'quantity', key: 'quantity' },
-      { title: 'Precio', dataIndex: 'price_unit', key: 'price_unit', render: (text: number) => `${text.toFixed(2)} €` },
-      { title: 'Código', dataIndex: 'default_code', key: 'default_code' },
-      { title: 'Subtotal', dataIndex: 'subtotal', key: 'subtotal', render: (text: string) => `${text} €` }
+      { 
+        title: 'Descripción', 
+        dataIndex: 'name', 
+        key: 'name',
+        render: (text: string, record: any) => (
+          <Input 
+            value={text} 
+            onChange={(e) => handleLineItemChange(record.index, 'name', e.target.value)}
+            style={{ width: '100%' }}
+          />
+        )
+      },
+      { 
+        title: 'Cantidad', 
+        dataIndex: 'quantity', 
+        key: 'quantity',
+        render: (text: number, record: any) => (
+          <InputNumber 
+            value={text} 
+            onChange={(value: number | null) => handleLineItemChange(record.index, 'quantity', value || 0)}
+            min={0}
+            step={0.01}
+            style={{ width: '100%' }}
+          />
+        )
+      },
+      { 
+        title: 'Precio', 
+        dataIndex: 'price_unit', 
+        key: 'price_unit', 
+        render: (text: number, record: any) => (
+          <InputNumber 
+            value={text} 
+            onChange={(value: number | null) => handleLineItemChange(record.index, 'price_unit', value || 0)}
+            min={0}
+            step={0.01}
+            formatter={(value) => `${value} €`}
+            parser={(value: string | undefined) => parseFloat(value?.replace(' €', '') || '0')}
+            style={{ width: '100%' }}
+          />
+        )
+      },
+      { 
+        title: 'Código', 
+        dataIndex: 'default_code', 
+        key: 'default_code',
+        render: (text: string, record: any) => (
+          <Input 
+            value={text === '-' ? '' : text} 
+            onChange={(e) => handleLineItemChange(record.index, 'default_code', e.target.value || null)}
+            placeholder="Código"
+            style={{ width: '100%' }}
+          />
+        )
+      },
+      { 
+        title: 'Subtotal', 
+        dataIndex: 'subtotal', 
+        key: 'subtotal', 
+        render: (text: string) => `${text} €` 
+      }
     ];
     
     return (
@@ -227,12 +324,68 @@ const ImportInvoice: React.FC = () => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
           <div style={{ flex: '1 1 300px' }}>
             <Title level={5}>Información General</Title>
-            <p><Text strong>Número de Factura:</Text> {invoiceData.invoice_number}</p>
-            <p><Text strong>Fecha:</Text> {invoiceData.invoice_date}</p>
-            <p><Text strong>Vencimiento:</Text> {invoiceData.due_date || '-'}</p>
-            <p><Text strong>Total:</Text> {invoiceData.total_amount?.toFixed(2)} €</p>
-            <p><Text strong>Subtotal:</Text> {invoiceData.subtotal?.toFixed(2) || '-'} €</p>
-            <p><Text strong>Impuestos:</Text> {invoiceData.tax_amount?.toFixed(2) || '-'} €</p>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Número de Factura:</Text>
+              <Input 
+                value={invoiceData.invoice_number} 
+                onChange={(e) => handleInvoiceFieldChange('invoice_number', e.target.value)}
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Fecha:</Text>
+              <DatePicker 
+                value={invoiceData.invoice_date ? dayjs(invoiceData.invoice_date) : null} 
+                onChange={(date: any) => handleInvoiceFieldChange('invoice_date', date ? date.format('YYYY-MM-DD') : null)}
+                style={{ width: '100%', marginTop: '5px' }}
+                format="DD/MM/YYYY"
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Vencimiento:</Text>
+              <DatePicker 
+                value={invoiceData.due_date ? dayjs(invoiceData.due_date) : null} 
+                onChange={(date: any) => handleInvoiceFieldChange('due_date', date ? date.format('YYYY-MM-DD') : null)}
+                style={{ width: '100%', marginTop: '5px' }}
+                format="DD/MM/YYYY"
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Total:</Text>
+              <InputNumber 
+                value={invoiceData.total_amount} 
+                onChange={(value: number | null) => handleInvoiceFieldChange('total_amount', value)}
+                style={{ width: '100%', marginTop: '5px' }}
+                formatter={(value) => `${value} €`}
+                parser={(value: string | undefined) => parseFloat(value?.replace(' €', '') || '0')}
+                min={0}
+                step={0.01}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Subtotal:</Text>
+              <InputNumber 
+                value={invoiceData.subtotal} 
+                onChange={(value: number | null) => handleInvoiceFieldChange('subtotal', value)}
+                style={{ width: '100%', marginTop: '5px' }}
+                formatter={(value) => `${value} €`}
+                parser={(value) => parseFloat(value?.replace(' €', '') || '0')}
+                min={0}
+                step={0.01}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Impuestos:</Text>
+              <InputNumber 
+                value={invoiceData.tax_amount} 
+                onChange={(value: number | null) => handleInvoiceFieldChange('tax_amount', value)}
+                style={{ width: '100%', marginTop: '5px' }}
+                formatter={(value) => `${value} €`}
+                parser={(value) => parseFloat(value?.replace(' €', '') || '0')}
+                min={0}
+                step={0.01}
+              />
+            </div>
           </div>
           
           <div style={{ flex: '1 1 300px' }}>
@@ -254,7 +407,7 @@ const ImportInvoice: React.FC = () => {
                   placeholder="Selecciona un proveedor" 
                   loading={loadingProviders}
                   value={selectedProvider || undefined}
-                  onChange={(value) => setSelectedProvider(value)}
+                  onChange={(value: number) => setSelectedProvider(value)}
                   optionFilterProp="children"
                   showSearch
                 >
@@ -266,24 +419,22 @@ const ImportInvoice: React.FC = () => {
                 </Select>
                 {loadingProviders && <Spin size="small" style={{ marginLeft: '10px' }} />}
               </div>
-              {!freeCreateInOdoo && (
-                <div>
-                  <Checkbox
-                    checked={updateIfExists}
-                    onChange={(e) => setUpdateIfExists(e.target.checked)}
-                    style={{ marginTop: "10px", display: "block", marginBottom: "10px" }}
-                  >
-                    Actualizar factura si ya existe
-                  </Checkbox>
-                  <Button 
-                    type="primary" 
-                    onClick={createInvoiceWithCorrectedSupplier}
-                    disabled={!selectedProvider || freeUploading}
-                  >
-                    {updateIfExists ? "Crear/Actualizar Factura" : "Crear Factura"}
-                  </Button>
-                </div>
-              )}
+              <div>
+                <Checkbox
+                  checked={updateIfExists}
+                  onChange={(e) => setUpdateIfExists(e.target.checked)}
+                  style={{ marginTop: "10px", display: "block", marginBottom: "10px" }}
+                >
+                  Actualizar factura si ya existe
+                </Checkbox>
+                <Button 
+                  type="primary" 
+                  onClick={createInvoiceWithCorrectedSupplier}
+                  disabled={!selectedProvider || freeUploading}
+                >
+                  {updateIfExists ? "Crear/Actualizar Factura" : "Crear Factura"}
+                </Button>
+              </div>
             </div>
           </div>
           

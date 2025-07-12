@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 # Configuración de conexión a Odoo
 ODOO_URL = "http://localhost:8069"
 ODOO_DB = "manus_odoo-bd"
-ODOO_USERNAME = "yo@mail.com"
+ODOO_USERNAME = "admin"
 ODOO_PASSWORD = "admin"
 
 # Mapeo de palabras clave a categorías

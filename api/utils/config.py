@@ -25,9 +25,9 @@ class Config:
     CORS_HEADERS: list = ["*"]
     
     # Configuración de Odoo
-    ODOO_URL: str = os.getenv("ODOO_URL", "http://localhost:8069")
-    ODOO_DB: str = os.getenv("ODOO_DB", "manus_odoo-bd")
-    ODOO_USERNAME: str = os.getenv("ODOO_USERNAME", "yo@mail.com")
+    ODOO_URL: str = os.getenv("ODOO_URL", "http://odoo:8069")  # Usar nombre del servicio Docker
+    ODOO_DB: str = os.getenv("ODOO_DB", "fresh_odoo_db")
+    ODOO_USERNAME: str = os.getenv("ODOO_USERNAME", "admin")
     ODOO_PASSWORD: str = os.getenv("ODOO_PASSWORD", "admin")
     
     # Configuración de paginación

@@ -16,7 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // helper para obtener token utilizando credenciales default/env
 async function fetchTokenRequest() {
   const response = await axios.post(`${API_URL}/token`, {
-    username: import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+    username: import.meta.env.VITE_ODOO_USERNAME || 'admin',
     password: import.meta.env.VITE_ODOO_PASSWORD || 'admin',
   }, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -39,7 +39,7 @@ export const OdooProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const obtainToken = async () => {
       try {
         const response = await axios.post(`${API_URL}/token`, {
-          username: import.meta.env.VITE_ODOO_USERNAME || 'yo@mail.com',
+          username: import.meta.env.VITE_ODOO_USERNAME || 'admin',
           password: import.meta.env.VITE_ODOO_PASSWORD || 'admin',
         }, {
           headers: {

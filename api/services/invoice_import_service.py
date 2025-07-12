@@ -34,25 +34,27 @@ class InvoiceImportService:
 
         # 2. Productos
         from .odoo_product_service import odoo_product_service  # lazy import to avoid cycles
+        from .product_transform import prepare_product_vals
         product_ids = []
         order_lines_odoo = []
         for l in core.lines:
-            product_vals = {
-                "name": l.description[:60],
-                "default_code": l.code,
-                "type": "consu",
-                "uom_id": 1,
-                "uom_po_id": 1,
-                "name": l.description[:60],
-                "default_code": l.code,
-                "list_price": l.price_unit,
-                "standard_price": l.price_unit,
-                "type": "consu",
-                "purchase_ok": True,
-                "sale_ok": False,
-                #"categ_id": None,
+            # Usar util de transformación para asegurar formato correcto
+            product_input = {
+                'name': l.description[:60],
+                'default_code': l.code,
+                'list_price': l.price_unit,
+                'standard_price': l.price_unit,
+                'purchase_ok': True,
+                'sale_ok': False,
+                'type': 'consu',
             }
+            product_vals = prepare_product_vals(product_input)
+            # Añadir supplier_id explícitamente si existe
+            if supplier_id:
+                product_vals['supplier_id'] = supplier_id
+            logger.info(f"[TEST-LOG] Llamando a create_or_update_product con: {product_vals}")
             prod_id = odoo_product_service.create_or_update_product(product_vals)
+            logger.info(f"[TEST-LOG] Resultado de create_or_update_product: {prod_id}")
             if prod_id:
                 product_ids.append(prod_id)
                 order_lines_odoo.append((0, 0, {
