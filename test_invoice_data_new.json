@@ -1,0 +1,29 @@
+{
+  "invoice_number": "TEST-2025-002",
+  "invoice_date": "2025-07-09",
+  "due_date": "2025-08-09",
+  "supplier_name": "Proveedor de Prueba 2",
+  "supplier_vat": "B87654321",
+  "supplier_email": "proveedor2@test.com",
+  "supplier_phone": "666999888",
+  "supplier_address": "Calle Test 456",
+  "supplier_city": "Barcelona",
+  "supplier_zip": "08001",
+  "supplier_country": "España",
+  "subtotal": 200.0,
+  "tax_amount": 42.0,
+  "total_amount": 242.0,
+  "tax_rate": 21,
+  "payment_method": "Transferencia",
+  "payment_terms": "30 días",
+  "currency": "EUR",
+  "line_items": [
+    {
+      "name": "Producto de Prueba 2",
+      "description": "Descripción del producto 2",
+      "quantity": 4,
+      "price_unit": 50.0,
+      "default_code": "PROD-002"
+    }
+  ]
+}
