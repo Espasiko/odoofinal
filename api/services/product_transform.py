@@ -59,6 +59,18 @@ def prepare_product_vals(product_data, supplier_name=None) -> Dict[str, Any]:
             vals['list_price'] = float(pvp_final)
         except Exception as e:
             logging.warning(f"Error al procesar P.V.P FINAL CLIENTE: {e}")
+    
+    # Si hay un precio_venta o list_price en los datos originales, lo usamos
+    if 'precio_venta' in raw and raw['precio_venta'] not in (None, "", 0):
+        try:
+            vals['list_price'] = float(raw['precio_venta'])
+        except Exception as e:
+            logging.warning(f"Error al procesar precio_venta: {e}")
+    elif 'list_price' in raw and raw['list_price'] not in (None, "", 0):
+        try:
+            vals['list_price'] = float(raw['list_price'])
+        except Exception as e:
+            logging.warning(f"Error al procesar list_price: {e}")
 
     # Mapeo estándar para el resto de campos
     for key, value in raw.items():

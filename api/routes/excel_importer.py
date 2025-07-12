@@ -79,25 +79,29 @@ async def process_and_load_excel(
             4.  Extrae la siguiente información para cada producto:
                 -   `nombre`: El nombre del producto.
                 -   `referencia_proveedor`: El código o referencia único del producto.
+                -   `precio_venta`: El precio de venta al público. Si no está, déjalo en 0.
                 -   `precio_coste`: El precio de compra o coste. Si no está, déjalo en 0.
                 -   `categoria`: La categoría principal del producto.
                 -   `subcategoria`: La subcategoría, si existe.
                 -   `descripcion`: Una descripción breve si la hay.
-            5.  Devuelve el resultado como un array de objetos JSON válido contenido dentro de un objeto JSON principal con la clave 'productos'. Ejemplo:
+            5.  Asegúrate de mantener los valores exactos de precios y categorías tal como aparecen en los datos crudos, a menos que las reglas de negocio indiquen lo contrario.
+            6.  Devuelve el resultado como un array de objetos JSON válido contenido dentro de un objeto JSON principal con la clave 'productos'. Ejemplo:
                 ```json
                 {{
                     "productos": [
                         {{
                             "nombre": "PRODUCTO EJEMPLO 1",
                             "referencia_proveedor": "REF001",
-                            "precio_coste": 99.99,
+                            "precio_venta": 99.99,
+                            "precio_coste": 79.99,
                             "categoria": "CATEGORIA PRINCIPAL",
                             "subcategoria": "SUBCATEGORIA",
                             "descripcion": "Descripción del producto 1."
                         }}
                     ]
                 }}
-                """
+                ```
+            """
             async with httpx.AsyncClient(timeout=180.0) as client:
                 try:
                     response = await client.post(
@@ -139,32 +143,41 @@ async def process_and_load_excel(
 
         # --- FASE 3: CARGA EN ODOO --- #
         logger.info("Fase 3: Iniciando carga de productos en Odoo.")
-        created, failed = [], []
-        odoo_product_service = OdooProductService()
-
-        for idx, producto in enumerate(all_processed_products):
+        odoo_service = OdooProductService()
+        productos_cargados = 0
+        productos_fallidos = 0
+        
+        # Log detallado de los datos recibidos para carga
+        logger.info(f"Datos para cargar en Odoo: {all_processed_products}")
+        
+        for producto in all_processed_products:
             try:
-                odoo_dict = odoo_product_service.front_to_odoo_product_dict(producto, proveedor_nombre)
-                created_product_id = odoo_product_service.create_or_update_product(odoo_dict)
+                # Log detallado de cada producto antes de cargar
+                logger.info(f"Cargando producto: {producto.get('nombre', 'Sin nombre')} con precio_venta: {producto.get('precio_venta', 0.0)}, precio_coste: {producto.get('precio_coste', 0.0)}, categoria: {producto.get('categoria', 'Sin categoría')}")
+                
+                odoo_dict = odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre)
+                created_product_id = odoo_service.create_or_update_product(odoo_dict)
                 if created_product_id:
-                    created.append({"idx": idx, "name": odoo_dict.get("name"), "odoo_id": created_product_id})
+                    productos_cargados += 1
+                    logger.info(f"Producto '{producto.get('nombre', 'Sin nombre')}' cargado con ID: {created_product_id}")
                 else:
-                    failed.append({"idx": idx, "name": odoo_dict.get("name"), "error": "No se pudo crear o actualizar en Odoo."})
+                    productos_fallidos += 1
+                    logger.warning(f"Fallo al cargar producto '{producto.get('nombre', 'Sin nombre')}'")
             except Exception as e:
-                logger.error(f"Error procesando producto en Odoo: {producto.get('nombre')}, error: {e}")
-                failed.append({"idx": idx, "name": producto.get('nombre'), "error": str(e)})
-
-        logger.info(f"Fase 3: Carga en Odoo completada.")
+                productos_fallidos += 1
+                logger.error(f"Error al cargar producto '{producto.get('nombre', 'Sin nombre')}': {str(e)}")
+        
+        logger.info(f"Fase 3: Carga completada. Productos cargados: {productos_cargados}, fallidos: {productos_fallidos}")
         total_time = time.time() - start_time
 
         return {
             "message": "Proceso completado.",
             "proveedor": proveedor_nombre,
             "total_intentados": len(all_processed_products),
-            "total_creados_o_actualizados": len(created),
-            "total_fallidos": len(failed),
-            "productos_creados_o_actualizados": created,
-            "productos_fallidos": failed,
+            "total_creados_o_actualizados": productos_cargados,
+            "total_fallidos": productos_fallidos,
+            "productos_creados_o_actualizados": [{"idx": idx, "name": producto.get('nombre'), "odoo_id": created_product_id} for idx, (producto, created_product_id) in enumerate(zip(all_processed_products, [odoo_service.create_or_update_product(odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre)) for producto in all_processed_products])) if created_product_id],
+            "productos_fallidos": [{"idx": idx, "name": producto.get('nombre'), "error": "No se pudo crear o actualizar en Odoo."} for idx, producto in enumerate(all_processed_products) if not odoo_service.create_or_update_product(odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre))],
             "tiempo_total_segundos": round(total_time, 2),
             "raw_ia_response": raw_ia_responses
         }
