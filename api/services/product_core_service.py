@@ -71,25 +71,39 @@ def get_product_by_id(service, product_id: int) -> Optional[Product]:
         if description is False:
             description = ''
         
-        return Product(
-            id=product['id'],
-            name=product['name'],
-            list_price=product.get('list_price', 0.0),
-            standard_price=product.get('standard_price', 0.0),
-            category=category_name,
-            default_code=product.get('default_code', ''),
-            barcode=barcode,
-            weight=product.get('weight', 0.0),
-            sale_ok=product.get('sale_ok', True),
-            purchase_ok=product.get('purchase_ok', True),
-            available_in_pos=product.get('available_in_pos', False),
-            to_weight=product.get('to_weight', False),
-            is_published=product.get('is_published', False),
-            website_sequence=product.get('website_sequence', 0),
-            description_sale=description_sale,
-            description=description,
-            description_purchase=description_purchase
-        )
+        # Crear un diccionario con todos los campos necesarios para el modelo Product
+        product_dict = {
+            'id': product['id'],
+            'name': product['name'],
+            'list_price': product.get('list_price', 0.0),
+            'standard_price': product.get('standard_price', 0.0),
+            'category': category_name,
+            'default_code': product.get('default_code', ''),
+            'barcode': barcode,
+            'weight': product.get('weight', 0.0),
+            'sale_ok': product.get('sale_ok', True),
+            'purchase_ok': product.get('purchase_ok', True),
+            'available_in_pos': product.get('available_in_pos', False),
+            'to_weight': product.get('to_weight', False),
+            'is_published': product.get('is_published', False),
+            'website_sequence': product.get('website_sequence', 0),
+            'description_sale': description_sale,
+            'description': description,
+            'description_purchase': description_purchase,
+            # Campos obligatorios según el modelo Product
+            'template_id': product.get('id'),  # Usamos el mismo ID como template_id
+            'qty_available': 0.0,
+            'virtual_available': 0.0,
+            'incoming_qty': 0.0,
+            'outgoing_qty': 0.0,
+            'create_date': None,
+            'write_date': None,
+            'product_tag_ids': [],
+            'pos_categ_ids': []
+        }
+        
+        # Crear el objeto Product con los datos
+        return Product(**product_dict)
     except Exception as e:
         logging.error(f"Error al obtener producto por ID {product_id}: {str(e)}")
         return None
