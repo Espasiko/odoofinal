@@ -31,31 +31,78 @@ def create_or_update_product(service, product_data: Dict[str, Any]) -> Tuple[int
         barcode = product_data.get('barcode', '')
         supplier_id = product_data.get('supplier_id')
         
+        # Log detallado de los datos recibidos
+        logging.info(f"Datos recibidos para crear/actualizar producto: {product_data}")
+        
         # Buscar producto existente
         existing_product_id = find_existing_product(service, default_code, barcode, supplier_id)
+        if existing_product_id:
+            logging.info(f"Producto existente encontrado con ID: {existing_product_id}")
+        else:
+            logging.info("No se encontró producto existente, se creará uno nuevo")
         
         # Preparar valores para Odoo
         vals = prepare_product_vals(product_data)
+        logging.info(f"Valores preparados para Odoo: {vals}")
         
         # Asegurar que el tipo sea 'consu' para productos físicos en Odoo 18
+        # En Odoo 18, solo se usa el campo 'type' y no 'detailed_type'
         vals['type'] = 'consu'
+        
+        # Asegurar que name esté presente y no sea vacío
+        if 'name' not in vals or not vals['name']:
+            if 'nombre' in product_data:
+                vals['name'] = product_data['nombre']
+            else:
+                raise ValueError("El campo 'name' es obligatorio para crear un producto")
         
         # Buscar o crear categoría si se especifica
         if product_data.get('category'):
-            category_id = find_or_create_category(service, product_data['category'])
-            if category_id:
-                vals['categ_id'] = category_id
+            try:
+                category_id = find_or_create_category(service, product_data['category'])
+                if category_id:
+                    vals['categ_id'] = category_id
+                    logging.info(f"Categoría asignada: {category_id}")
+                else:
+                    # Si no se puede crear la categoría, usar la categoría por defecto (All - ID 1)
+                    vals['categ_id'] = 1
+                    logging.warning(f"No se pudo crear la categoría '{product_data['category']}', usando categoría por defecto (ID: 1)")
+            except Exception as e:
+                # En caso de error, usar la categoría por defecto
+                vals['categ_id'] = 1
+                logging.error(f"Error al asignar categoría '{product_data.get('category')}': {str(e)}. Usando categoría por defecto (ID: 1).")
         
         if existing_product_id:
             # Actualizar producto existente
-            service._execute_kw('product.template', 'write', [[existing_product_id], vals])
-            logging.info(f"Producto actualizado con ID: {existing_product_id}")
-            return existing_product_id, False
+            try:
+                service._execute_kw('product.template', 'write', [[existing_product_id], vals])
+                logging.info(f"Producto actualizado con ID: {existing_product_id}")
+                return existing_product_id, False
+            except Exception as e:
+                logging.error(f"Error al actualizar producto {existing_product_id}: {str(e)}")
+                # Intentar identificar campos problemáticos
+                for key, value in vals.items():
+                    try:
+                        service._execute_kw('product.template', 'write', [[existing_product_id], {key: value}])
+                    except Exception as field_error:
+                        logging.error(f"Campo problemático: {key} = {value}, Error: {str(field_error)}")
+                raise
         else:
             # Crear nuevo producto
-            product_id = service._execute_kw('product.template', 'create', [vals])
-            logging.info(f"Nuevo producto creado con ID: {product_id}")
-            return product_id, True
+            try:
+                product_id = service._execute_kw('product.template', 'create', [vals])
+                logging.info(f"Nuevo producto creado con ID: {product_id}")
+                return product_id, True
+            except Exception as e:
+                logging.error(f"Error al crear nuevo producto: {str(e)}")
+                # Intentar identificar campos problemáticos
+                test_vals = {'name': vals.get('name', 'Producto Test'), 'type': 'consu', 'detailed_type': 'product'}
+                try:
+                    service._execute_kw('product.template', 'create', [test_vals])
+                    logging.info("Prueba básica de creación exitosa, el problema está en otros campos")
+                except Exception as test_error:
+                    logging.error(f"Error incluso con campos mínimos: {str(test_error)}")
+                raise
     except Exception as e:
         logging.error(f"Error al crear o actualizar producto: {str(e)}")
         raise

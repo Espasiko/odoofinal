@@ -7,6 +7,14 @@ import json
 import time
 import httpx
 import asyncio
+import datetime
+
+# Definición del encoder para serializar objetos datetime a JSON
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        return super().default(obj)
 
 from ..services.excel_preprocessor import ExcelPreprocessor
 from ..models.schemas import User
@@ -62,6 +70,9 @@ async def process_and_load_excel(
         prompt_rules = "\n".join([f'- {k}: {v}' for k, v in business_rules.items()])
 
         async def process_chunk(chunk):
+            # Asegurarse de que los datos son serializables antes de enviarlos
+            serializable_chunk = json.loads(json.dumps(chunk, cls=DateTimeEncoder))
+            
             prompt = f"""
             Eres un asistente experto en la interpretación de datos de productos para Odoo.
             A continuación, te proporciono una lista de productos extraída de un fichero Excel de un proveedor llamado '{proveedor_nombre}'.
@@ -70,7 +81,7 @@ async def process_and_load_excel(
             {prompt_rules if prompt_rules else 'No se han detectado reglas explícitas. Por favor, infiere la lógica comercial a partir de los datos.'}
 
             **Datos Crudos del Lote (en formato JSON):**
-            {json.dumps(chunk, indent=2)}
+            {json.dumps(serializable_chunk, indent=2)}
 
             **Instrucciones:**
             1.  Analiza los datos y las reglas de negocio.
@@ -102,26 +113,59 @@ async def process_and_load_excel(
                 }}
                 ```
             """
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                try:
-                    response = await client.post(
-                        "https://api.mistral.ai/v1/chat/completions",
-                        headers={"Authorization": f"Bearer {config.MISTRAL_LLM_API_KEY}"},
-                        json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}
-                    )
-                    response.raise_for_status()
-                    return response.json()
-                except httpx.HTTPStatusError as e:
-                    logger.error(f"Error en la API de Mistral para un lote: {e.response.text}")
-                    return None # Devolver None para identificar fallos
-                except Exception as e:
-                    logger.error(f"Error inesperado procesando un lote: {e}", exc_info=True)
-                    return None
+            max_retries = 3
+            retry_delay = 5  # segundos
+            
+            for attempt in range(max_retries):
+                async with httpx.AsyncClient(timeout=180.0) as client:
+                    try:
+                        response = await client.post(
+                            "https://api.mistral.ai/v1/chat/completions",
+                            headers={"Authorization": f"Bearer {config.MISTRAL_LLM_API_KEY}"},
+                            json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}
+                        )
+                        response.raise_for_status()
+                        return response.json()
+                    except httpx.HTTPStatusError as e:
+                        error_text = e.response.text
+                        logger.error(f"Error en la API de Mistral para un lote (intento {attempt+1}/{max_retries}): {error_text}")
+                        
+                        # Si es un error de límite de tasa o capacidad, esperar y reintentar
+                        if "rate_limited" in error_text or "capacity_exceeded" in error_text:
+                            if attempt < max_retries - 1:  # Si no es el último intento
+                                wait_time = retry_delay * (2 ** attempt)  # Espera exponencial
+                                logger.info(f"Esperando {wait_time} segundos antes de reintentar...")
+                                await asyncio.sleep(wait_time)
+                                continue
+                        
+                        # Si llegamos aquí, o no es un error de límite o ya agotamos los reintentos
+                        return None
+                    except Exception as e:
+                        logger.error(f"Error inesperado procesando un lote: {e}", exc_info=True)
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(retry_delay)
+                            continue
+                        return None
+            
+            return None  # Si llegamos aquí, todos los intentos fallaron
 
-        # 4. Procesar lotes en paralelo
+        # 4. Procesar lotes en paralelo con reintento y espera
         start_time_mistral = time.time()
-        tasks = [process_chunk(chunk) for chunk in chunks]
-        results = await asyncio.gather(*tasks)
+        
+        # Procesamos los chunks con reintento y espera entre lotes para evitar límites de API
+        results = []
+        for i, chunk in enumerate(chunks):
+            try:
+                logger.info(f"Procesando lote {i+1}/{len(chunks)}")
+                result = await process_chunk(chunk)
+                results.append(result)
+                # Esperar 2 segundos entre lotes para evitar límites de tasa
+                if i < len(chunks) - 1:  # No esperar después del último lote
+                    await asyncio.sleep(2)
+            except Exception as e:
+                logger.error(f"Error procesando lote {i+1}: {str(e)}")
+                results.append(None)
+        
         end_time_mistral = time.time()
 
         all_processed_products = []
@@ -134,7 +178,10 @@ async def process_and_load_excel(
             else:
                 logger.warning("Un lote no pudo ser procesado por la IA.")
 
-        logger.info(f"Respuesta completa de la IA (agregada): {json.dumps(raw_ia_responses, indent=2)}")
+        try:
+            logger.info(f"Respuesta completa de la IA (agregada): {json.dumps(raw_ia_responses, indent=2, cls=DateTimeEncoder)}")
+        except Exception as e:
+            logger.error(f"Error al serializar respuesta de IA: {str(e)}")
 
 
 
@@ -146,41 +193,111 @@ async def process_and_load_excel(
         odoo_service = OdooProductService()
         productos_cargados = 0
         productos_fallidos = 0
+        productos_creados = []
+        productos_fallidos_lista = []
         
         # Log detallado de los datos recibidos para carga
         logger.info(f"Datos para cargar en Odoo: {all_processed_products}")
         
-        for producto in all_processed_products:
+        for idx, producto in enumerate(all_processed_products):
             try:
                 # Log detallado de cada producto antes de cargar
-                logger.info(f"Cargando producto: {producto.get('nombre', 'Sin nombre')} con precio_venta: {producto.get('precio_venta', 0.0)}, precio_coste: {producto.get('precio_coste', 0.0)}, categoria: {producto.get('categoria', 'Sin categoría')}")
+                nombre_producto = producto.get('nombre', producto.get('name', 'Sin nombre'))
+                precio_venta = producto.get('precio_venta', producto.get('list_price', 0.0))
+                precio_coste = producto.get('precio_coste', producto.get('standard_price', 0.0))
+                categoria = producto.get('categoria', producto.get('category', 'Sin categoría'))
                 
-                odoo_dict = odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre)
-                created_product_id = odoo_service.create_or_update_product(odoo_dict)
-                if created_product_id:
-                    productos_cargados += 1
-                    logger.info(f"Producto '{producto.get('nombre', 'Sin nombre')}' cargado con ID: {created_product_id}")
-                else:
+                logger.info(f"Cargando producto: {nombre_producto} con precio_venta: {precio_venta}, precio_coste: {precio_coste}, categoria: {categoria}")
+                
+                # Verificar campos obligatorios
+                if not nombre_producto or nombre_producto == 'Sin nombre':
+                    raise ValueError("El producto debe tener un nombre válido")
+                
+                # Asegurar que el campo 'name' siempre esté presente
+                if 'name' not in producto or not producto['name']:
+                    if 'nombre' in producto and producto['nombre']:
+                        producto['name'] = producto['nombre']
+                        logger.info(f"Campo 'name' asignado desde 'nombre': {producto['name']}")
+                    else:
+                        producto['name'] = "Producto sin nombre"
+                        logger.warning(f"Asignando nombre genérico a producto sin nombre: {producto['name']}")
+                
+                # Asegurar que type sea 'consu' para productos físicos en Odoo 18
+                # En Odoo 18, solo se usa el campo 'type' y no 'detailed_type'
+                producto['type'] = 'consu'
+                
+                # Verificar y convertir precios si existen
+                if 'precio_venta' in producto and producto['precio_venta']:
+                    try:
+                        producto['list_price'] = float(producto['precio_venta'])
+                        logger.info(f"Precio de venta convertido: {producto['list_price']}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Error al convertir precio_venta: {e}")
+                
+                if 'precio_coste' in producto and producto['precio_coste']:
+                    try:
+                        producto['standard_price'] = float(producto['precio_coste'])
+                        logger.info(f"Precio de coste convertido: {producto['standard_price']}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Error al convertir precio_coste: {e}")
+                
+                try:
+                    # Intentar crear o actualizar el producto en Odoo
+                    logger.info(f"Enviando producto a Odoo: {producto}")
+                    product_id, is_new = odoo_service.create_or_update_product(producto)
+                    
+                    if product_id:
+                        productos_cargados += 1
+                        productos_creados.append({
+                            "idx": idx,
+                            "name": nombre_producto,
+                            "id": product_id,
+                            "is_new": is_new
+                        })
+                        logger.info(f"Producto {nombre_producto} {'creado' if is_new else 'actualizado'} con ID: {product_id}")
+                    else:
+                        productos_fallidos += 1
+                        productos_fallidos_lista.append({"idx": idx, "name": nombre_producto, "error": "ID nulo devuelto"})
+                        logger.warning(f"Fallo al cargar producto '{nombre_producto}': ID nulo devuelto")
+                except Exception as odoo_error:
+                    logger.error(f"Error al crear producto {nombre_producto} en Odoo: {str(odoo_error)}")
                     productos_fallidos += 1
-                    logger.warning(f"Fallo al cargar producto '{producto.get('nombre', 'Sin nombre')}'")
+                    productos_fallidos_lista.append({"idx": idx, "name": nombre_producto, "error": f"Error en Odoo: {str(odoo_error)}"})
             except Exception as e:
+                nombre_producto = producto.get('nombre', producto.get('name', 'Sin nombre'))
+                logger.error(f"Error general al procesar producto {nombre_producto}: {str(e)}")
+                productos_fallidos_lista.append({"idx": idx, "name": nombre_producto, "error": f"Error general: {str(e)}"})
                 productos_fallidos += 1
-                logger.error(f"Error al cargar producto '{producto.get('nombre', 'Sin nombre')}': {str(e)}")
         
         logger.info(f"Fase 3: Carga completada. Productos cargados: {productos_cargados}, fallidos: {productos_fallidos}")
         total_time = time.time() - start_time
 
-        return {
-            "message": "Proceso completado.",
-            "proveedor": proveedor_nombre,
-            "total_intentados": len(all_processed_products),
-            "total_creados_o_actualizados": productos_cargados,
-            "total_fallidos": productos_fallidos,
-            "productos_creados_o_actualizados": [{"idx": idx, "name": producto.get('nombre'), "odoo_id": created_product_id} for idx, (producto, created_product_id) in enumerate(zip(all_processed_products, [odoo_service.create_or_update_product(odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre)) for producto in all_processed_products])) if created_product_id],
-            "productos_fallidos": [{"idx": idx, "name": producto.get('nombre'), "error": "No se pudo crear o actualizar en Odoo."} for idx, producto in enumerate(all_processed_products) if not odoo_service.create_or_update_product(odoo_service.front_to_odoo_product_dict(producto, proveedor_nombre))],
-            "tiempo_total_segundos": round(total_time, 2),
-            "raw_ia_response": raw_ia_responses
-        }
+        try:
+            serializable_responses = json.loads(json.dumps(raw_ia_responses, cls=DateTimeEncoder))
+            
+            return {
+                "message": f"Importación completada. {productos_cargados} productos creados o actualizados, {productos_fallidos} fallidos.",
+                "total_intentados": len(all_processed_products),
+                "total_creados_o_actualizados": productos_cargados,
+                "total_fallidos": productos_fallidos,
+                "productos_creados_o_actualizados": productos_creados,
+                "productos_fallidos": productos_fallidos_lista,
+                "tiempo_total_segundos": round(total_time, 2),
+                "raw_ia_response": serializable_responses
+            }
+        except Exception as e:
+            logger.error(f"Error al preparar respuesta final: {str(e)}")
+            # Devolver respuesta sin raw_ia_response en caso de error
+            return {
+                "message": f"Importación completada con errores de serialización. {productos_cargados} productos creados o actualizados, {productos_fallidos} fallidos.",
+                "total_intentados": len(all_processed_products),
+                "total_creados_o_actualizados": productos_cargados,
+                "total_fallidos": productos_fallidos,
+                "productos_creados_o_actualizados": productos_creados,
+                "productos_fallidos": productos_fallidos_lista,
+                "tiempo_total_segundos": round(total_time, 2),
+                "error_serializacion": str(e)
+            }
 
     except httpx.HTTPStatusError as e:
         logger.error(f"Error en la llamada a Mistral: {e.response.status_code} - {e.response.text}")

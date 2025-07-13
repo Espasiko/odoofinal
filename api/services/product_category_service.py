@@ -19,9 +19,15 @@ def find_or_create_category(service, category_name: str) -> Optional[int]:
     Returns:
         Optional[int]: ID de la categoría o None en caso de error
     """
-    if not category_name or category_name == "Sin Categoría":
-        # Categoría por defecto en Odoo
-        return 1
+    # Validar entrada
+    if not category_name or not isinstance(category_name, str):
+        logging.warning(f"Nombre de categoría inválido: {category_name}, usando categoría por defecto")
+        return 1  # Categoría 'All' por defecto
+    
+    # Normalizar el nombre de la categoría
+    category_name = category_name.strip()
+    if not category_name or category_name.lower() in ["sin categoría", "sin categoria", "none", "default"]:
+        return 1  # Categoría 'All' por defecto
         
     try:
         # Buscar categoría existente
@@ -33,21 +39,40 @@ def find_or_create_category(service, category_name: str) -> Optional[int]:
         )
         
         if category_ids:
-            logging.info(f"Categoría '{category_name}' encontrada con ID: {category_ids[0]}")
-            return category_ids[0]
+            # Verificar que la categoría realmente existe
+            try:
+                category_data = service._execute_kw(
+                    'product.category',
+                    'read',
+                    [category_ids[0]],
+                    {'fields': ['name']}
+                )
+                if category_data:
+                    logging.info(f"Categoría '{category_name}' encontrada con ID: {category_ids[0]}")
+                    return category_ids[0]
+                else:
+                    logging.warning(f"Categoría con ID {category_ids[0]} no existe, usando categoría por defecto")
+                    return 1
+            except Exception as e:
+                logging.error(f"Error al verificar categoría {category_ids[0]}: {str(e)}")
+                return 1
             
         # Crear nueva categoría
-        category_id = service._execute_kw(
-            'product.category',
-            'create',
-            [{'name': category_name}]
-        )
-        
-        logging.info(f"Categoría '{category_name}' creada con ID: {category_id}")
-        return category_id
+        try:
+            category_id = service._execute_kw(
+                'product.category',
+                'create',
+                [{'name': category_name}]
+            )
+            
+            logging.info(f"Categoría '{category_name}' creada con ID: {category_id}")
+            return category_id
+        except Exception as e:
+            logging.error(f"Error al crear categoría '{category_name}': {str(e)}")
+            return 1
     except Exception as e:
-        logging.error(f"Error al buscar o crear categoría '{category_name}': {str(e)}")
-        return None
+        logging.error(f"Error general al buscar o crear categoría '{category_name}': {str(e)}")
+        return 1  # Devolver categoría por defecto en caso de error
 
 def get_category_name(service, category_id: int) -> str:
     """
@@ -60,23 +85,46 @@ def get_category_name(service, category_id: int) -> str:
     Returns:
         str: Nombre de la categoría o "Sin Categoría" si no se encuentra
     """
-    if not category_id or category_id == 1:
+    # Validar entrada
+    if not category_id or not isinstance(category_id, int) or category_id <= 0:
+        logging.warning(f"ID de categoría inválido: {category_id}, devolviendo 'Sin Categoría'")
+        return "Sin Categoría"
+    
+    # Categoría por defecto
+    if category_id == 1:
         return "Sin Categoría"
         
     try:
-        category = service._execute_kw(
+        # Verificar si la categoría existe
+        exists = service._execute_kw(
             'product.category',
-            'read',
-            [category_id],
-            {'fields': ['name']}
+            'search_count',
+            [[('id', '=', category_id)]]
         )
         
-        if category:
-            return category[0]['name']
-        else:
+        if not exists:
+            logging.warning(f"La categoría con ID {category_id} no existe en la base de datos")
+            return "Sin Categoría"
+            
+        # Obtener el nombre de la categoría
+        try:
+            category = service._execute_kw(
+                'product.category',
+                'read',
+                [category_id],
+                {'fields': ['name']}
+            )
+            
+            if category and 'name' in category[0]:
+                return category[0]['name']
+            else:
+                logging.warning(f"No se pudo obtener el nombre de la categoría con ID {category_id}")
+                return "Sin Categoría"
+        except Exception as e:
+            logging.error(f"Error al leer categoría con ID {category_id}: {str(e)}")
             return "Sin Categoría"
     except Exception as e:
-        logging.error(f"Error al obtener nombre de categoría con ID {category_id}: {str(e)}")
+        logging.error(f"Error general al obtener nombre de categoría con ID {category_id}: {str(e)}")
         return "Sin Categoría"
 
 def get_all_categories(service) -> List[Dict[str, Any]]:
@@ -154,22 +202,28 @@ def assign_category_to_product(service, product_id: int, category_id: int) -> bo
             [[product_id], {'categ_id': category_id}]
         )
         
-        # Obtener nombres para el log
-        product_name = service._execute_kw(
-            'product.template',
-            'read',
-            [product_id],
-            {'fields': ['name']}
-        )[0]['name']
-        
-        category_name = service._execute_kw(
-            'product.category',
-            'read',
-            [category_id],
-            {'fields': ['name']}
-        )[0]['name']
-        
-        logging.info(f"Categoría '{category_name}' asignada al producto '{product_name}'")
+        # Obtener nombres para el log de manera segura
+        try:
+            product_data = service._execute_kw(
+                'product.template',
+                'read',
+                [product_id],
+                {'fields': ['name']}
+            )
+            product_name = product_data[0]['name'] if product_data and 'name' in product_data[0] else f"ID: {product_id}"
+            
+            category_data = service._execute_kw(
+                'product.category',
+                'read',
+                [category_id],
+                {'fields': ['name']}
+            )
+            category_name = category_data[0]['name'] if category_data and 'name' in category_data[0] else f"ID: {category_id}"
+            
+            logging.info(f"Categoría '{category_name}' asignada al producto '{product_name}'")
+        except Exception as e:
+            logging.warning(f"No se pudieron obtener detalles completos para el log: {str(e)}")
+            logging.info(f"Categoría ID {category_id} asignada al producto ID {product_id}")
         return True
     except Exception as e:
         logging.error(f"Error al asignar categoría {category_id} al producto {product_id}: {str(e)}")

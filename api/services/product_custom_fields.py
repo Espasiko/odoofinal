@@ -56,6 +56,20 @@ def ensure_custom_field(service, model_name: str, field_name: str, field_type: s
         if field_exists:
             logging.debug(f"Campo {field_name} ya existe en {model_name}")
             return True
+        
+        # Obtener el model_id para el modelo especificado
+        model_ids = service._execute_kw(
+            'ir.model',
+            'search',
+            [[('model', '=', model_name)]]
+        )
+        
+        if not model_ids:
+            logging.error(f"No se encontró el modelo {model_name} en ir.model")
+            return False
+            
+        model_id = model_ids[0]
+        logging.debug(f"model_id para {model_name}: {model_id}")
             
         # Crear el campo si no existe
         field_data = {
@@ -64,7 +78,8 @@ def ensure_custom_field(service, model_name: str, field_name: str, field_type: s
             'field_description': field_label,
             'ttype': field_type,
             'state': 'manual',
-            'store': True
+            'store': True,
+            'model_id': model_id  # Añadimos el model_id que es obligatorio
         }
         
         service._execute_kw('ir.model.fields', 'create', [field_data])

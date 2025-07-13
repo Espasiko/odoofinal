@@ -67,11 +67,37 @@ class OdooProductService(OdooBaseService):
         """
         return core_get_all_products(self)
             
-    def create_product(self, product: ProductCreate) -> Optional[int]:
+    def create_product(self, product: ProductCreate) -> Dict[str, Any]:
         """
-        Crea un nuevo producto en la base de datos de Odoo.
+        Crea un nuevo producto en la base de datos de Odoo y devuelve el objeto completo.
+        
+        Args:
+            product: Datos del producto a crear
+            
+        Returns:
+            Dict[str, Any]: Objeto completo del producto creado
         """
-        return core_create_product(self, product)
+        try:
+            # Crear el producto y obtener su ID
+            from .product_core_service import create_product as core_create
+            product_id = core_create(self, product)
+            
+            if not product_id:
+                raise HTTPException(status_code=500, detail="Error al crear el producto")
+                
+            # Obtener el objeto completo del producto creado
+            from .product_core_service import get_product_by_id
+            created_product = get_product_by_id(self, product_id)
+            
+            if not created_product:
+                raise HTTPException(status_code=404, detail=f"Producto creado con ID {product_id} no encontrado")
+                
+            # Convertir el objeto Pydantic a diccionario
+            return created_product.dict()
+        except Exception as e:
+            logging.error(f"Error en create_product: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error al crear el producto: {str(e)}")
+        
             
     def update_product(self, product_id: int, product_update: OdooProductUpdate) -> bool:
         """
@@ -305,11 +331,29 @@ class OdooProductService(OdooBaseService):
         Convierte un producto del formato frontend/Excel al formato Odoo para crear o actualizar.
         """
         try:
+            # Log detallado del producto recibido
+            logging.info(f"Producto recibido en front_to_odoo_product_dict: {producto}")
+            
+            # Asegurar que el campo 'name' esté presente
+            if 'nombre' in producto and not producto.get('name'):
+                producto['name'] = producto['nombre']
+                logging.info(f"Campo 'name' asignado desde 'nombre': {producto['name']}")
+            
             # Usar prepare_product_vals para transformar los datos al formato de Odoo
             product_vals = prepare_product_vals(producto, proveedor_nombre)
             
             # Asegurar que el tipo sea 'consu' para productos físicos en Odoo 18
+            # En Odoo 18, solo se usa el campo 'type' con valor 'consu' para productos físicos
             product_vals['type'] = 'consu'
+            
+            # Verificar que name esté presente
+            if 'name' not in product_vals or not product_vals['name']:
+                if 'nombre' in producto:
+                    product_vals['name'] = producto['nombre']
+                    logging.info(f"Campo 'name' asignado desde 'nombre' después de prepare_product_vals: {product_vals['name']}")
+                else:
+                    logging.error("No se encontró campo 'name' ni 'nombre' para el producto")
+                    product_vals['name'] = "Producto sin nombre"
             
             # Buscar o crear proveedor si se especifica
             if proveedor_nombre:
@@ -317,13 +361,36 @@ class OdooProductService(OdooBaseService):
                 supplier_id = odoo_provider_service.find_or_create_provider(proveedor_nombre)
                 if supplier_id:
                     product_vals['supplier_id'] = supplier_id
+                    logging.info(f"Proveedor asignado con ID: {supplier_id}")
             
             # Buscar o crear categoría si se especifica
             if 'category' in producto and producto['category']:
                 category_id = self.find_or_create_category(producto['category'])
                 if category_id:
                     product_vals['categ_id'] = category_id
+                    logging.info(f"Categoría asignada con ID: {category_id}")
+            elif 'categoria' in producto and producto['categoria']:
+                category_id = self.find_or_create_category(producto['categoria'])
+                if category_id:
+                    product_vals['categ_id'] = category_id
+                    logging.info(f"Categoría asignada desde 'categoria' con ID: {category_id}")
             
+            # Asegurar que los precios estén correctamente asignados
+            if 'precio_venta' in producto and producto['precio_venta'] and 'list_price' not in product_vals:
+                try:
+                    product_vals['list_price'] = float(producto['precio_venta'])
+                    logging.info(f"Precio de venta asignado: {product_vals['list_price']}")
+                except (ValueError, TypeError) as e:
+                    logging.warning(f"Error al convertir precio_venta: {e}")
+            
+            if 'precio_coste' in producto and producto['precio_coste'] and 'standard_price' not in product_vals:
+                try:
+                    product_vals['standard_price'] = float(producto['precio_coste'])
+                    logging.info(f"Precio de coste asignado: {product_vals['standard_price']}")
+                except (ValueError, TypeError) as e:
+                    logging.warning(f"Error al convertir precio_coste: {e}")
+            
+            logging.info(f"Producto transformado para Odoo: {product_vals}")
             return product_vals
             
         except Exception as e:

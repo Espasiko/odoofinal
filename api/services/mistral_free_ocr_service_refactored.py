@@ -34,17 +34,19 @@ class MistralFreeOCRService:
         """
         return ['.pdf', '.jpg', '.jpeg', '.png']
     
-    def validate_file_size(self, file_size: int) -> bool:
+    def validate_file_size(self, file_path: str) -> bool:
         """
         Valida que el archivo no exceda el límite de tamaño (50MB)
         
         Args:
-            file_size: Tamaño del archivo en bytes
+            file_path: Ruta al archivo a validar
             
         Returns:
             bool: True si el tamaño es válido, False en caso contrario
         """
+        import os
         max_size_mb = 50
+        file_size = os.path.getsize(file_path)
         file_size_mb = file_size / (1024 * 1024)
         return file_size_mb <= max_size_mb
     
@@ -65,7 +67,7 @@ class MistralFreeOCRService:
             import mimetypes
             
             # Validar tamaño de archivo
-            if not self.validate_file_size(os.path.getsize(file_path)):
+            if not self.validate_file_size(file_path):
                 return {
                     'success': False,
                     'error': "El archivo excede el límite de tamaño"

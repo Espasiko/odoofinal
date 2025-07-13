@@ -9,7 +9,7 @@ import json
 import logging
 from pathlib import Path
 import datetime
-from ..services.mistral_free_ocr_service import get_mistral_free_ocr_service
+from ..services.mistral_free_ocr_service_refactored import MistralFreeOCRService
 from ..services.odoo_provider_service import odoo_provider_service
 from ..services.odoo_invoice_service import OdooInvoiceService
 from ..utils.parsing import parse_date, parse_decimal
@@ -65,7 +65,7 @@ async def process_invoice_free(
     try:
         # Validar formato de archivo
         file_extension = os.path.splitext(file.filename)[1].lower()
-        service = get_mistral_free_ocr_service()
+        service = MistralFreeOCRService()
         supported_formats = service.get_supported_formats()
         
         if file_extension not in supported_formats:
