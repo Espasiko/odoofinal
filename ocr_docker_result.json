@@ -1,0 +1,79 @@
+{
+  "success": true,
+  "invoice_data": {
+    "invoice_number": "F24-02846",
+    "invoice_date": "2024-12-31",
+    "due_date": "",
+    "supplier_name": "Nevir S.A.",
+    "supplier_vat": "A28968307",
+    "supplier_address": "Calle Francisco Rabal, 3",
+    "supplier_city": "Alcalá de Henares",
+    "supplier_zip": "28806",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 3892.13,
+    "tax_amount": 197.32,
+    "total_amount": 4089.45,
+    "tax_rate": 5.26,
+    "payment_method": "Recibo a 30 y 60 días",
+    "payment_terms": "RECIBO A 30 Y 60 DIAS S/A 450112025 2,456.95€\nRECIBO A 30 Y 60 DIAS S/A 01/03/2025 2,455.92€",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "CONGELADOR VERTICAL BLANCO NEVIR",
+        "quantity": 1,
+        "price_unit": 182.55,
+        "discount": 0,
+        "default_code": "NVR-BS000000",
+        "ean13": "",
+        "tax_rate": 5.26
+      },
+      {
+        "name": "FRIGORIFICO DOBLE PUERTA NEVIR",
+        "quantity": 1,
+        "price_unit": 145.65,
+        "discount": 0,
+        "default_code": "NVR-BS15000",
+        "ean13": "",
+        "tax_rate": 5.26
+      },
+      {
+        "name": "COMBI TOTAL NO FROST INDX NEVIR",
+        "quantity": 1,
+        "price_unit": 321.65,
+        "discount": 0,
+        "default_code": "NVR-SM000000",
+        "ean13": "",
+        "tax_rate": 5.26
+      },
+      {
+        "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+        "quantity": 1,
+        "price_unit": 186.97,
+        "discount": 0,
+        "default_code": "NVR-WAFL28000A-BC",
+        "ean13": "",
+        "tax_rate": 5.26
+      },
+      {
+        "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+        "quantity": 1,
+        "price_unit": 176.55,
+        "discount": 0,
+        "default_code": "NVR-WAFL28300A-SD",
+        "ean13": "",
+        "tax_rate": 5.26
+      },
+      {
+        "name": "HORNO ELECTRICO SEL NEVIR",
+        "quantity": 1,
+        "price_unit": 117.95,
+        "discount": 5,
+        "default_code": "NVR-HMEL44L",
+        "ean13": "",
+        "tax_rate": 5.26
+      }
+    ]
+  },
+  "ocr_text": "```\nFACTURA\n\nN° Factura: F24-02846\nFecha: 31/12/2024\nAlbarán n°: 128359\nSu pedido n°: 04744-A\nZona: DI-MRA-0104-A\nCod. Cliente: 04744-A\nCod. Proveedor: 04744-A\n\nREF. UDS. DESCRIPCION PRECIO BRUTO PRECIO NETO OTROS CCP TOTAL UNIT. TOTAL\nNVR-BS000000 1. CONGELADOR VERTICAL BLANCO NEVIR 182.55 0.00% 182.55 0.00 0.00 182.55 182.55\nNVR-BS15000 2. FRIGORIFICO DOBLE PUERTA NEVIR 145.65 0.00% 145.65 0.00 0.00 145.65 436.95\nNVR-SM000000 3. COMBI TOTAL NO FROST INDX NEVIR 321.65 0.00% 321.65 0.00 0.00 321.65 643.30\nNVR-WAFL28000A-BC 4. LAVADORA VAPOR INV. 8K BLANCA NEVIR 186.97 0.00% 186.97 0.00 0.00 186.97 1,121.32\nNVR-WAFL28300A-SD 5. LAVADORA VAPOR INV. 8K BLANCA NEVIR 176.55 0.00% 176.55 0.00 0.00 176.55 1,059.30\nNVR-HMEL44L 6. HORNO ELECTRICO SEL NEVIR 117.95 5.00% 112.05 0.00 0.00 112.05 448.21\n\nObservaciones:\nLLAMAR UN DIA ANTES DE ENTREGAR A ANTONIO PLAZA BONACHERA - 11 04744047\nCAMION CON TRAMPILLA Y TRASPALETA\n\nTOTAL PRODUCTOS 3,892.13 €\nTOTAL OTROS 0.00 €\nSUMA 3,892.13 €\nDESCUENTO 0.00 %\nSUBTOTAL 3,892.13 €\nTOTAL CCP 0.00 €\nBASE IMPONIBLE 3,892.13 €\nBASE IVA 21.50 % 831.32 €\nTOTAL IVA 5.26 % 197.32 €\nTOTAL FACTURA 4,911.87 €\n\n*CCP = compensación de copia privada\n\nForma de pago:\nVencimientos: Importe\nRECIBO A 30 Y 60 DIAS S/A 450112025 2,456.95€\nRECIBO A 30 Y 60 DIAS S/A 01/03/2025 2,455.92€\n\nDirección de entrega:\nCRTA. DE ALCALÁN 172 - ROQUETAS DE MAR - 04740 - ALMERÍA - ESPAÑA\n\nOPERACIÓN ASEGURADA POR SOLUCION\n\nNevir S.A. - A28968307 - Calle Francisco Rabal, 3 28806 Alcalá de Henares Madrid.\nTf. 91 737 27 77, fax: e-mail: nevir@nevir.es. Registro Mercantil de Madrid, Tomo 428, Folio 33, Sección 3ª Hoja 63023. Número de identificación en el Registro de Integrales Registradas (RIR) de productos de higiene y limpieza: 00000000076. Número de identificación fiscal: ES-A-04744047. Número de identificación en el Registro de Fabricantes de Productos de Cuidado Personal: ENV/2023/00007076\n\nPara cualquier cuestión que pudiera derivarse, las partes acuerdan someterse a los Juzgados y Tribunales de Madrid, con renuncia expresa a cualquier otro fuero que pudiera corresponder.\n\nPágina 1 de 1\n```"
+}
