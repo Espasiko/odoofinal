@@ -253,6 +253,53 @@ class OdooProductService(OdooBaseService):
                 if description is False:
                     description = ''
                 
+                # Obtener información completa de proveedores si existen
+                seller_ids_info = []
+                if p.get('seller_ids') and isinstance(p['seller_ids'], list) and len(p['seller_ids']) > 0:
+                    try:
+                        # Obtenemos la información completa de los proveedores
+                        supplier_info = self._execute_kw(
+                            'product.supplierinfo',
+                            'search_read',
+                            [[('id', 'in', p['seller_ids'])]],
+                            {'fields': ['id', 'partner_id', 'product_name', 'sequence', 'min_qty', 'price']}
+                        )
+                        
+                        # Para cada proveedor, obtenemos el nombre del partner
+                        for supplier in supplier_info:
+                            partner_id = supplier.get('partner_id', False)
+                            partner_name = ''
+                            
+                            # Si partner_id es una tupla [id, nombre], extraemos el nombre
+                            if partner_id and isinstance(partner_id, list) and len(partner_id) > 1:
+                                partner_name = partner_id[1]  # El nombre está en la posición 1 del array
+                            
+                            # Creamos un objeto con la información del proveedor en formato compatible con el frontend
+                            seller_info_dict = {
+                                'id': supplier.get('id', 0),
+                                'sequence': supplier.get('sequence', 99) if supplier.get('sequence') else 99,
+                                'min_qty': supplier.get('min_qty', 0.0),
+                                'price': supplier.get('price', 0.0),
+                                'product_name': supplier.get('product_name', '')
+                            }
+                            
+                            # Añadimos el nombre del partner de manera segura
+                            if partner_id and isinstance(partner_id, list):
+                                seller_info_dict['name'] = partner_id[0]
+                                seller_info_dict['partner_name'] = partner_name
+                            else:
+                                seller_info_dict['name'] = ''
+                                seller_info_dict['partner_name'] = ''
+                                
+                            seller_ids_info.append(seller_info_dict)
+                            
+                        # Si no hay proveedores, dejamos un array vacío
+                        if not seller_ids_info:
+                            logging.info(f"Producto {p.get('id')} ({p.get('name')}) no tiene proveedores asignados")
+                    except Exception as e:
+                        logging.error(f"Error obteniendo información de proveedores para producto {p.get('id')}: {str(e)}")
+                        # En caso de error, dejamos seller_ids_info como array vacío
+                
                 # Construir diccionario de producto transformado
                 product_dict = {
                     'id': p['id'],
@@ -273,7 +320,8 @@ class OdooProductService(OdooBaseService):
                     'website_sequence': p.get('website_sequence', 0),
                     'description_sale': description_sale,
                     'description': description,
-                    'description_purchase': description_purchase
+                    'description_purchase': description_purchase,
+                    'seller_ids': seller_ids_info  # Usamos la información completa de proveedores
                 }
                 
                 # Añadir campos personalizados si existen
@@ -309,16 +357,22 @@ class OdooProductService(OdooBaseService):
         """
         return find_or_create_category(self, category_name)
     
-    def create_or_update_product(self, product_data: Dict[str, Any]) -> Optional[int]:
+    def create_or_update_product(self, product_data: Dict[str, Any]) -> Tuple[Optional[int], bool]:
         """
         Crea o actualiza un producto en Odoo.
+        
+        Args:
+            product_data: Diccionario con datos del producto
+            
+        Returns:
+            Tuple[Optional[int], bool]: (ID del producto o None si hay error, True si es nuevo / False si fue actualizado)
         """
         try:
             product_id, is_new = integration_create_or_update_product(self, product_data)
-            return product_id
+            return product_id, is_new
         except Exception as e:
             logging.error(f"Error en create_or_update_product: {str(e)}")
-            return None
+            return None, False  # Devolver una tupla consistente en caso de error
     
     def archive_product(self, product_id: int) -> bool:
         """

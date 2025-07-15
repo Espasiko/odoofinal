@@ -42,7 +42,8 @@ export interface Product {
   default_code: string | null;
   list_price: number;
   standard_price: number;
-  categ_id: number | null;
+  // categ_id puede ser un número o un array [id, nombre]
+  categ_id: number | [number, string] | null;
   barcode: string | null;
   active: boolean;
   type: string;
@@ -55,7 +56,8 @@ export interface Product {
   website_sequence: number;
   description_sale: string | null;
   description_purchase: string | null;
-  seller_ids: any[];
+  // seller_ids puede ser un array de objetos, un objeto simple o incluso un string
+  seller_ids: any[] | any | null;
   product_tag_ids: any[];
   public_categ_ids: any[];
   pos_categ_ids: any[];
@@ -64,9 +66,14 @@ export interface Product {
   // Campos opcionales que pueden o no venir
   code?: string | null;
   price?: number;
+  // Categoría como string (viene del backend)
   category?: string | null;
   stock?: number | null;
   image_url?: string | null;
+  // Campos adicionales que pueden venir del backend
+  supplier_name?: string;
+  margen_calculado?: number;
+  alerta_margen?: boolean;
 }
 
 export interface PaginatedResponse<T> {
