@@ -63,6 +63,21 @@ async def process_and_load_excel(
         # --- FASE 2: INTERPRETACIÓN CON IA --- #
         logger.info("Fase 2: Iniciando interpretación con IA.")
         raw_data = preprocessed_data.get('raw_data', [])
+        
+        # Verificar si estamos en modo de prueba (solo procesar la primera página)
+        test_mode = os.environ.get('EXCEL_IMPORT_TEST_MODE', 'false').lower() == 'true'
+        max_products = int(os.environ.get('EXCEL_IMPORT_MAX_PRODUCTS', '50'))
+        
+        if test_mode:
+            logger.info(f"Modo de prueba activado: procesando solo los primeros {max_products} productos")
+            raw_data = raw_data[:max_products]
+        
+        # Verificar si hay productos sin ID y loguear esta información
+        products_without_id = [p for p in raw_data if not any(k.lower() in str(k).lower() and v for k, v in p.items() 
+                                                           for id_key in ['id', 'ref', 'código', 'codigo', 'referencia'])]
+        if products_without_id:
+            logger.warning(f"Se encontraron {len(products_without_id)} productos sin ID o referencia")
+            
         chunks = [raw_data[i:i + CHUNK_SIZE] for i in range(0, len(raw_data), CHUNK_SIZE)]
         logger.info(f"Datos divididos en {len(chunks)} lotes de ~{CHUNK_SIZE} productos cada uno.")
 
@@ -113,58 +128,63 @@ async def process_and_load_excel(
                 }}
                 ```
             """
-            max_retries = 3
-            retry_delay = 5  # segundos
+            # Usar la función call_llm que implementa el fallback a Groq y OpenAI
+            from ..utils.mistral_llm_utils import call_llm
             
-            for attempt in range(max_retries):
-                async with httpx.AsyncClient(timeout=180.0) as client:
-                    try:
-                        response = await client.post(
-                            "https://api.mistral.ai/v1/chat/completions",
-                            headers={"Authorization": f"Bearer {config.MISTRAL_LLM_API_KEY}"},
-                            json={"model": "mistral-large-latest", "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}
-                        )
-                        response.raise_for_status()
-                        return response.json()
-                    except httpx.HTTPStatusError as e:
-                        error_text = e.response.text
-                        logger.error(f"Error en la API de Mistral para un lote (intento {attempt+1}/{max_retries}): {error_text}")
-                        
-                        # Si es un error de límite de tasa o capacidad, esperar y reintentar
-                        if "rate_limited" in error_text or "capacity_exceeded" in error_text:
-                            if attempt < max_retries - 1:  # Si no es el último intento
-                                wait_time = retry_delay * (2 ** attempt)  # Espera exponencial
-                                logger.info(f"Esperando {wait_time} segundos antes de reintentar...")
-                                await asyncio.sleep(wait_time)
-                                continue
-                        
-                        # Si llegamos aquí, o no es un error de límite o ya agotamos los reintentos
-                        return None
-                    except Exception as e:
-                        logger.error(f"Error inesperado procesando un lote: {e}", exc_info=True)
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(retry_delay)
-                            continue
-                        return None
-            
-            return None  # Si llegamos aquí, todos los intentos fallaron
+            try:
+                # Llamar a la función que maneja el fallback automáticamente
+                logger.info(f"Llamando a LLM para procesar un lote de productos")
+                response = await call_llm(prompt)
+                if response:
+                    logger.info(f"Respuesta exitosa del LLM")
+                    return response
+                else:
+                    logger.error(f"No se recibió respuesta del LLM")
+                    return None
+            except Exception as e:
+                logger.error(f"Error al llamar al LLM: {str(e)}", exc_info=True)
+                return None
 
         # 4. Procesar lotes en paralelo con reintento y espera
         start_time_mistral = time.time()
         
         # Procesamos los chunks con reintento y espera entre lotes para evitar límites de API
         results = []
+        max_retries = int(os.environ.get('EXCEL_IMPORT_MAX_RETRIES', '2'))
+        max_chunks = int(os.environ.get('EXCEL_IMPORT_MAX_CHUNKS', '10'))
+        
+        # Limitar el número de chunks a procesar para evitar bucles infinitos
+        if len(chunks) > max_chunks:
+            logger.warning(f"Limitando procesamiento a los primeros {max_chunks} lotes de un total de {len(chunks)}")
+            chunks = chunks[:max_chunks]
+        
         for i, chunk in enumerate(chunks):
-            try:
-                logger.info(f"Procesando lote {i+1}/{len(chunks)}")
-                result = await process_chunk(chunk)
-                results.append(result)
-                # Esperar 2 segundos entre lotes para evitar límites de tasa
-                if i < len(chunks) - 1:  # No esperar después del último lote
-                    await asyncio.sleep(2)
-            except Exception as e:
-                logger.error(f"Error procesando lote {i+1}: {str(e)}")
-                results.append(None)
+            retry_count = 0
+            chunk_success = False
+            
+            while not chunk_success and retry_count < max_retries:
+                try:
+                    logger.info(f"Procesando lote {i+1}/{len(chunks)} (intento {retry_count+1}/{max_retries})")
+                    
+                    # Verificar si hay productos sin ID en este chunk
+                    products_without_id = [p for p in chunk if not any(k.lower() in str(k).lower() and v for k, v in p.items() 
+                                                                for id_key in ['id', 'ref', 'código', 'codigo', 'referencia'])]
+                    if products_without_id:
+                        logger.warning(f"Lote {i+1}: {len(products_without_id)} de {len(chunk)} productos sin ID")
+                    
+                    result = await process_chunk(chunk)
+                    results.append(result)
+                    chunk_success = True
+                    
+                    if i < len(chunks) - 1:
+                        await asyncio.sleep(2)
+                        
+                except Exception as e:
+                    retry_count += 1
+                    logger.error(f"Error procesando lote {i+1} (intento {retry_count}/{max_retries}): {str(e)}")
+                    if retry_count >= max_retries:
+                        logger.error(f"Se alcanzó el máximo de intentos para el lote {i+1}. Continuando con el siguiente lote.")
+                        results.append(None)
         
         end_time_mistral = time.time()
 
@@ -207,11 +227,53 @@ async def process_and_load_excel(
                 precio_coste = producto.get('precio_coste', producto.get('standard_price', 0.0))
                 categoria = producto.get('categoria', producto.get('category', 'Sin categoría'))
                 
-                logger.info(f"Cargando producto: {nombre_producto} con precio_venta: {precio_venta}, precio_coste: {precio_coste}, categoria: {categoria}")
+                # Manejar la categoría correctamente usando find_or_create_category
+                if categoria and categoria not in ('Sin categoría', 'Sin categoria'):
+                    from api.services.product_category_service import find_or_create_category
+                    try:
+                        categ_id = find_or_create_category(odoo_service, categoria)
+                        if categ_id:
+                            producto['categ_id'] = categ_id
+                            logger.info(f"Categoría '{categoria}' asignada con ID: {categ_id}")
+                    except Exception as cat_error:
+                        logger.error(f"Error al procesar categoría '{categoria}': {str(cat_error)}")
+                        # Usar categoría por defecto (All - ID 1)
+                        producto['categ_id'] = 1
+                else:
+                    # Usar categoría por defecto (All - ID 1)
+                    producto['categ_id'] = 1
+                    
+                # Eliminar campos de categoría que no son válidos para Odoo
+                if 'categoria' in producto:
+                    del producto['categoria']
+                if 'category' in producto:
+                    del producto['category']
+                if 'subcategoria' in producto:
+                    del producto['subcategoria']
                 
-                # Verificar campos obligatorios
+                logger.info(f"Cargando producto: {nombre_producto} con precio_venta: {precio_venta}, precio_coste: {precio_coste}, categoria: {categoria}, categ_id: {producto.get('categ_id', 1)}")
+                
+                
+                # Verificar campos obligatorios y referencias
                 if not nombre_producto or nombre_producto == 'Sin nombre':
                     raise ValueError("El producto debe tener un nombre válido")
+                
+                # Verificar si el producto tiene alguna referencia o ID
+                tiene_referencia = False
+                for key in ['referencia_proveedor', 'default_code', 'barcode', 'ean13', 'codigo', 'ref']:
+                    if key in producto and producto[key]:
+                        tiene_referencia = True
+                        logger.info(f"Producto {nombre_producto} tiene referencia: {key}={producto[key]}")
+                        break
+                
+                if not tiene_referencia:
+                    logger.warning(f"Producto {nombre_producto} no tiene ninguna referencia o ID. Esto podría causar duplicados.")
+                    # Generar una referencia basada en el nombre para evitar duplicados
+                    import hashlib
+                    hash_obj = hashlib.md5(nombre_producto.encode())
+                    producto['default_code'] = f"AUTO-{hash_obj.hexdigest()[:8]}"
+                    logger.info(f"Generada referencia automática: {producto['default_code']}")
+                    tiene_referencia = True
                 
                 # Asegurar que el campo 'name' siempre esté presente
                 if 'name' not in producto or not producto['name']:
@@ -225,6 +287,19 @@ async def process_and_load_excel(
                 # Asegurar que type sea 'consu' para productos físicos en Odoo 18
                 # En Odoo 18, solo se usa el campo 'type' y no 'detailed_type'
                 producto['type'] = 'consu'
+                
+                # Asegurar que el código de barras siempre sea una cadena de texto
+                # Esto evita el error OverflowError: int exceeds XML-RPC limits
+                if 'barcode' in producto and producto['barcode'] is not None:
+                    producto['barcode'] = str(producto['barcode'])
+                    logger.info(f"Código de barras convertido a cadena: {producto['barcode']}")
+                    
+                # También manejar posibles campos alternativos de códigos de barras
+                for barcode_field in ['ean13', 'codigo_barras']:
+                    if barcode_field in producto and producto[barcode_field] is not None:
+                        producto['barcode'] = str(producto[barcode_field])
+                        logger.info(f"Campo {barcode_field} convertido a cadena y asignado a barcode: {producto['barcode']}")
+                        break
                 
                 # Verificar y convertir precios si existen
                 if 'precio_venta' in producto and producto['precio_venta']:

@@ -66,5 +66,21 @@ class Config:
             "username": cls.ODOO_USERNAME,
             "password": cls.ODOO_PASSWORD
         }
+        
+    @classmethod
+    def set_odoo_config(cls, config_dict: dict) -> None:
+        """Establece la configuración de Odoo desde un diccionario
+        
+        Args:
+            config_dict: Diccionario con las claves url, db, username y password
+        """
+        if "url" in config_dict:
+            cls.ODOO_URL = config_dict["url"]
+        if "db" in config_dict:
+            cls.ODOO_DB = config_dict["db"]
+        if "username" in config_dict:
+            cls.ODOO_USERNAME = config_dict["username"]
+        if "password" in config_dict:
+            cls.ODOO_PASSWORD = config_dict["password"]
 
 config = Config()

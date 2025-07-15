@@ -24,9 +24,9 @@ def main():
     
     # Configuración del servidor
     config = {
-        "app": "main_new:app",
+        "app": "main:app",
         "host": "0.0.0.0",
-        "port": 8001,
+        "port": 8000,
         "reload": False,  # Desactivar reload para mayor estabilidad
         "log_level": "info",
         "access_log": True,

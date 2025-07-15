@@ -86,9 +86,19 @@ async def call_llm(prompt: str, provider: Optional[str] = None) -> Dict[str, Any
                 if resp.status_code != 200:
                     logger.error(f"[LLM] Error HTTP {resp.status_code} de {current_prov.upper()}")
                     logger.error(f"[LLM] Respuesta de error: {resp.text[:500]}")
+                    
+                    # Detectar errores específicos de límite de capacidad o tasa
+                    error_text = resp.text.lower()
+                    if "capacity_exceeded" in error_text or "rate_limited" in error_text:
+                        logger.warning(f"[LLM] Detectado error de límite en {current_prov.upper()}, cambiando a siguiente proveedor")
+                        last_error = f"Error de límite con {current_prov}: {resp.text[:100]}"
+                        continue
+                    
+                    # Otros errores HTTP comunes que justifican cambio de proveedor
                     if resp.status_code in [401, 404, 429, 502, 503]:
                         last_error = f"Error {resp.status_code} con {current_prov}: {resp.text[:100]}"
                         continue
+                        
                     resp.raise_for_status()
                 body = resp.json()
                 logger.info(f"[LLM] Respuesta exitosa de {current_prov.upper()}")

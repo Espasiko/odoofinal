@@ -31,7 +31,7 @@ async def get_products(
     import logging
     logger = logging.getLogger("api.routes.products")
     logger.info(f"Llamada a /products page={page} size={size} search={search} category={category}")
-    products, total = product_service.get_paginated_products(
+    result = product_service.get_paginated_products(
         page=page, 
         limit=size, 
         sort_by=sort_by, 
@@ -40,8 +40,10 @@ async def get_products(
         category=category,
         include_inactive=include_inactive
     )
+    products = result.get('items', [])
+    total = result.get('total', 0)
     logger.info(f"Respuesta de get_paginated_products: {len(products)} productos, total={total}")
-    pages = (total + size - 1) // size if size else 1
+    pages = result.get('pages', (total + size - 1) // size if size else 1)
     logger.info(f"Paginas calculadas: {pages}")
     return PaginatedResponse(data=products, total=total, page=page, limit=size, pages=pages)
 

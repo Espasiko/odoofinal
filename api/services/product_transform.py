@@ -79,7 +79,12 @@ def prepare_product_vals(product_data, supplier_name=None) -> Dict[str, Any]:
             continue
         odoo_key = FIELD_MAPPINGS.get(key, key)
         if odoo_key in ALLOWED_FIELDS and value not in (None, "") and odoo_key not in vals:
-            vals[odoo_key] = value
+            # Asegurar que el código de barras siempre sea una cadena de texto
+            if odoo_key == 'barcode' and value is not None:
+                vals[odoo_key] = str(value)
+                logging.info(f"Código de barras convertido a cadena: {vals[odoo_key]}")
+            else:
+                vals[odoo_key] = value
             
     # Inferir categoría si no está definida
     if 'categ_id' not in vals and 'name' in vals:

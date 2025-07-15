@@ -1,8 +1,9 @@
 // NUEVO COMPONENTE SIMPLIFICADO
 import React, { useState, useRef } from 'react';
-import { Button, Card, Input, List, message, Progress, Typography } from 'antd';
+import { Button, Card, Input, List, message, Progress, Typography, Space } from 'antd';
 import axios from 'axios';
 import { useOdoo } from './OdooContext';
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
@@ -21,6 +22,7 @@ interface ImportResult {
 }
 
 const ImportExcelChunk: React.FC = () => {
+  const navigate = useNavigate();
   const fileRef = useRef<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   
@@ -120,6 +122,14 @@ const ImportExcelChunk: React.FC = () => {
           keepGoing = false;
           setStatus('Importación completada.');
           message.success(`Creados: ${totalCreated}, fallidos: ${totalFailed}`);
+          
+          // Mostrar mensaje de éxito más detallado si se crearon productos
+          if (totalCreated > 0) {
+            message.success({
+              content: 'Productos importados correctamente. Puedes verlos en la lista de productos.',
+              duration: 5
+            });
+          }
         } else {
           // Avanzar al siguiente bloque
           startRow += CHUNK_SIZE;
@@ -187,6 +197,8 @@ const ImportExcelChunk: React.FC = () => {
             <span style={{ color: 'green' }}>{results.totalCreados}</span> | Fallidos:{' '}
             <span style={{ color: 'red' }}>{results.totalFallidos}</span>
           </p>
+          
+
 
           {results.created.length > 0 && (
             <>
@@ -203,15 +215,38 @@ const ImportExcelChunk: React.FC = () => {
 
           {results.failed.length > 0 && (
             <>
-              <Text strong>Productos fallidos</Text>
+              <Text strong>Productos con error</Text>
               <List
                 size="small"
                 bordered
                 dataSource={results.failed}
-                renderItem={(it) => <List.Item>{it.name} - Error: {it.error}</List.Item>}
+                renderItem={(it) => <List.Item>{it.name}: {it.error}</List.Item>}
                 style={{ margin: '8px 0', maxHeight: 200, overflowY: 'auto' }}
               />
             </>
+          )}
+          
+          {!uploading && results.totalCreados > 0 && (
+            <Space style={{ marginTop: 16 }}>
+              <Button type="primary" onClick={() => navigate('/products')}>
+                Ver Lista de Productos
+              </Button>
+              <Button onClick={() => {
+                setResults({
+                  created: [],
+                  failed: [],
+                  totalIntentados: 0,
+                  totalCreados: 0,
+                  totalFallidos: 0,
+                });
+                setFileName('');
+                fileRef.current = null;
+                setStatus('');
+                setProgress(0);
+              }}>
+                Nueva Importación
+              </Button>
+            </Space>
           )}
         </div>
       )}
