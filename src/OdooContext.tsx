@@ -46,13 +46,20 @@ export const OdooProvider: React.FC<AuthProviderProps> = ({ children }) => {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
         });
+        const newToken = response.data.access_token;
+        const newRefreshToken = response.data.refresh_token;
+        
         setAuth({
-          accessToken: response.data.access_token,
-          refreshToken: response.data.refresh_token,
+          accessToken: newToken,
+          refreshToken: newRefreshToken,
         });
         setIsAuthenticated(true);
-        localStorage.setItem('accessToken', response.data.access_token);
-        localStorage.setItem('refreshToken', response.data.refresh_token);
+        localStorage.setItem('accessToken', newToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        
+        // Configurar el token en los headers de Axios
+        axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        console.log('Token obtenido y configurado automáticamente');
       } catch (error) {
         console.error('Error fetching token:', error);
         setIsAuthenticated(false);
@@ -67,6 +74,9 @@ export const OdooProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshToken: storedRefreshToken,
       });
       setIsAuthenticated(true);
+      // Configurar el token en los headers de Axios al cargar un token existente
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`;
+      console.log('Token configurado desde localStorage');
     } else {
       obtainToken();
     }
@@ -120,16 +130,47 @@ export const OdooProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (error: AxiosError) => {
         if (error.response?.status === 401 && !(error.config as any)._retry) {
           try {
+            console.log('Interceptor: Detectado error 401, intentando renovar token...');
             (error.config as any)._retry = true;
-            const t = await fetchTokenRequest();
-            setAuth({ accessToken: t.access_token, refreshToken: t.refresh_token });
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${t.access_token}`;
-            if (error.config?.headers) {
-              (error.config.headers as any)['Authorization'] = `Bearer ${t.access_token}`;
+            
+            // Guardar el config original para reintentarlo después
+            const originalConfig = error.config!;
+            
+            // Intentar obtener un nuevo token
+            const formData = new FormData();
+            formData.append('username', import.meta.env.VITE_ODOO_USERNAME || 'admin');
+            formData.append('password', import.meta.env.VITE_ODOO_PASSWORD || 'admin');
+            
+            const tokenResponse = await axios.post(
+              `${API_URL}/token`,
+              formData,
+              { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+            );
+            
+            const newToken = tokenResponse.data.access_token;
+            const newRefreshToken = tokenResponse.data.refresh_token;
+            
+            console.log('Interceptor: Token renovado exitosamente');
+            
+            // Actualizar estado y localStorage
+            setAuth({ accessToken: newToken, refreshToken: newRefreshToken });
+            localStorage.setItem('accessToken', newToken);
+            localStorage.setItem('refreshToken', newRefreshToken);
+            
+            // Actualizar headers para futuras peticiones
+            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+            
+            // Actualizar header en la petición original
+            if (originalConfig.headers) {
+              (originalConfig.headers as any)['Authorization'] = `Bearer ${newToken}`;
             }
-            return axiosInstance(error.config!);
+            
+            // Reintentar la petición original con el nuevo token
+            return axiosInstance(originalConfig);
           } catch (e) {
+            console.error('Interceptor: Error al renovar token:', e);
             logout();
+            return Promise.reject(error);
           }
         }
         return Promise.reject(error);

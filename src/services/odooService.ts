@@ -193,8 +193,21 @@ class OdooService {
   }
 
   private async ensureToken() {
-    if (!this.token || !this.tokenExpiresAt || Date.now() > this.tokenExpiresAt - 60000) {
+    if (!this.isTokenValid()) {
       await this.loginAuto();
+    }
+  }
+  
+  // Método público para verificar si el token es válido
+  public isTokenValid(): boolean {
+    return !!this.token && !!this.tokenExpiresAt && Date.now() < this.tokenExpiresAt - 60000;
+  }
+  
+  // Método público para renovar el token
+  public async renewToken(): Promise<void> {
+    await this.loginAuto();
+    if (!this.isTokenValid()) {
+      throw new Error('No se pudo renovar el token de autenticación');
     }
   }
 

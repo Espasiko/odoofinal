@@ -22,7 +22,7 @@ from api.routes.mistral_free_ocr import router as mistral_free_ocr_router
 from api.routes.invoices import router as invoices_router
 
 from api.routes.web_ui import router as web_ui_router
-from api.routes.mistral_llm_excel import router as mistral_llm_excel_router
+# from api.routes.legacy.mistral_llm_excel import router as mistral_llm_excel_router  # Movido a legacy
 from api.routes.excel_importer import router as excel_importer_router
 
 # Crear aplicación FastAPI
@@ -63,7 +63,7 @@ app.include_router(mistral_ocr_router)
 app.include_router(mistral_free_ocr_router)
 app.include_router(invoices_router)
 
-app.include_router(mistral_llm_excel_router)
+# app.include_router(mistral_llm_excel_router)  # Desactivado - endpoint legacy
 app.include_router(excel_importer_router)
 
 # Incluir rutas de interfaz web (al final para que no interfieran con las API)

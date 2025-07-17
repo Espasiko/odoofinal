@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Card, Typography, Input, Checkbox, Button, Progress, message, Tabs, Divider, Space, Table, Select, Spin, Upload, InputNumber, DatePicker, App } from 'antd';
+import { Card, Typography, Input, Checkbox, Button, Progress, message, Tabs, Divider, Space, Table, Select, Spin, Upload, InputNumber, DatePicker, App, Form, Alert } from 'antd';
 import dayjs from 'dayjs';
 import type { TabsProps } from 'antd';
 
 import { useOdoo } from './OdooContext';
+import { validateNifCif, formatNifCif } from './utils/nifCifValidator';
 
 const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
@@ -12,6 +13,11 @@ interface Provider {
   id: number;
   name: string;
   vat?: string;
+}
+
+interface NifCifValidation {
+  isValid: boolean;
+  message?: string;
 }
 
 const ImportInvoice: React.FC = () => {
@@ -38,6 +44,8 @@ const ImportInvoice: React.FC = () => {
   const [loadingProviders, setLoadingProviders] = useState<boolean>(false);
   const [selectedProvider, setSelectedProvider] = useState<number | null>(null);
   const [updateIfExists, setUpdateIfExists] = useState<boolean>(false);
+  const [providerVat, setProviderVat] = useState<string>('');
+  const [vatValidation, setVatValidation] = useState<NifCifValidation>({ isValid: false });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -45,11 +53,46 @@ const ImportInvoice: React.FC = () => {
   const fetchProviders = async () => {
     try {
       setLoadingProviders(true);
+      console.log('Iniciando solicitud de proveedores...');
+      
       const response = await api.get('/api/v1/providers/all');
+      console.log('Proveedores recibidos:', response.data?.length || 0);
       setProviders(response.data || []);
     } catch (err: any) {
       console.error('Error al cargar proveedores:', err);
-      messageApi.error('No se pudieron cargar los proveedores');
+      
+      // Mostrar información detallada del error
+      const errorStatus = err.response?.status;
+      const errorMessage = err.response?.data?.detail || err.message;
+      
+      console.error(`Error ${errorStatus}: ${errorMessage}`);
+      
+      // Si es un error de autenticación, intentar renovar el token y reintentar
+      if (errorStatus === 401) {
+        messageApi.warning('Sesión expirada. Intentando renovar automáticamente...');
+        
+        try {
+          console.log('Error 401, esperando a que el interceptor renueve el token...');
+          // Esperamos un momento para que el interceptor tenga tiempo de renovar el token
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Reintentamos la llamada
+          console.log('Reintentando obtener proveedores...');
+          const retryResponse = await api.get('/api/v1/providers/all');
+          console.log('Reintento exitoso, proveedores recibidos:', retryResponse.data?.length || 0);
+          setProviders(retryResponse.data || []);
+          messageApi.success('Sesión renovada correctamente');
+        } catch (retryErr: any) {
+          console.error('Error después de reintentar:', retryErr);
+          const retryErrorStatus = retryErr.response?.status;
+          const retryErrorMessage = retryErr.response?.data?.detail || retryErr.message;
+          
+          console.error(`Error en reintento ${retryErrorStatus}: ${retryErrorMessage}`);
+          messageApi.error(`Error de autenticación (${retryErrorStatus}). Por favor, recargue la página.`);
+        }
+      } else {
+        messageApi.error(`Error al cargar proveedores: ${errorMessage} (${errorStatus})`);
+      }
     } finally {
       setLoadingProviders(false);
     }
@@ -66,12 +109,32 @@ const ImportInvoice: React.FC = () => {
     if (freeResponseJson?.invoice_data) {
       setEditableInvoiceData({
         ...freeResponseJson.invoice_data,
-        line_items: freeResponseJson.invoice_data.line_items?.map((item: any) => ({
-          ...item
+        line_items: freeResponseJson.invoice_data.line_items?.map((item: any, index: number) => ({
+          ...item,
+          index,
+          // Asegurar que los nuevos campos estén inicializados
+          discount: item.discount || 0,
+          tax_type: item.tax_type || 'iva_21', // Por defecto IVA 21%
+          apply_recargo_equivalencia: item.apply_recargo_equivalencia || false,
+          subtotal: (item.quantity * item.price_unit * (1 - (item.discount || 0) / 100)).toFixed(2)
         })) || []
       });
+      
+      // Si hay un NIF/CIF del proveedor en los datos OCR, actualizarlo
+      if (freeResponseJson.invoice_data.supplier_vat) {
+        const formattedVat = formatNifCif(freeResponseJson.invoice_data.supplier_vat);
+        setProviderVat(formattedVat);
+        validateProviderVat(formattedVat);
+      }
     }
   }, [freeResponseJson]);
+  
+  // Validar el NIF/CIF del proveedor
+  const validateProviderVat = (value: string) => {
+    const validation = validateNifCif(value);
+    setVatValidation(validation);
+    return validation.isValid;
+  };
 
   const handleUpload = async () => {
     if (!fileRef.current) {
@@ -186,6 +249,12 @@ const ImportInvoice: React.FC = () => {
       messageApi.error('Selecciona un proveedor antes de crear la factura');
       return;
     }
+    
+    // Validar que el NIF/CIF sea válido
+    if (!vatValidation.isValid) {
+      messageApi.error('El NIF/CIF del proveedor no es válido. Por favor, corrígalo antes de continuar.');
+      return;
+    }
 
     try {
       setFreeUploading(true);
@@ -193,12 +262,33 @@ const ImportInvoice: React.FC = () => {
       // Clonamos los datos de la factura para modificarlos
       const modifiedInvoiceData = { ...freeResponseJson };
       
+      // Preparar los datos de líneas de factura con impuestos y descuentos
+      const processedLineItems = editableInvoiceData.line_items.map((line: any) => {
+        // Asegurar que todos los campos necesarios estén presentes
+        return {
+          name: line.name || '',
+          quantity: parseFloat(line.quantity) || 0,
+          price_unit: parseFloat(line.price_unit) || 0,
+          default_code: line.default_code || '',
+          // Incluir campos de descuento e impuestos
+          discount: parseFloat(line.discount) || 0,
+          tax_type: line.tax_type || 'iva_21',
+          apply_recargo_equivalencia: Boolean(line.apply_recargo_equivalencia)
+        };
+      });
+      
+      // Aseguramos que el NIF/CIF validado y las líneas procesadas se incluyan en los datos
+      const dataToSend = {
+        ...editableInvoiceData,
+        supplier_vat: providerVat, // Usar el NIF/CIF validado
+        line_items: processedLineItems // Usar las líneas procesadas con impuestos y descuentos
+      };
+      
+      console.log('Enviando datos de factura:', JSON.stringify(dataToSend, null, 2));
+      
       // Reemplazamos el ID del proveedor con el seleccionado manualmente y usamos los datos editados
       const res = await api.post('/api/v1/mistral-free-ocr/create-invoice', {
-        ocr_data: {
-          ...modifiedInvoiceData,
-          invoice_data: editableInvoiceData // Usar los datos editados por el usuario
-        },
+        ocr_data: dataToSend, // Usar los datos editados por el usuario
         supplier_id: selectedProvider,
         update_if_exists: updateIfExists
       });
@@ -226,10 +316,43 @@ const ImportInvoice: React.FC = () => {
   const handleLineItemChange = (index: number, field: string, value: any) => {
     setEditableInvoiceData((prev: any) => {
       const newLineItems = [...prev.line_items];
+      
+      // Manejar diferentes tipos de campos
+      let processedValue = value;
+      
+      if (field === 'quantity' || field === 'price_unit') {
+        // Convertir a número para campos numéricos
+        processedValue = parseFloat(value) || 0;
+      } else if (field === 'discount') {
+        // Asegurar que el descuento sea un número entre 0 y 100
+        processedValue = Math.min(Math.max(parseFloat(value) || 0, 0), 100);
+      } else if (field === 'apply_recargo_equivalencia') {
+        // Asegurar que sea booleano
+        processedValue = Boolean(value);
+      } else if (field === 'tax_type') {
+        // Validar que sea uno de los tipos de impuesto permitidos
+        const validTaxTypes = ['iva_21', 'iva_10', 'iva_4'];
+        processedValue = validTaxTypes.includes(value) ? value : 'iva_21';
+      }
+      
+      // Actualizar el elemento de línea
       newLineItems[index] = {
         ...newLineItems[index],
-        [field]: field === 'quantity' || field === 'price_unit' ? parseFloat(value) : value
+        [field]: processedValue
       };
+      
+      // Recalcular el subtotal si cambia cantidad, precio o descuento
+      if (field === 'quantity' || field === 'price_unit' || field === 'discount') {
+        const quantity = parseFloat(newLineItems[index].quantity) || 0;
+        const price = parseFloat(newLineItems[index].price_unit) || 0;
+        const discount = parseFloat(newLineItems[index].discount) || 0;
+        
+        // Calcular subtotal con descuento aplicado
+        const subtotalWithDiscount = quantity * price * (1 - discount / 100);
+        newLineItems[index].subtotal = subtotalWithDiscount.toFixed(2);
+        console.log(`Recalculando subtotal: ${quantity} * ${price} * (1 - ${discount}/100) = ${subtotalWithDiscount.toFixed(2)}`);
+      }
+      
       return {
         ...prev,
         line_items: newLineItems
@@ -250,7 +373,10 @@ const ImportInvoice: React.FC = () => {
       quantity: item.quantity,
       price_unit: item.price_unit,
       default_code: item.default_code || '-',
-      subtotal: (item.quantity * item.price_unit).toFixed(2)
+      discount: item.discount || 0,
+      tax_type: item.tax_type || 'iva_21', // Por defecto IVA 21%
+      apply_recargo_equivalencia: item.apply_recargo_equivalencia || false,
+      subtotal: (item.quantity * item.price_unit * (1 - (item.discount || 0) / 100)).toFixed(2)
     })) || [];
     
     const columns = [
@@ -270,31 +396,88 @@ const ImportInvoice: React.FC = () => {
         title: 'Cantidad', 
         dataIndex: 'quantity', 
         key: 'quantity',
+        width: 80,
         render: (text: number, record: any) => (
           <InputNumber 
             value={text} 
-            onChange={(value: number | null) => handleLineItemChange(record.index, 'quantity', value || 0)}
+            onChange={(value) => handleLineItemChange(record.index, 'quantity', value || 0)}
+            style={{ width: '100%' }}
             min={0}
             step={0.01}
-            style={{ width: '100%' }}
           />
         )
       },
       { 
         title: 'Precio', 
         dataIndex: 'price_unit', 
-        key: 'price_unit', 
+        key: 'price_unit',
+        width: 100,
         render: (text: number, record: any) => (
           <InputNumber 
             value={text} 
-            onChange={(value: number | null) => handleLineItemChange(record.index, 'price_unit', value || 0)}
+            onChange={(value) => handleLineItemChange(record.index, 'price_unit', value || 0)}
+            style={{ width: '100%' }}
             min={0}
             step={0.01}
             formatter={(value) => `${value} €`}
-            parser={(value: string | undefined) => parseFloat(value?.replace(' €', '') || '0')}
-            style={{ width: '100%' }}
+            parser={(value) => parseFloat(value?.replace(' €', '') || '0')}
           />
         )
+      },
+      { 
+        title: 'Dto %', 
+        dataIndex: 'discount', 
+        key: 'discount',
+        width: 70,
+        render: (text: number, record: any) => (
+          <InputNumber 
+            value={text} 
+            onChange={(value) => handleLineItemChange(record.index, 'discount', value || 0)}
+            style={{ width: '100%' }}
+            min={0}
+            max={100}
+            step={1}
+            formatter={(value) => `${value}%`}
+            parser={(value) => parseFloat(value?.replace('%', '') || '0')}
+          />
+        )
+      },
+      { 
+        title: 'Impuesto', 
+        dataIndex: 'tax_type', 
+        key: 'tax_type',
+        width: 100,
+        render: (text: string, record: any) => (
+          <Select
+            value={text}
+            onChange={(value) => handleLineItemChange(record.index, 'tax_type', value)}
+            style={{ width: '100%' }}
+            options={[
+              { value: 'iva_21', label: 'IVA 21%' },
+              { value: 'iva_10', label: 'IVA 10%' },
+              { value: 'iva_4', label: 'IVA 4%' },
+            ]}
+          />
+        )
+      },
+      { 
+        title: 'R.E.', 
+        dataIndex: 'apply_recargo_equivalencia', 
+        key: 'apply_recargo_equivalencia',
+        width: 60,
+        render: (checked: boolean, record: any) => (
+          <Checkbox
+            checked={checked}
+            onChange={(e) => handleLineItemChange(record.index, 'apply_recargo_equivalencia', e.target.checked)}
+          />
+        )
+      },
+      { 
+        title: 'Subtotal', 
+        dataIndex: 'subtotal', 
+        key: 'subtotal',
+        width: 100,
+        render: (text: string) => `${text} €` 
       },
       { 
         title: 'Código', 
@@ -391,7 +574,31 @@ const ImportInvoice: React.FC = () => {
           <div style={{ flex: '1 1 300px' }}>
             <Title level={5}>Proveedor</Title>
             <p><Text strong>Nombre:</Text> {invoiceData.supplier_name}</p>
-            <p><Text strong>NIF/CIF:</Text> {invoiceData.supplier_vat || '-'}</p>
+            
+            {/* Campo NIF/CIF con validación */}
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>NIF/CIF:</Text>
+              <Form.Item 
+                validateStatus={vatValidation.isValid ? 'success' : (providerVat ? 'error' : '')}
+                help={!vatValidation.isValid && providerVat ? vatValidation.message : null}
+                style={{ marginBottom: '0' }}
+              >
+                <Input 
+                  value={providerVat} 
+                  onChange={(e) => {
+                    const formatted = formatNifCif(e.target.value);
+                    setProviderVat(formatted);
+                    validateProviderVat(formatted);
+                    // Actualizar también en los datos editables
+                    handleInvoiceFieldChange('supplier_vat', formatted);
+                  }}
+                  placeholder="Introduce NIF/CIF válido"
+                  status={vatValidation.isValid ? '' : (providerVat ? 'error' : '')}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </div>
+            
             <p><Text strong>Dirección:</Text> {invoiceData.supplier_address || '-'}</p>
             <p><Text strong>Ciudad:</Text> {invoiceData.supplier_city || '-'}</p>
             <p><Text strong>CP:</Text> {invoiceData.supplier_zip || '-'}</p>
@@ -407,7 +614,17 @@ const ImportInvoice: React.FC = () => {
                   placeholder="Selecciona un proveedor" 
                   loading={loadingProviders}
                   value={selectedProvider || undefined}
-                  onChange={(value: number) => setSelectedProvider(value)}
+                  onChange={(value: number) => {
+                    setSelectedProvider(value);
+                    // Buscar el proveedor seleccionado y actualizar el NIF/CIF si existe
+                    const provider = providers.find(p => p.id === value);
+                    if (provider && provider.vat) {
+                      const formattedVat = formatNifCif(provider.vat);
+                      setProviderVat(formattedVat);
+                      validateProviderVat(formattedVat);
+                      handleInvoiceFieldChange('supplier_vat', formattedVat);
+                    }
+                  }}
                   optionFilterProp="children"
                   showSearch
                 >
@@ -419,6 +636,18 @@ const ImportInvoice: React.FC = () => {
                 </Select>
                 {loadingProviders && <Spin size="small" style={{ marginLeft: '10px' }} />}
               </div>
+              
+              {/* Alerta de NIF/CIF obligatorio */}
+              {!vatValidation.isValid && (
+                <Alert
+                  message="NIF/CIF obligatorio"
+                  description="Debes introducir un NIF/CIF válido para el proveedor antes de crear la factura."
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: '10px', marginBottom: '10px' }}
+                />
+              )}
+              
               <div>
                 <Checkbox
                   checked={updateIfExists}
@@ -430,7 +659,7 @@ const ImportInvoice: React.FC = () => {
                 <Button 
                   type="primary" 
                   onClick={createInvoiceWithCorrectedSupplier}
-                  disabled={!selectedProvider || freeUploading}
+                  disabled={!selectedProvider || freeUploading || !vatValidation.isValid}
                 >
                   {updateIfExists ? "Crear/Actualizar Factura" : "Crear Factura"}
                 </Button>
