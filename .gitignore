@@ -60,6 +60,5 @@ temp/
 *.tar.gz
 *.zip
 node_modules/
-ejemplos/
 .trae/
 backups/
