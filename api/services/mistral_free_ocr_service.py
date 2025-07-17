@@ -34,19 +34,42 @@ class MistralFreeOCRService:
         """
         return ['.pdf', '.jpg', '.jpeg', '.png']
     
-    def validate_file_size(self, file_size: int) -> bool:
+    def validate_file_size(self, file_path: str) -> bool:
         """
         Valida que el archivo no exceda el límite de tamaño (50MB)
         
         Args:
-            file_size: Tamaño del archivo en bytes
+            file_path: Ruta al archivo cuyo tamaño se va a validar
             
         Returns:
             bool: True si el tamaño es válido, False en caso contrario
         """
-        max_size_mb = 50
-        file_size_mb = file_size / (1024 * 1024)
-        return file_size_mb <= max_size_mb
+        import os
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Obtener el tamaño del archivo en bytes usando os.path.getsize
+            if not os.path.exists(file_path):
+                logger.error(f"El archivo {file_path} no existe")
+                return False
+                
+            file_size = os.path.getsize(file_path)
+            
+            # Asegurarse de que file_size sea un número
+            if not isinstance(file_size, (int, float)):
+                file_size = int(file_size)
+                
+            max_size_mb = 50
+            file_size_mb = file_size / (1024 * 1024)
+            
+            logger.info(f"Tamaño del archivo: {file_size_mb:.2f} MB (máximo permitido: {max_size_mb} MB)")
+            
+            return file_size_mb <= max_size_mb
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error al validar el tamaño del archivo: {e}")
+            return False
     
     def process_invoice_file(self, file_path: str) -> Dict[str, Any]:
         """
@@ -65,7 +88,7 @@ class MistralFreeOCRService:
             import mimetypes
             
             # Validar tamaño de archivo
-            if not self.validate_file_size(os.path.getsize(file_path)):
+            if not self.validate_file_size(file_path):
                 return {
                     'success': False,
                     'error': "El archivo excede el límite de tamaño"
