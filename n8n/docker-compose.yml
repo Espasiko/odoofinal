@@ -1,0 +1,47 @@
+version: '3.8'
+
+volumes:
+  n8n_storage:
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+      - "3000:3000" # Puerto para servidor MCP
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_ENCRYPTION_KEY=pelotazo-n8n-secret-key
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_LOG_LEVEL=debug
+      # Configuración para Odoo
+      - N8N_ODOO_URL=http://odoo:8069
+      - N8N_ODOO_DB=fresh_odoo_db
+      - N8N_ODOO_USER=admin
+      - N8N_ODOO_PASSWORD=admin
+      # Configuración para SQLite (más sencillo para empezar)
+      - DB_TYPE=sqlite
+      - DB_SQLITE_PATH=/home/node/.n8n/database.sqlite
+      # Configuración para MCP Client y LLM
+      - N8N_NODES_INCLUDE_LANGCHAIN=true
+      - N8N_AI_ENABLED=true
+      - N8N_AI_NODES_ENABLED=true
+      - MISTRAL_API_KEY=
+      - OPENAI_API_KEY=
+      - GROQ_API_KEY=
+      # Configuración para API de n8n
+      - N8N_API_ENABLED=true
+      - N8N_API_AUTH_DISABLED=false
+      - N8N_API_AUTH_ACCESS_TOKEN=pelotazo-n8n-api-token-seguro-2025
+    volumes:
+      - n8n_storage:/home/node/.n8n
+    networks:
+      - manusodoo-roto_default
+
+networks:
+  manusodoo-roto_default:
+    external: true

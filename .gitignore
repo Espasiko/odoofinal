@@ -64,7 +64,7 @@ venv/
 ENV/
 
 # Archivos con credenciales sensibles
-n8n/docker-compose.yml
+# n8n/docker-compose.yml  # Permitimos este archivo para subirlo al repositorio
 n8n/*credentials*.json
 n8n/*_workflow*.json
 *.key
