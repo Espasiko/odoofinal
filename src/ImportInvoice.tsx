@@ -107,18 +107,56 @@ const ImportInvoice: React.FC = () => {
   // Cuando cambian los datos OCR, actualizar los datos editables
   useEffect(() => {
     if (freeResponseJson?.invoice_data) {
-      setEditableInvoiceData({
+      // Asegurarse de que todos los campos necesarios estén inicializados
+      const invoiceData = {
         ...freeResponseJson.invoice_data,
+        
+        // Asegurar campos del proveedor
+        supplier_name: freeResponseJson.invoice_data.supplier_name || '',
+        supplier_vat: freeResponseJson.invoice_data.supplier_vat || '',
+        supplier_address: freeResponseJson.invoice_data.supplier_address || '',
+        supplier_city: freeResponseJson.invoice_data.supplier_city || '',
+        supplier_zip: freeResponseJson.invoice_data.supplier_zip || '',
+        supplier_email: freeResponseJson.invoice_data.supplier_email || '',
+        supplier_phone: freeResponseJson.invoice_data.supplier_phone || '',
+        
+        // Asegurar campos del cliente
+        customer_name: freeResponseJson.invoice_data.customer_name || '',
+        customer_vat: freeResponseJson.invoice_data.customer_vat || '',
+        customer_address: freeResponseJson.invoice_data.customer_address || '',
+        customer_city: freeResponseJson.invoice_data.customer_city || '',
+        customer_zip: freeResponseJson.invoice_data.customer_zip || '',
+        
+        // Asegurar campos de la factura
+        invoice_number: freeResponseJson.invoice_data.invoice_number || '',
+        invoice_date: freeResponseJson.invoice_data.invoice_date || null,
+        due_date: freeResponseJson.invoice_data.due_date || null,
+        total_amount: freeResponseJson.invoice_data.total_amount || 0,
+        subtotal: freeResponseJson.invoice_data.subtotal || 0,
+        tax_amount: freeResponseJson.invoice_data.tax_amount || 0,
+        tax_rate: freeResponseJson.invoice_data.tax_rate || 21,
+        recargo_equivalencia: freeResponseJson.invoice_data.recargo_equivalencia || 0,
+        recargo_rate: freeResponseJson.invoice_data.recargo_rate || 0,
+        
+        // Procesar líneas de factura
         line_items: freeResponseJson.invoice_data.line_items?.map((item: any, index: number) => ({
           ...item,
           index,
           // Asegurar que los nuevos campos estén inicializados
+          name: item.name || '',
+          quantity: item.quantity || 0,
+          price_unit: item.price_unit || 0,
+          default_code: item.default_code || '',
           discount: item.discount || 0,
+          tax_rate: item.tax_rate || 21,
           tax_type: item.tax_type || 'iva_21', // Por defecto IVA 21%
           apply_recargo_equivalencia: item.apply_recargo_equivalencia || false,
+          recargo_rate: item.recargo_rate || 0,
           subtotal: (item.quantity * item.price_unit * (1 - (item.discount || 0) / 100)).toFixed(2)
         })) || []
-      });
+      };
+      
+      setEditableInvoiceData(invoiceData);
       
       // Si hay un NIF/CIF del proveedor en los datos OCR, actualizarlo
       if (freeResponseJson.invoice_data.supplier_vat) {
@@ -126,6 +164,8 @@ const ImportInvoice: React.FC = () => {
         setProviderVat(formattedVat);
         validateProviderVat(formattedVat);
       }
+      
+      console.log('Datos editables inicializados:', invoiceData);
     }
   }, [freeResponseJson]);
   
@@ -161,7 +201,7 @@ const ImportInvoice: React.FC = () => {
       formData.append('file', fileRef.current);
 
       const res = await api.post(
-        `/api/v1/mistral-ocr/process-invoice?create_in_odoo=${createInOdoo}`,
+        `/api/v1/mistral-free-ocr/process-invoice?create_in_odoo=${createInOdoo}`,
         formData,
         {
           onUploadProgress: (evt: any) => {
@@ -206,9 +246,22 @@ const ImportInvoice: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('file', freeFileRef.current);
+      
+      // Añadir información del proveedor si está disponible
+      if (selectedProvider) {
+        const provider = providers.find(p => p.id === selectedProvider);
+        if (provider) {
+          formData.append('supplier_name', provider.name);
+        }
+      }
+      
+      // Añadir NIF/CIF si está disponible y es válido
+      if (providerVat && vatValidation.isValid) {
+        formData.append('supplier_vat', providerVat);
+      }
 
       const res = await api.post(
-        `/api/v1/mistral-free-ocr/process-invoice?create_in_odoo=${freeCreateInOdoo}`,
+        `/api/v1/ocr/invoice?ocr_method=auto`,
         formData,
         {
           onUploadProgress: (evt) => {
@@ -219,8 +272,8 @@ const ImportInvoice: React.FC = () => {
       );
 
       setFreeResponseJson(res.data);
-      setFreeStatus('Factura procesada correctamente con Mistral Free OCR.');
-      messageApi.success('Factura procesada con Mistral Free OCR.');
+      setFreeStatus('Factura procesada correctamente con el método estándar.');
+      messageApi.success('Factura procesada con el método estándar.');
       
       // Si se detectó un proveedor, buscar su ID en la lista de proveedores
       if (res.data?.invoice_data?.supplier_name) {
@@ -236,7 +289,7 @@ const ImportInvoice: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setFreeStatus('Error al procesar la factura con Mistral Free OCR');
+      setFreeStatus('Error al procesar la factura con el método estándar');
       messageApi.error(err?.response?.data?.detail ?? err?.message ?? 'Error desconocido');
     } finally {
       setFreeUploading(false);
@@ -287,8 +340,8 @@ const ImportInvoice: React.FC = () => {
       console.log('Enviando datos de factura:', JSON.stringify(dataToSend, null, 2));
       
       // Reemplazamos el ID del proveedor con el seleccionado manualmente y usamos los datos editados
-      const res = await api.post('/api/v1/mistral-free-ocr/create-invoice', {
-        ocr_data: dataToSend, // Usar los datos editados por el usuario
+      const res = await api.post('/api/v1/ocr/invoice/process-verified/' + freeResponseJson.result_id, {
+        invoice_data: dataToSend, // Usar los datos editados por el usuario
         supplier_id: selectedProvider,
         update_if_exists: updateIfExists
       });
@@ -573,7 +626,14 @@ const ImportInvoice: React.FC = () => {
           
           <div style={{ flex: '1 1 300px' }}>
             <Title level={5}>Proveedor</Title>
-            <p><Text strong>Nombre:</Text> {invoiceData.supplier_name}</p>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Nombre:</Text>
+              <Input 
+                value={invoiceData.supplier_name} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_name', e.target.value)}
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
             
             {/* Campo NIF/CIF con validación */}
             <div style={{ marginBottom: '10px' }}>
@@ -599,11 +659,51 @@ const ImportInvoice: React.FC = () => {
               </Form.Item>
             </div>
             
-            <p><Text strong>Dirección:</Text> {invoiceData.supplier_address || '-'}</p>
-            <p><Text strong>Ciudad:</Text> {invoiceData.supplier_city || '-'}</p>
-            <p><Text strong>CP:</Text> {invoiceData.supplier_zip || '-'}</p>
-            <p><Text strong>Email:</Text> {invoiceData.supplier_email || '-'}</p>
-            <p><Text strong>Teléfono:</Text> {invoiceData.supplier_phone || '-'}</p>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Dirección:</Text>
+              <Input 
+                value={invoiceData.supplier_address || ''} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_address', e.target.value)}
+                placeholder="Dirección"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Ciudad:</Text>
+              <Input 
+                value={invoiceData.supplier_city || ''} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_city', e.target.value)}
+                placeholder="Ciudad"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>CP:</Text>
+              <Input 
+                value={invoiceData.supplier_zip || ''} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_zip', e.target.value)}
+                placeholder="Código Postal"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Email:</Text>
+              <Input 
+                value={invoiceData.supplier_email || ''} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_email', e.target.value)}
+                placeholder="Email"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Teléfono:</Text>
+              <Input 
+                value={invoiceData.supplier_phone || ''} 
+                onChange={(e) => handleInvoiceFieldChange('supplier_phone', e.target.value)}
+                placeholder="Teléfono"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
             
             <Divider orientation="left" plain>Corrección Manual</Divider>
             <div style={{ marginBottom: '15px' }}>
@@ -669,8 +769,51 @@ const ImportInvoice: React.FC = () => {
           
           <div style={{ flex: '1 1 300px' }}>
             <Title level={5}>Cliente</Title>
-            <p><Text strong>Nombre:</Text> {invoiceData.customer_name || '-'}</p>
-            <p><Text strong>NIF/CIF:</Text> {invoiceData.customer_vat || '-'}</p>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Nombre:</Text>
+              <Input 
+                value={invoiceData.customer_name || ''} 
+                onChange={(e) => handleInvoiceFieldChange('customer_name', e.target.value)}
+                placeholder="Nombre del cliente"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>NIF/CIF:</Text>
+              <Input 
+                value={invoiceData.customer_vat || ''} 
+                onChange={(e) => handleInvoiceFieldChange('customer_vat', e.target.value)}
+                placeholder="NIF/CIF del cliente"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Dirección:</Text>
+              <Input 
+                value={invoiceData.customer_address || ''} 
+                onChange={(e) => handleInvoiceFieldChange('customer_address', e.target.value)}
+                placeholder="Dirección del cliente"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Ciudad:</Text>
+              <Input 
+                value={invoiceData.customer_city || ''} 
+                onChange={(e) => handleInvoiceFieldChange('customer_city', e.target.value)}
+                placeholder="Ciudad del cliente"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>CP:</Text>
+              <Input 
+                value={invoiceData.customer_zip || ''} 
+                onChange={(e) => handleInvoiceFieldChange('customer_zip', e.target.value)}
+                placeholder="Código Postal del cliente"
+                style={{ width: '100%', marginTop: '5px' }}
+              />
+            </div>
           </div>
         </div>
         
@@ -690,11 +833,11 @@ const ImportInvoice: React.FC = () => {
   const items: TabsProps['items'] = [
     {
       key: '1',
-      label: 'Método Estándar',
+      label: 'Procesar con IA',
       children: (
         <div>
           <Paragraph>
-            Sube una factura en PDF o imagen para extraer los datos mediante IA y crearla/actualizarla en Odoo.
+            Sube una factura en PDF o imagen para extraer los datos mediante IA avanzada y crearla/actualizarla en Odoo.
           </Paragraph>
 
           <input
@@ -721,7 +864,7 @@ const ImportInvoice: React.FC = () => {
 
           <div style={{ marginTop: 16 }}>
             <Button type="primary" onClick={handleUpload} loading={uploading} disabled={!fileRef.current}>
-              Procesar Factura
+              Procesar con IA
             </Button>
           </div>
 
@@ -746,12 +889,77 @@ const ImportInvoice: React.FC = () => {
     },
     {
       key: '2',
-      label: 'Mistral Free OCR',
+      label: 'Método Estándar',
       children: (
         <div>
           <Paragraph>
-            Sube una factura en PDF o imagen para extraer los datos mediante Mistral Free OCR y crearla/actualizarla en Odoo.
+            Sube una factura en PDF o imagen para extraer los datos mediante el método estándar y crearla/actualizarla en Odoo.
           </Paragraph>
+
+          {/* Selección previa de proveedor */}
+          <div style={{ marginBottom: 16 }}>
+            <Title level={5}>Información del proveedor (opcional)</Title>
+            <Paragraph type="secondary">
+              Proporcionar esta información mejorará la precisión del OCR
+            </Paragraph>
+            
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ flex: 2 }}>
+                <label>Seleccionar proveedor:</label>
+                <Select
+                  placeholder="Selecciona un proveedor"
+                  style={{ width: '100%' }}
+                  value={selectedProvider}
+                  onChange={(value) => {
+                    setSelectedProvider(value);
+                    // Actualizar el NIF/CIF cuando se selecciona un proveedor
+                    const provider = providers.find(p => p.id === value);
+                    if (provider?.vat) {
+                      const formattedVat = formatNifCif(provider.vat);
+                      setProviderVat(formattedVat);
+                      validateProviderVat(formattedVat);
+                    }
+                  }}
+                  loading={loadingProviders}
+                  disabled={freeUploading}
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    option?.children?.toString().toLowerCase().includes(input.toLowerCase()) ?? false
+                  }
+                >
+                  {providers.map(provider => (
+                    <Option key={provider.id} value={provider.id}>{provider.name}</Option>
+                  ))}
+                </Select>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <label>NIF/CIF del proveedor:</label>
+                <Input
+                  placeholder="Ej: B12345678"
+                  value={providerVat}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setProviderVat(value);
+                    validateProviderVat(value);
+                  }}
+                  status={providerVat && !vatValidation.isValid ? 'error' : ''}
+                  disabled={freeUploading}
+                />
+                {providerVat && !vatValidation.isValid && (
+                  <div style={{ color: 'red', fontSize: '12px' }}>
+                    {vatValidation.message || 'NIF/CIF inválido'}
+                  </div>
+                )}
+                {providerVat && vatValidation.isValid && (
+                  <div style={{ color: 'green', fontSize: '12px' }}>
+                    NIF/CIF válido
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           <input
             type="file"
