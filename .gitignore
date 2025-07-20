@@ -9,6 +9,17 @@ main
 plantillasodoo
 /mcp-odoo-yourtechtribe
 de_manus
+addons_backup/
+informes/
+ejemplos/
+backups/
+legacy/
+facturas-jsons/
+resultados_ocr/
+tests/
+logs/
+data_test/
+scripts/
 
 # Archivos y carpetas comunes de Python
 __pycache__
@@ -38,6 +49,17 @@ var/
 env/
 venv/
 ENV/
+
+# Archivos con credenciales sensibles
+n8n/docker-compose.yml
+n8n/*credentials*.json
+n8n/*_workflow*.json
+*.key
+*api_key*
+*apikey*
+*secret*
+*password*
+*credential*
 
 # Archivos de sistema
 .DS_Store
