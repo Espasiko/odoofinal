@@ -1,0 +1,118 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "250000633",
+      "invoice_date": "2025-01-09",
+      "due_date": "2025-02-08",
+      "supplier_name": "ALMCE S.L.",
+      "supplier_vat": "B14891592",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "Córdoba",
+      "supplier_zip": "14014",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 839.09,
+      "tax_amount": 176.21,
+      "total_amount": 1058.93,
+      "tax_rate": 21.0,
+      "payment_method": "GIRO",
+      "payment_terms": "A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "Lavaseca Candy COW4854TWM61S, 8+6KGS.",
+          "quantity": 1,
+          "price_unit": 228.27,
+          "discount": 3.0,
+          "default_code": "COW4854TW",
+          "tax_rate": 21.0
+        },
+        {
+          "name": "Led TCL 55P61B, 4K HDR, HLG, TV with",
+          "quantity": 1,
+          "price_unit": 241.61,
+          "discount": 0,
+          "default_code": "55P61B",
+          "tax_rate": 21.0
+        },
+        {
+          "name": "Hombre Comben CCHM703W, 65L, Cristal Blanco Perf.",
+          "quantity": 1,
+          "price_unit": 158.82,
+          "discount": 3.0,
+          "default_code": "CCHM703W",
+          "tax_rate": 21.0
+        },
+        {
+          "name": "Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16",
+          "quantity": 1,
+          "price_unit": 222.0,
+          "discount": 0,
+          "default_code": "CO4104TWM",
+          "tax_rate": 21.0
+        }
+      ]
+    },
+    "ocr_text": "```plaintext\nANTONIO PLAZA BONACHERA\nALMCE S.L.\nC.I.F.: B-14891592\nC/ FAUSTO GARCÍA TENA Nº 23\n14014 - CÓRDOBA\nTELF.: 957 34 30 85\n\nEL PELOTAZO\nCTRA. ALICUN, 172\n04740 ROQUETAS DE MAR\nALMERÍA\n\nFECHA: 09/01/25\nFACTURA: 250000633\nCLIENTE: 43004323\nN.I.F.: 75236270G\nTELÉFONO: 670 968 607\nPÁG: 1\n\nCÓDIGO | DESCRIPCIÓN | UNIDADES | PRECIO | IMPORTE\n--------|-------------|----------|--------|--------\nALBARÁN PO-25000518 FECHA 08/01/25\nPed. 25000536PO\nCOW4854TW | Lavaseca Candy COW4854TWM61S, 8+6KGS. | 1 | 228.27 | 3.00 | 221.42\n55P61B | Led TCL 55P61B, 4K HDR, HLG, TV with | 1 | 241.61 | 241.61\nCCHM703W | Hombre Comben CCHM703W, 65L, Cristal Blanco Perf. | 1 | 158.82 | 3.00 | 154.06\nCO4104TWM | Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16 | 1 | 222.00 | 222.00\n\nTOTAL IMP. | % | IMPORTE | BASE | % | I.V.A. | % | REC. | TOTAL FRA. (€)\n-----------|---|---------|------|---|--------|---|-----|-----------------\n839.09    |  | 839.09  | 21.00 | 176.21 | 5.20 | 43.63 | 1,058.93\n\nForma de PagoGIRO A 30 DÍAS\nBanco:\n\nVencimientos:\n08/02/25\n1,058.93\n\nDevoluciones de Producto:\nCualquier incidencia en la mercancía ocasionada por el transporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. En caso contrario, se entenderá que la mercancía ha sido recibida en perfecto estado de nuevo dpto., conforme. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba\nFolleto 101 Tomo 2101 hoja CO-29903 Inscripción 1ª. Nº RIT-AEE: 13210\n```"
+  },
+  "extracted_data": {
+    "invoice_number": "250000633",
+    "invoice_date": "2025-01-09",
+    "due_date": "2025-02-08",
+    "supplier_name": "ALMCE S.L.",
+    "supplier_vat": "B14891592",
+    "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+    "supplier_city": "Córdoba",
+    "supplier_zip": "14014",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 839.09,
+    "tax_amount": 176.21,
+    "total_amount": 1058.93,
+    "tax_rate": 21.0,
+    "payment_method": "GIRO",
+    "payment_terms": "A 30 DÍAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "Lavaseca Candy COW4854TWM61S, 8+6KGS.",
+        "quantity": 1,
+        "price_unit": 228.27,
+        "discount": 3.0,
+        "default_code": "COW4854TW",
+        "tax_rate": 21.0
+      },
+      {
+        "name": "Led TCL 55P61B, 4K HDR, HLG, TV with",
+        "quantity": 1,
+        "price_unit": 241.61,
+        "discount": 0,
+        "default_code": "55P61B",
+        "tax_rate": 21.0
+      },
+      {
+        "name": "Hombre Comben CCHM703W, 65L, Cristal Blanco Perf.",
+        "quantity": 1,
+        "price_unit": 158.82,
+        "discount": 3.0,
+        "default_code": "CCHM703W",
+        "tax_rate": 21.0
+      },
+      {
+        "name": "Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16",
+        "quantity": 1,
+        "price_unit": 222.0,
+        "discount": 0,
+        "default_code": "CO4104TWM",
+        "tax_rate": 21.0
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "FA25000633.PDF",
+    "processed_at": "2025-07-09T09:10:52.290405",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250709091052_FA25000633"
+  }
+}

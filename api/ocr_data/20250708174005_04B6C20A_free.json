@@ -1,0 +1,56 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": null,
+      "invoice_date": null,
+      "due_date": null,
+      "supplier_name": null,
+      "supplier_vat": "B04957403",
+      "supplier_address": null,
+      "supplier_city": null,
+      "supplier_zip": null,
+      "customer_name": "El Pelotazo (Antonio Plaza Bonachera)",
+      "customer_vat": "B04957403",
+      "total_amount": 0.0,
+      "tax_amount": 0.0,
+      "subtotal": 0.0,
+      "customer_order_ref": null,
+      "line_items": [],
+      "currency": "EUR",
+      "payment_method": null,
+      "payment_terms": null,
+      "supplier_phone": null,
+      "supplier_email": null
+    },
+    "ocr_text": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, puedo ayudarte a estructurar cómo extraer la información de una factura si me proporcionas el texto o una descripción detallada de la factura. Aquí tienes un ejemplo de cómo podrías estructurar la extracción de información de una factura:\n\n### Ejemplo de Extracción de Información de una Factura\n\n#### Datos del Cliente\n- **Nombre:** El Pelotazo\n- **NIF:** B04957403\n\n#### Datos del Proveedor\n- **Nombre:** [Nombre del Proveedor]\n- **NIF/CIF:** [NIF/CIF del Proveedor]\n- **Dirección:** [Dirección del Proveedor]\n- **Teléfono:** [Teléfono del Proveedor]\n- **Email:** [Email del Proveedor]\n\n#### Detalles de la Factura\n- **Número de Factura:** [Número de Factura]\n- **Fecha de Emisión:** [Fecha de Emisión]\n- **Fecha de Vencimiento:** [Fecha de Vencimiento]\n\n#### Líneas de Productos\n| Código | Descripción | Cantidad | Precio Unitario | Descuento | Importe |\n|--------|-------------|----------|-----------------|-----------|---------|\n| [Código 1] | [Descripción 1] | [Cantidad 1] | [Precio Unitario 1] | [Descuento 1] | [Importe 1] |\n| [Código 2] | [Descripción 2] | [Cantidad 2] | [Precio Unitario 2] | [Descuento 2] | [Importe 2] |\n| ... | ... | ... | ... | ... | ... |\n\n#### Subtotales, Impuestos y Total\n- **Subtotal:** [Subtotal]\n- **Impuestos:** [Impuestos]\n- **Total:** [Total]\n\n#### Método de Pago y Condiciones\n- **Método de Pago:** [Método de Pago]\n- **Condiciones de Pago:** [Condiciones de Pago]\n\nSi puedes proporcionar el texto de la factura o una descripción detallada, puedo ayudarte a estructurarlo de esta manera."
+  },
+  "extracted_data": {
+    "invoice_number": null,
+    "invoice_date": null,
+    "due_date": null,
+    "supplier_name": null,
+    "supplier_vat": "B04957403",
+    "supplier_address": null,
+    "supplier_city": null,
+    "supplier_zip": null,
+    "customer_name": "El Pelotazo (Antonio Plaza Bonachera)",
+    "customer_vat": "B04957403",
+    "total_amount": 0.0,
+    "tax_amount": 0.0,
+    "subtotal": 0.0,
+    "customer_order_ref": null,
+    "line_items": [],
+    "currency": "EUR",
+    "payment_method": null,
+    "payment_terms": null,
+    "supplier_phone": null,
+    "supplier_email": null
+  },
+  "metadata": {
+    "filename": "04B6C20A.pdf",
+    "processed_at": "2025-07-08T17:40:05.923609",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708174005_04B6C20A"
+  }
+}

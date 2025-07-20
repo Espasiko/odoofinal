@@ -1,0 +1,5 @@
+git add ejemplos/plantillas/
+git add .gitignore
+git commit -m "Añadida plantilla Excel para importación y actualizado .gitignore"
+git checkout -b version-consolidada-13-07
+git push origin version-consolidada-13-07

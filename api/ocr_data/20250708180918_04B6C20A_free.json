@@ -1,0 +1,162 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "FW-7711735",
+      "invoice_date": "2025-02-21",
+      "due_date": "2025-02-20",
+      "supplier_name": "Worten España Distribución, S.L.",
+      "supplier_vat": "B04957403",
+      "supplier_address": "Calle Urtes, 18, 4ª planta, 28703 Madrid, España",
+      "supplier_city": "Madrid",
+      "supplier_zip": "28703",
+      "customer_name": "EL PELOTAZO",
+      "customer_vat": "B04957403",
+      "subtotal": 2077.21,
+      "tax_amount": 430.23,
+      "total_amount": 2507.44,
+      "tax_rate": 21,
+      "payment_method": null,
+      "payment_terms": "Pago a 30 días",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "FRIGORIFICO TP KUNFT K3D9124 WH",
+          "quantity": 1,
+          "price_unit": 119.41,
+          "discount": 0,
+          "default_code": "7000007",
+          "ean13": "500798458111",
+          "tax_rate": 21
+        },
+        {
+          "name": "ARCA VERTICAL KUNFT KU9124 WH",
+          "quantity": 2,
+          "price_unit": 117.26,
+          "discount": 0,
+          "default_code": "7000008",
+          "ean13": "500798458419",
+          "tax_rate": 21
+        },
+        {
+          "name": "FRIGORIFICO COMBINADO KUNFT K3D9124 WH",
+          "quantity": 2,
+          "price_unit": 160.86,
+          "discount": 0,
+          "default_code": "7000009",
+          "ean13": "500798458785",
+          "tax_rate": 21
+        },
+        {
+          "name": "ARCA VERTICAL KUNFT KU920 WH",
+          "quantity": 2,
+          "price_unit": 105.96,
+          "discount": 0,
+          "default_code": "8000010",
+          "ean13": "500798457422",
+          "tax_rate": 21
+        },
+        {
+          "name": "ARCA VERTICAL BECKEN NF BUF920 WH",
+          "quantity": 2,
+          "price_unit": 278.9,
+          "discount": 0,
+          "default_code": "8000014",
+          "ean13": "500798451211",
+          "tax_rate": 21
+        },
+        {
+          "name": "FRIGORIFICO BECKEN NF BID9087 WH",
+          "quantity": 2,
+          "price_unit": 285.0,
+          "discount": 0,
+          "default_code": "8000049",
+          "ean13": "500798454733",
+          "tax_rate": 21
+        }
+      ]
+    },
+    "ocr_text": "Claro, aquí tienes el texto completo de la factura:\n\n---\n\n**Worten España Distribución, S.L.**\n**Factura**\n\n**Copia**\n\n**Nombre de Documento:** FW-7711735\n**Fecha de Documento:** 21-FEB-25\n\n**Datos del Proveedor:**\n- **Nombre:** ANTONIO PLAZA BONACHERA\n- **Dirección:** PLAZA PLAYA PARAISO 2 PISO ROG2-233, 03710, CALPES, ALICANTE, ESPAÑA\n- **Teléfono:** +34 965 900 700\n- **NIF:** B04957403\n- **Número de Cliente:** 0000037\n\n**Datos del Cliente:**\n- **Nombre:** EL PELOTAZO\n- **NIF:** B04957403\n\n**Guía de Transporte:**\n- **Número:** 0000037\n- **Local de Carga:** 6006 VIN DIB ES - C/ FRANCISCO MEDINA Y BARROS, 1, 03710 CALPES, ALICANTE, ESPAÑA\n\n**Fecha de Carga:**\n- **Fecha de Envío:** 21-FEB-25 12:41:11\n\n**Fecha de Recepción:**\n- **Fecha de Recepción:** 21-FEB-25 12:41:11\n- **Lugar de Recepción:** CARRETERA AUDIN HY172, ALMERIA, 04740, ESPAÑA\n\n---\n\n**Detalle de la Factura:**\n\n| Artículo | EAN | Descripción                          | Código | Composición | Precio Unitario (EUR) | Cantidad | Descuento (EUR) | Base Imponible (EUR) | IVA (%) | Importe (EUR) | Total Líneas (EUR) |\n|----------|-----|--------------------------------------|--------|-------------|-----------------------|----------|-----------------|----------------------|--------|--------------|---------------------|\n| 7000007  | 500798458111            | FRIGORIFICO TP KUNFT K3D9124 WH | 1 EA  | 119.41 | 0 | 119.41 | 21 | 25.08 | 144.48 |\n| 7000008  | 500798458419            | ARCA VERTICAL KUNFT KU9124 WH | 2 EA  | 117.26 | 0 | 234.52 | 21 | 49.24 | 283.75 |\n| 7000009  | 500798458785            | FRIGORIFICO COMBINADO KUNFT K3D9124 WH | 2 EA  | 160.86 | 0 | 321.72 | 21 | 67.48 | 389.20 |\n| 8000010  | 500798457422            | ARCA VERTICAL KUNFT KU920 WH | 2 EA  | 105.96 | 0 | 211.92 | 21 | 46.01 | 257.93 |\n| 8000014  | 500798451211            | ARCA VERTICAL BECKEN NF BUF920 WH | 2 EA  | 278.90 | 0 | 557.80 | 21 | 117.60 | 675.40 |\n| 8000049  | 500798454733            | FRIGORIFICO BECKEN NF BID9087 WH | 2 EA  | 285.00 | 0 | 570.00 | 21 | 119.50 | 641.35 |\n\n---\n\n**Detalles de Impuestos:**\n\n| Tipo de Impuesto | Tipo de Recaudación | Descripción       | Base Imponible (EUR) | Cuota de IVA (%) | Importe (EUR) |\n|------------------|---------------------|-------------------|----------------------|------------------|---------------|\n| 21%              | 520                | Base Imponible    | 2077.21              | 430.23           | 100.01        |\n|                  |                     | Total Base Imponible | 2077.21              |                  |               |\n|                  |                     | Total IVA         | 430.23               |                  |               |\n|                  |                     | Total de Documento | 2507.44              |                  |               |\n\n---\n\n**Otras Informaciones:**\n\n**Condiciones de Pago:** Pago a 30 días.\n**Referencia de Pago:** 00000000000000000000000000000000\n**Fecha de Vencimiento:** 20-FEB-25\n**Pedido Cliente:** ENC ANTONIO PLAZA BONACHERA 13/01/2025\n\n**Nota:** El cliente entiende que la disposición del cliente en la factura de la factura.\n\n---\n\n**Worten España Distribución, S.L.**\n**Calle Urtes, 18, 4ª planta, 28703 Madrid, España**\n**Código Local: ESL 386857400**\n**Registro Mercantil de Madrid, Tomo: 12007, Folio: 206, Hoja: Registro: 000855**\n\n---\n\nEspero que esta extracción cumpla con tus necesidades. Si necesitas más detalles o alguna otra información, no dudes en decírmelo."
+  },
+  "extracted_data": {
+    "invoice_number": "FW-7711735",
+    "invoice_date": "2025-02-21",
+    "due_date": "2025-02-20",
+    "supplier_name": "Worten España Distribución, S.L.",
+    "supplier_vat": "B04957403",
+    "supplier_address": "Calle Urtes, 18, 4ª planta, 28703 Madrid, España",
+    "supplier_city": "Madrid",
+    "supplier_zip": "28703",
+    "customer_name": "EL PELOTAZO",
+    "customer_vat": "B04957403",
+    "subtotal": 2077.21,
+    "tax_amount": 430.23,
+    "total_amount": 2507.44,
+    "tax_rate": 21,
+    "payment_method": null,
+    "payment_terms": "Pago a 30 días",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "FRIGORIFICO TP KUNFT K3D9124 WH",
+        "quantity": 1,
+        "price_unit": 119.41,
+        "discount": 0,
+        "default_code": "7000007",
+        "ean13": "500798458111",
+        "tax_rate": 21
+      },
+      {
+        "name": "ARCA VERTICAL KUNFT KU9124 WH",
+        "quantity": 2,
+        "price_unit": 117.26,
+        "discount": 0,
+        "default_code": "7000008",
+        "ean13": "500798458419",
+        "tax_rate": 21
+      },
+      {
+        "name": "FRIGORIFICO COMBINADO KUNFT K3D9124 WH",
+        "quantity": 2,
+        "price_unit": 160.86,
+        "discount": 0,
+        "default_code": "7000009",
+        "ean13": "500798458785",
+        "tax_rate": 21
+      },
+      {
+        "name": "ARCA VERTICAL KUNFT KU920 WH",
+        "quantity": 2,
+        "price_unit": 105.96,
+        "discount": 0,
+        "default_code": "8000010",
+        "ean13": "500798457422",
+        "tax_rate": 21
+      },
+      {
+        "name": "ARCA VERTICAL BECKEN NF BUF920 WH",
+        "quantity": 2,
+        "price_unit": 278.9,
+        "discount": 0,
+        "default_code": "8000014",
+        "ean13": "500798451211",
+        "tax_rate": 21
+      },
+      {
+        "name": "FRIGORIFICO BECKEN NF BID9087 WH",
+        "quantity": 2,
+        "price_unit": 285.0,
+        "discount": 0,
+        "default_code": "8000049",
+        "ean13": "500798454733",
+        "tax_rate": 21
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "04B6C20A.pdf",
+    "processed_at": "2025-07-08T18:09:18.128294",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708180918_04B6C20A"
+  }
+}

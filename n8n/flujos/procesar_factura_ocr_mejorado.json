@@ -1,0 +1,353 @@
+{
+  "name": "Procesar Factura OCR Mejorado",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "procesar-factura",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer información del archivo recibido\nconst fileData = $input.item.binary.data;\nconst fileName = $input.item.json.filename || 'factura.pdf';\nconst fileExtension = fileName.split('.').pop().toLowerCase();\nconst supplierName = $input.item.json.supplier_name || null;\nconst supplierVat = $input.item.json.supplier_vat || null;\n\n// Determinar el proveedor basado en el nombre o VAT\nlet proveedorDetectado = null;\nlet promptEspecifico = null;\n\nif (supplierName) {\n  if (supplierName.toUpperCase().includes('NEVIR')) {\n    proveedorDetectado = 'NEVIR';\n    promptEspecifico = 'Extrae de esta factura de NEVIR: número de factura (en formato NVR-XXXXX), fecha, CIF (B84201219), totales con IVA desglosado y recargo de equivalencia, y líneas de productos con códigos que siguen el patrón NVR-XXXXX.';\n  } else if (supplierName.toUpperCase().includes('ABRILA')) {\n    proveedorDetectado = 'ABRILA';\n    promptEspecifico = 'Extrae de esta factura de ABRILA: número de factura, fecha, CIF, totales con IVA desglosado, y líneas de productos con sus referencias específicas.';\n  } else if (supplierName.toUpperCase().includes('MIELECTRO')) {\n    proveedorDetectado = 'MIELECTRO';\n    promptEspecifico = 'Extrae de esta factura de MIELECTRO: número de factura, fecha, CIF, totales con IVA desglosado, y líneas de productos con sus referencias específicas.';\n  }\n}\n\n// Si no se detectó por nombre, intentar por VAT\nif (!proveedorDetectado && supplierVat) {\n  if (supplierVat === 'B84201219') {\n    proveedorDetectado = 'NEVIR';\n    promptEspecifico = 'Extrae de esta factura de NEVIR: número de factura (en formato NVR-XXXXX), fecha, CIF (B84201219), totales con IVA desglosado y recargo de equivalencia, y líneas de productos con códigos que siguen el patrón NVR-XXXXX.';\n  }\n  // Añadir más proveedores por VAT si es necesario\n}\n\n// Prompt genérico si no se detectó un proveedor específico\nif (!promptEspecifico) {\n  promptEspecifico = 'Extrae de esta factura: número de factura, fecha, CIF/NIF del proveedor, nombre del proveedor, totales con IVA desglosado, y líneas de productos con sus referencias, cantidades y precios.';\n}\n\n// Verificar si el archivo está en caché (simulado)\nconst estaEnCache = false; // Aquí se implementaría la lógica real de caché\n\n// Preparar la salida\nreturn {\n  json: {\n    fileData,\n    fileName,\n    fileExtension,\n    supplierName,\n    supplierVat,\n    proveedorDetectado,\n    promptEspecifico,\n    estaEnCache\n  }\n};"
+      },
+      "name": "Preparar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"estaEnCache\"]}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "¿Está en Caché?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastapi:8000/api/v1/mistral-free-ocr/process-invoice",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$json[\"token\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "multipartFormData",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $binary.data }}",
+              "contentType": "={{ $binary.mimeType }}"
+            },
+            {
+              "name": "create_in_odoo",
+              "value": "true"
+            },
+            {
+              "name": "supplier_name",
+              "value": "={{$json[\"supplierName\"]}}"
+            },
+            {
+              "name": "supplier_vat",
+              "value": "={{$json[\"supplierVat\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Procesar OCR en FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/ocr",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.MISTRAL_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "value": "={{ $binary.data }}"
+            },
+            {
+              "name": "prompt",
+              "value": "={{$json[\"promptEspecifico\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Procesar con Mistral OCR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar la respuesta de Mistral OCR\nconst mistralResponse = $input.item.json;\nconst proveedorDetectado = $input.item.json.proveedorDetectado || 'Desconocido';\n\n// Extraer datos estructurados según el proveedor\nlet datosEstructurados = {};\n\nif (mistralResponse && mistralResponse.text) {\n  const textoOCR = mistralResponse.text;\n  \n  // Extraer número de factura\n  let numeroFactura = null;\n  const regexNumFactura = /(?:factura|número)[:\\s]*(\\w+[-\\d]+)/i;\n  const matchNumFactura = textoOCR.match(regexNumFactura);\n  if (matchNumFactura) {\n    numeroFactura = matchNumFactura[1];\n  }\n  \n  // Extraer fecha\n  let fechaFactura = null;\n  const regexFecha = /(?:fecha)[:\\s]*(\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4})/i;\n  const matchFecha = textoOCR.match(regexFecha);\n  if (matchFecha) {\n    fechaFactura = matchFecha[1];\n  }\n  \n  // Extraer CIF/NIF\n  let cifNif = null;\n  const regexCif = /(?:CIF|NIF)[:\\s]*([A-Z0-9]{9})/i;\n  const matchCif = textoOCR.match(regexCif);\n  if (matchCif) {\n    cifNif = matchCif[1];\n  }\n  \n  // Extraer totales\n  let baseImponible = null;\n  let importeIva = null;\n  let totalFactura = null;\n  \n  const regexBase = /(?:base|imponible)[:\\s]*(\\d+[.,]\\d{2})/i;\n  const matchBase = textoOCR.match(regexBase);\n  if (matchBase) {\n    baseImponible = matchBase[1].replace(',', '.');\n  }\n  \n  const regexIva = /(?:IVA)[:\\s]*(\\d+[.,]\\d{2})/i;\n  const matchIva = textoOCR.match(regexIva);\n  if (matchIva) {\n    importeIva = matchIva[1].replace(',', '.');\n  }\n  \n  const regexTotal = /(?:total)[:\\s]*(\\d+[.,]\\d{2})/i;\n  const matchTotal = textoOCR.match(regexTotal);\n  if (matchTotal) {\n    totalFactura = matchTotal[1].replace(',', '.');\n  }\n  \n  // Extraer líneas de productos (simplificado)\n  const lineasProductos = [];\n  \n  // Para NEVIR, buscar códigos con patrón NVR-XXXXX\n  if (proveedorDetectado === 'NEVIR') {\n    const regexProductosNevir = /NVR-\\d{5}/g;\n    const codigosProductos = textoOCR.match(regexProductosNevir) || [];\n    \n    codigosProductos.forEach(codigo => {\n      lineasProductos.push({\n        codigo: codigo,\n        descripcion: `Producto ${codigo}`,\n        cantidad: 1,\n        precio: 0\n      });\n    });\n  } else {\n    // Para otros proveedores, intentar extraer líneas genéricas\n    // Esta es una implementación muy simplificada\n    const lineas = textoOCR.split('\\n');\n    \n    for (const linea of lineas) {\n      // Buscar líneas que parezcan productos (contienen números y €)\n      if (linea.match(/\\d+/) && linea.includes('€')) {\n        lineasProductos.push({\n          descripcion: linea.trim(),\n          cantidad: 1,\n          precio: 0\n        });\n      }\n    }\n  }\n  \n  // Construir objeto estructurado\n  datosEstructurados = {\n    numeroFactura,\n    fechaFactura,\n    cifNif,\n    proveedor: proveedorDetectado,\n    baseImponible: parseFloat(baseImponible || 0),\n    importeIva: parseFloat(importeIva || 0),\n    totalFactura: parseFloat(totalFactura || 0),\n    lineasProductos\n  };\n}\n\n// Guardar en caché (simulado)\n// Aquí se implementaría la lógica real de guardado en caché\n\nreturn {\n  json: {\n    success: true,\n    datosOCR: datosEstructurados,\n    textoCompleto: mistralResponse.text,\n    proveedor: proveedorDetectado\n  }\n};"
+      },
+      "name": "Procesar Respuesta Mistral",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener datos de caché (simulado)\n// Aquí se implementaría la lógica real de obtención desde caché\n\nreturn {\n  json: {\n    success: true,\n    datosOCR: {\n      numeroFactura: \"CACHE-12345\",\n      fechaFactura: \"01/07/2025\",\n      cifNif: \"B12345678\",\n      proveedor: $input.item.json.proveedorDetectado || \"Desconocido\",\n      baseImponible: 100.00,\n      importeIva: 21.00,\n      totalFactura: 121.00,\n      lineasProductos: [\n        {\n          codigo: \"PROD-001\",\n          descripcion: \"Producto de caché\",\n          cantidad: 1,\n          precio: 100.00\n        }\n      ]\n    },\n    textoCompleto: \"Datos recuperados desde caché\",\n    proveedor: $input.item.json.proveedorDetectado || \"Desconocido\",\n    fromCache: true\n  }\n};"
+      },
+      "name": "Obtener de Caché",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        50
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://fastapi:8000/api/v1/mistral-free-ocr/create-invoice-with-supplier",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$json[\"token\"]}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ocr_data",
+              "value": "={{ $json[\"datosOCR\"] }}"
+            },
+            {
+              "name": "supplier_id",
+              "value": "={{ $json[\"supplier_id\"] || 0 }}"
+            },
+            {
+              "name": "update_if_exists",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Crear Factura en Odoo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar datos OCR\nconst datosOCR = $input.item.json.datosOCR;\nconst errores = [];\nlet datosValidos = true;\n\n// Validar número de factura\nif (!datosOCR.numeroFactura) {\n  errores.push(\"Número de factura no detectado\");\n  datosValidos = false;\n}\n\n// Validar fecha\nif (!datosOCR.fechaFactura) {\n  errores.push(\"Fecha de factura no detectada\");\n  datosValidos = false;\n}\n\n// Validar CIF/NIF\nif (datosOCR.cifNif) {\n  // Validar formato de CIF/NIF español\n  const regexCIF = /^[A-Z0-9]{9}$/;\n  if (!regexCIF.test(datosOCR.cifNif)) {\n    errores.push(\"Formato de CIF/NIF inválido\");\n    datosValidos = false;\n  }\n  \n  // Aquí se implementaría la validación del dígito de control\n}\n\n// Validar totales\nif (datosOCR.totalFactura <= 0) {\n  errores.push(\"Total de factura inválido\");\n  datosValidos = false;\n}\n\n// Validar líneas de productos\nif (!datosOCR.lineasProductos || datosOCR.lineasProductos.length === 0) {\n  errores.push(\"No se detectaron líneas de productos\");\n  datosValidos = false;\n}\n\n// Buscar proveedor en Odoo (simulado)\n// Aquí se implementaría la lógica real de búsqueda de proveedor\nlet supplierId = 0;\nif (datosOCR.cifNif === \"B84201219\") {\n  supplierId = 1; // ID de NEVIR en Odoo (ejemplo)\n}\n\nreturn {\n  json: {\n    datosOCR,\n    datosValidos,\n    errores,\n    supplier_id: supplierId,\n    token: $input.item.json.token\n  }\n};"
+      },
+      "name": "Validar Datos OCR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "=## Resultados del Procesamiento OCR\n\n### Datos Extraídos\n- **Número de Factura**: {{$json[\"datosOCR\"][\"numeroFactura\"]}}\n- **Fecha**: {{$json[\"datosOCR\"][\"fechaFactura\"]}}\n- **Proveedor**: {{$json[\"datosOCR\"][\"proveedor\"]}}\n- **CIF/NIF**: {{$json[\"datosOCR\"][\"cifNif\"]}}\n- **Base Imponible**: {{$json[\"datosOCR\"][\"baseImponible\"]}} €\n- **IVA**: {{$json[\"datosOCR\"][\"importeIva\"]}} €\n- **Total**: {{$json[\"datosOCR\"][\"totalFactura\"]}} €\n\n### Líneas de Productos\n{% for linea in $json[\"datosOCR\"][\"lineasProductos\"] %}\n- {{linea.codigo || \"Sin código\"}} - {{linea.descripcion}} ({{linea.cantidad}} x {{linea.precio}} €)\n{% endfor %}\n\n### Estado\n{% if $json[\"datosValidos\"] %}\n✅ Datos válidos\n{% else %}\n❌ Datos inválidos\n\nErrores detectados:\n{% for error in $json[\"errores\"] %}\n- {{error}}\n{% endfor %}\n{% endif %}\n\n{% if $json[\"fromCache\"] %}\n⚡ Datos recuperados desde caché\n{% endif %}",
+        "responseCode": "200",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Respuesta HTTP",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Está en Caché?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Está en Caché?": {
+      "main": [
+        [
+          {
+            "node": "Obtener de Caché",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Procesar con Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar con Mistral OCR": {
+      "main": [
+        [
+          {
+            "node": "Procesar Respuesta Mistral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener de Caché": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Respuesta Mistral": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos OCR": {
+      "main": [
+        [
+          {
+            "node": "Crear Factura en Odoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Factura en Odoo": {
+      "main": [
+        [
+          {
+            "node": "Respuesta HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "OCR",
+      "color": "#00cc00"
+    },
+    {
+      "name": "Facturas",
+      "color": "#ff9900"
+    },
+    {
+      "name": "Mistral",
+      "color": "#0000ff"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-07-19T17:47:00.000Z",
+  "versionId": "1"
+}

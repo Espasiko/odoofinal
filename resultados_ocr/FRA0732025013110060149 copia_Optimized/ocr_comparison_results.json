@@ -1,0 +1,26 @@
+{
+  "filename": "FRA0732025013110060149 copia_Optimized.pdf",
+  "doc_type": "general",
+  "original": {
+    "time": 3.470392942428589,
+    "chars": 748,
+    "words": 138,
+    "numbers": 58,
+    "product_codes": 36,
+    "output_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/resultados_ocr/FRA0732025013110060149 copia_Optimized/original_ocr.txt"
+  },
+  "improved": {
+    "time": 8.081563711166382,
+    "chars": 729,
+    "words": 136,
+    "numbers": 66,
+    "product_codes": 33,
+    "output_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/resultados_ocr/FRA0732025013110060149 copia_Optimized/improved_ocr.txt"
+  },
+  "comparison": {
+    "similarity": 0.7230873392010833,
+    "char_diff": -19,
+    "char_diff_percent": -2.5401069518716577,
+    "time_diff_percent": 132.87171929040647
+  }
+}

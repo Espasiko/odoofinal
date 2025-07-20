@@ -1,0 +1,13 @@
+{
+  "pdf_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/ejemplos/OCR-local/Documento nuevo copia_01.png",
+  "filename": "Documento nuevo copia_01.png",
+  "timestamp": "2025-07-18T21:04:09.711913",
+  "methods": {
+    "original": {
+      "error": "Unable to get page count.\nSyntax Warning: May not be a PDF file (continuing anyway)\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n"
+    },
+    "optimized": {
+      "error": "Unable to get page count.\nSyntax Warning: May not be a PDF file (continuing anyway)\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n"
+    }
+  }
+}

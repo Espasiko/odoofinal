@@ -1,0 +1,296 @@
+{
+  "name": "Sincronizar Inventario",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "expression": "1"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://odoo:8069/jsonrpc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "jsonrpc",
+              "value": "2.0"
+            },
+            {
+              "name": "method",
+              "value": "call"
+            },
+            {
+              "name": "params",
+              "value": "={{ { \"service\": \"object\", \"method\": \"execute_kw\", \"args\": [ \"fresh_odoo_db\", $node[\"Set Variables\"].json[\"odooUid\"], $node[\"Set Variables\"].json[\"odooPassword\"], \"product.product\", \"search_read\", [[\"type\", \"=\", \"product\"]], {\"fields\": [\"name\", \"default_code\", \"qty_available\", \"virtual_available\", \"list_price\", \"standard_price\"]} ] } }}"
+            },
+            {
+              "name": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Obtener Productos de Odoo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "odooUrl",
+              "value": "http://odoo:8069"
+            },
+            {
+              "name": "odooDb",
+              "value": "fresh_odoo_db"
+            },
+            {
+              "name": "odooUid",
+              "value": "2"
+            },
+            {
+              "name": "odooPassword",
+              "value": "admin"
+            },
+            {
+              "name": "apiUrl",
+              "value": "http://fastapi:8000/api/v1"
+            },
+            {
+              "name": "authToken",
+              "value": "Bearer {{$json[\"token\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$node[\"Set Variables\"].json[\"apiUrl\"] + \"/inventory/sync\"}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$node[\"Set Variables\"].json[\"authToken\"]}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "products",
+              "value": "={{ $json[\"result\"][\"result\"] }}"
+            },
+            {
+              "name": "sync_timestamp",
+              "value": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Enviar a FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"success\"]}}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "=/home/node/.n8n/sync_logs/inventory_sync_{{$now}}.json",
+        "options": {}
+      },
+      "name": "Write Success Log",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$node[\"Set Variables\"].json[\"apiUrl\"] + \"/notifications/send\"}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{$node[\"Set Variables\"].json[\"authToken\"]}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "Error en la sincronización de inventario: {{$json[\"error\"]}}"
+            },
+            {
+              "name": "type",
+              "value": "error"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Notificar Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1250,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Obtener Productos de Odoo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Productos de Odoo": {
+      "main": [
+        [
+          {
+            "node": "Enviar a FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar a FastAPI": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Write Success Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notificar Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Inventario",
+      "color": "#0099cc"
+    },
+    {
+      "name": "Odoo",
+      "color": "#cc00cc"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-07-19T16:49:00.000Z",
+  "versionId": "1"
+}

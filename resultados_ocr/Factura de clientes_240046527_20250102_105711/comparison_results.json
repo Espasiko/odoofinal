@@ -1,0 +1,89 @@
+{
+  "pdf_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/ejemplos/CECOTEC/Factura de clientes_240046527_20250102_105711.pdf",
+  "filename": "Factura de clientes_240046527_20250102_105711.pdf",
+  "timestamp": "2025-07-18T21:04:56.260519",
+  "methods": {
+    "original": {
+      "time": 13.618725776672363,
+      "char_count": 1111,
+      "word_count": 186,
+      "number_count": 320,
+      "extracted_data": {
+        "number": "24551-240046527",
+        "date": null,
+        "partner_name": "Unknown Supplier",
+        "amount_total": 238.26,
+        "lines": [],
+        "due_dates": [],
+        "customer_order_ref": null
+      }
+    },
+    "optimized": {
+      "time": 11.321990489959717,
+      "char_count": 1114,
+      "word_count": 152,
+      "number_count": 329,
+      "doc_type": "general",
+      "product_codes": [
+        "CECOTEC",
+        "INNOVACION",
+        "46910",
+        "VALENCIA",
+        "ESB9793789",
+        "04740",
+        "FACTURA",
+        "24581",
+        "240046527",
+        "ES75236270",
+        "B24022689",
+        "CLIENTE",
+        "C0083178",
+        "TELEFONO",
+        "670968607",
+        "CLIENTE",
+        "2531963329",
+        "ALBAR",
+        "244856801",
+        "B24022689",
+        "01727",
+        "8435484017",
+        "B24022689",
+        "2531963329",
+        "B24022689",
+        "2531963329",
+        "244811416",
+        "244856801",
+        "METODO",
+        "DEPAGO",
+        "FECHA",
+        "VENCIMIENT",
+        "240046527",
+        "RATIO",
+        "CECOTEC",
+        "INNOVACION",
+        "6046910",
+        "VALENCIA",
+        "ESB9793789",
+        "5537IN0",
+        "RINPYA",
+        "11992RD"
+      ],
+      "extracted_data": {
+        "invoice_number": null,
+        "invoice_date": "02/01/2025",
+        "due_date": "01/01/2025",
+        "supplier_name": null,
+        "supplier_vat": "B97937890",
+        "customer_name": null,
+        "customer_vat": "S75236270",
+        "total_amount": null,
+        "tax_info": {
+          "iva": [],
+          "recargo": []
+        },
+        "product_codes": null
+      }
+    }
+  },
+  "similarity": 1.0
+}

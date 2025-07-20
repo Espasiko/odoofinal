@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-07-15 09:51:16",
+  "excel_file": "/home/espasiko/mainmanusodoo/manusodoo-roto/ejemplos/proveedores_exl_csv/PVP NEVIR.xlsx",
+  "use_ai": true,
+  "verify_db": true,
+  "validation_success": false,
+  "import_success": false,
+  "db_verification_success": false,
+  "overall_success": false,
+  "errors": [
+    "La hoja DATOS_PROVEEDOR debe tener las columnas 'campo' y 'valor'"
+  ],
+  "warnings": [],
+  "stats": {
+    "total_products": 0,
+    "imported_products": 0,
+    "verified_products": 0
+  }
+}

@@ -1,0 +1,668 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "32506198",
+      "invoice_date": "2025-02-27",
+      "supplier_vat": "B41982075",
+      "customer_vat": "75236270G",
+      "total_amount": 1366.38,
+      "tax_amount": 246.46,
+      "subtotal": 1119.92,
+      "due_date": null,
+      "supplier_name": "FABRILAMP ILUMINACIÓN S.L.",
+      "supplier_address": "CL. Trabajo Nº 4",
+      "supplier_city": "Rincónada (La)",
+      "supplier_zip": "41309",
+      "customer_name": "ANTONIO PLAZA BONACHERA",
+      "customer_address": "CRTA ALICUN 172",
+      "customer_city": "ROQUETAS DE MAR",
+      "customer_zip": "04740",
+      "recargo_equivalencia": 0,
+      "tax_rate": 21,
+      "recargo_rate": 0,
+      "payment_method": null,
+      "payment_terms": null,
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "VENTILADOR BAYOMO 5WW 6980LM NIQUEL 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+          "quantity": 5,
+          "price_unit": 39.97,
+          "discount": 10,
+          "default_code": "142591403",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 5,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR BAYOMO 5W 6980LM BLANCO 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+          "quantity": 10,
+          "price_unit": 39.97,
+          "discount": 10,
+          "default_code": "142591401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 10,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC MATANUSKA 72W 6120LM BLANCO BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+          "quantity": 2,
+          "price_unit": 69.97,
+          "discount": 10,
+          "default_code": "142791401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 2,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC MATANUSKA 72W 6120LM NIQUEL BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+          "quantity": 2,
+          "price_unit": 69.97,
+          "discount": 10,
+          "default_code": "142791403",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 2,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE TETEIÓ BLANCO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+          "quantity": 5,
+          "price_unit": 14.98,
+          "discount": 10,
+          "default_code": "183941001",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE RISE BLANC 3VEL 4SW REG43X40CM OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 2,
+          "price_unit": 20.97,
+          "discount": 10,
+          "default_code": "184041001",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC DANI 5W 6980LM BLANCO 4ASPAS 6VELOCIDADES 107D...",
+          "quantity": 3,
+          "price_unit": 39.98,
+          "discount": 10,
+          "default_code": "165391401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 3,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA CAPE MEDIANO BLANCO 3VEL 35W OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 4,
+          "price_unit": 13.92,
+          "discount": 10,
+          "default_code": "184171101",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA CAPE PEQUEÑO BLANCO 2VEL 25W OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 4,
+          "price_unit": 12.89,
+          "discount": 10,
+          "default_code": "184171201",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE TETEIÓ NEGRO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+          "quantity": 5,
+          "price_unit": 14.98,
+          "discount": 10,
+          "default_code": "183941009",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA PIZARRO MINI NEGRO 2VEL 2W ORIENTABLE 27X20X15CM",
+          "quantity": 4,
+          "price_unit": 7.96,
+          "discount": 10,
+          "default_code": "238071009",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA PIZARRO PEQUEÑO NEGRO ZVELOCIDADES 25W ORIENTABLE FJ D...",
+          "quantity": 3,
+          "price_unit": 11.98,
+          "discount": 10,
+          "default_code": "238071109",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        }
+      ]
+    },
+    "raw_ocr_data": {
+      "invoice_number": "",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "ABRILA",
+      "supplier_vat": "B41982075",
+      "supplier_address": "",
+      "supplier_city": "",
+      "supplier_zip": "",
+      "customer_name": "",
+      "customer_vat": "",
+      "total_amount": 1232.17,
+      "tax_amount": 246.46,
+      "subtotal": 1119.92,
+      "customer_order_ref": "",
+      "line_items": [
+        {
+          "name": "**Teléfono:",
+          "quantity": 955.0,
+          "price_unit": 797600.0,
+          "default_code": ""
+        },
+        {
+          "name": "- **Teléfono:**",
+          "quantity": 955.0,
+          "price_unit": 797600.0,
+          "default_code": ""
+        },
+        {
+          "name": "- **Fax:**",
+          "quantity": 955.0,
+          "price_unit": 797848.0,
+          "default_code": ""
+        }
+      ]
+    },
+    "raw_ocr_text": "### FABRILAMP ILUMINACIÓN S.L.\n**FABRICA DE LAMPARAS**\n**CIF: B41982075**\n**CL. Trabajo Nº 4**\n**41309 Rincónada (La) Sevilla, España**\n**Teléfono: 955 797600 - Fax: 955 797848**\n**olga@fabrilamp.com - www.fabrilamp.com**\n\n---\n\n**Factura**\n\n| Nº Factura | Fecha       | Nº Albarán | Agente | Nº Expedición          |\n|-----------|-------------|------------|--------|------------------------|\n| 32506198  | 27022025    | 2506203    | 190    | LPH 000000544617       |\n\n---\n\n**Referencia** | **Descripción**                                                                 | **Uds.** | **Precio** | **Dto.** | **Importe(EUR)** |\n|--------------|-------------------------------------------------------------------------------|----------|------------|----------|------------------|\n| 142591403    | VENTILADOR BAYOMO 5WW 6980LM NIQUEL 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR... | 5        | 39.97 €    | 10%      | 179.86 €         |\n| CANON/3      | Canon ECORAEE RD/208/2005 0.12                                             | 5        | 0.12 €     |          | 0.60 €           |\n| 142591401    | VENTILADOR BAYOMO 5W 6980LM BLANCO 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR... | 10       | 39.97 €    | 10%      | 359.73 €         |\n| CANON/3      | Canon ECORAEE RD/208/2005 0.12                                             | 10       | 0.12 €     |          | 1.20 €           |\n| 142791401    | VENTILADOR DC MATANUSKA 72W 6120LM BLANCO BLUETHOOTH 32/47X55/108D 3 ASPAS... | 2        | 69.97 €    | 10%      | 125.95 €         |\n| CANON/3      | Canon ECORAEE RD/208/2005 0.12                                             | 2        | 0.12 €     |          | 0.24 €           |\n| 142791403    | VENTILADOR DC MATANUSKA 72W 6120LM NIQUEL BLUETHOOTH 32/47X55/108D 3 ASPAS... | 2        | 69.97 €    | 10%      | 125.95 €         |\n| CANON/3      | Canon ECORAEE RD/208/2005 0.12                                             | 2        | 0.12 €     |          | 0.24 €           |\n| 183941001    | VENTILADOR DE PIE TETEIÓ BLANCO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS... | 5        | 14.98 €    | 10%      | 67.41 €          |\n| 184041001    | VENTILADOR DE PIE RISE BLANC 3VEL 4SW REG43X40CM OSCILANTE 3 ASPAS BLANCAS... | 2        | 20.97 €    | 10%      | 37.75 €          |\n| 165391401    | VENTILADOR DC DANI 5W 6980LM BLANCO 4ASPAS 6VELOCIDADES 107D...               | 3        | 39.98 €    | 10%      | 107.95 €         |\n| CANON/3      | Canon ECORAEE RD/208/2005 0.12                                             | 3        | 0.12 €     |          | 0.36 €           |\n| 184171101    | VENTILADOR SOBREMESA CAPE MEDIANO BLANCO 3VEL 35W OSCILANTE 3 ASPAS BLANCAS... | 4        | 13.92 €    | 10%      | 50.11 €          |\n| 184171201    | VENTILADOR SOBREMESA CAPE PEQUEÑO BLANCO 2VEL 25W OSCILANTE 3 ASPAS BLANCAS... | 4        | 12.89 €    | 10%      | 46.40 €          |\n| 183941009    | VENTILADOR DE PIE TETEIÓ NEGRO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS... | 5        | 14.98 €    | 10%      | 67.41 €          |\n| 238071009    | VENTILADOR SOBREMESA PIZARRO MINI NEGRO 2VEL 2W ORIENTABLE 27X20X15CM         | 4        | 7.96 €     | 10%      | 28.66 €          |\n| 238071109    | VENTILADOR SOBREMESA PIZARRO PEQUEÑO NEGRO ZVELOCIDADES 25W ORIENTABLE FJ D... | 3        | 11.98 €    | 10%      | 32.35 €          |\n\n---\n\n**Total y sigue 1.232,17 €**\n\n---\n\n**Datos del Proveedor:**\n- **Nombre:** FABRILAMP ILUMINACIÓN S.L.\n- **CIF:** B41982075\n- **Dirección:** 41309 Rincónada (La) Sevilla, España\n- **Teléfono:** 955 797600\n- **Fax:** 955 797848\n- **Email:** olga@fabrilamp.com\n\n**Datos del Cliente:**\n- **Nombre:** ANTONIO PLAZA BONACHERA\n- **NIF:** 75236270G\n- **Dirección:** CRTA ALICUN 172, 04740 ROQUETAS DE MAR ALMERÍA, ESPAÑA\n\n**Impuestos:**\n- **Base Imponible:** 1.119,92 €\n- **IVA (21%):** 246,46 €\n- **Total Factura:** 1.366,38 €\n\n**Líneas de Productos:**\n1. **Referencia:** 142591403\n   - **Descripción:** VENTILADOR BAYOMO 5WW 6980LM NIQUEL 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...\n   - **Cantidad:** 5\n   - **Precio Unitario:** 39.97 €\n   - **Descuento:** 10%\n   - **Importe:** 179.86 €\n\n2. **Referencia:** CANON/3\n   - **Descripción:** Canon ECORAEE RD/208/2005 0.12\n   - **Cantidad:** 5\n   - **Precio Unitario:** 0.12 €\n   - **Descuento:** 0%\n   - **Importe:** 0.60 €\n\n3. **Referencia:** 142591401\n   - **Descripción:** VENTILADOR BAYOMO 5W 6980LM BLANCO 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...\n   - **Cantidad:** 10\n   - **Precio Unitario:** 39.97 €\n   - **Descuento:** 10%\n   - **Importe:** 359.73 €\n\n4. **Referencia:** CANON/3\n   - **Descripción:** Canon ECORAEE RD/208/2005 0.12\n   - **Cantidad:** 10\n   - **Precio Unitario:** 0.12 €\n   - **Descuento:** 0%\n   - **Importe:** 1.20 €\n\n5. **Referencia:** 142791401\n   - **Descripción:** VENTILADOR DC MATANUSKA 72W 6120LM BLANCO BLUETHOOTH 32/47X55/108D 3 ASPAS...\n   - **Cantidad:** 2\n   - **Precio Unitario:** 69.97 €\n   - **Descuento:** 10%\n   - **Importe:** 125.95 €\n\n6. **Referencia:** CANON/3\n   - **Descripción:** Canon ECORAEE RD/208/2005 0.12\n   - **Cantidad:** 2\n   - **Precio Unitario:** 0.12 €\n   - **Descuento:** 0%\n   - **Importe:** 0.24 €\n\n7. **Referencia:** 142791403\n   - **Descripción:** VENTILADOR DC MATANUSKA 72W 6120LM NIQUEL BLUETHOOTH 32/47X55/108D 3 ASPAS...\n   - **Cantidad:** 2\n   - **Precio Unitario:** 69.97 €\n   - **Descuento:** 10%\n   - **Importe:** 125.95 €\n\n8. **Referencia:** CANON/3\n   - **Descripción:** Canon ECORAEE RD/208/2005 0.12\n   - **Cantidad:** 2\n   - **Precio Unitario:** 0.12 €\n   - **Descuento:** 0%\n   - **Importe:** 0.24 €\n\n9. **Referencia:** 183941001\n   - **Descripción:** VENTILADOR DE PIE TETEIÓ BLANCO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...\n   - **Cantidad:** 5\n   - **Precio Unitario:** 14.98 €\n   - **Descuento:** 10%\n   - **Importe:** 67.41 €\n\n10. **Referencia:** 184041001\n    - **Descripción:** VENTILADOR DE PIE RISE BLANC 3VEL 4SW REG43X40CM OSCILANTE 3 ASPAS BLANCAS...\n    - **Cantidad:** 2\n    - **Precio Unitario:** 20.97 €\n    - **Descuento:** 10%\n    - **Importe:** 37.75 €\n\n11. **Referencia:** 165391401\n    - **Descripción:** VENTILADOR DC DANI 5W 6980LM BLANCO 4ASPAS 6VELOCIDADES 107D...\n    - **Cantidad:** 3\n    - **Precio Unitario:** 39.98 €\n    - **Descuento:** 10%\n    - **Importe:** 107.95 €\n\n12. **Referencia:** CANON/3\n    - **Descripción:** Canon ECORAEE RD/208/2005 0.12\n    - **Cantidad:** 3\n    - **Precio Unitario:** 0.12 €\n    - **Descuento:** 0%\n    - **Importe:** 0.36 €\n\n13. **Referencia:** 184171101\n    - **Descripción:** VENTILADOR SOBREMESA CAPE MEDIANO BLANCO 3VEL 35W OSCILANTE 3 ASPAS BLANCAS...\n    - **Cantidad:** 4\n    - **Precio Unitario:** 13.92 €\n    - **Descuento:** 10%\n    - **Importe:** 50.11 €\n\n14. **Referencia:** 184171201\n    - **Descripción:** VENTILADOR SOBREMESA CAPE PEQUEÑO BLANCO 2VEL 25W OSCILANTE 3 ASPAS BLANCAS...\n    - **Cantidad:** 4\n    - **Precio Unitario:** 12.89 €\n    - **Descuento:** 10%\n    - **Importe:** 46.40 €\n\n15. **Referencia:** 183941009\n    - **Descripción:** VENTILADOR DE PIE TETEIÓ NEGRO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...\n    - **Cantidad:** 5\n    - **Precio Unitario:** 14.98 €\n    - **Descuento:** 10%\n    - **Importe:** 67.41 €\n\n16. **Referencia:** 238071009\n    - **Descripción:** VENTILADOR SOBREMESA PIZARRO MINI NEGRO 2VEL 2W ORIENTABLE 27X20X15CM\n    - **Cantidad:** 4\n    - **Precio Unitario:** 7.96 €\n    - **Descuento:** 10%\n    - **Importe:** 28.66 €\n\n17. **Referencia:** 238071109\n    - **Descripción:** VENTILADOR SOBREMESA PIZARRO PEQUEÑO NEGRO ZVELOCIDADES 25W ORIENTABLE FJ D...\n    - **Cantidad:** 3\n    - **Precio Unitario:** 11.98 €\n    - **Descuento:** 10%\n    - **Importe:** 32.35 €",
+    "ocr_confidence": "unknown",
+    "ocr_id": "20250719120703_tmpkloeyq_8.pdf",
+    "raw_tabula_data": {
+      "invoice_number": "32506198",
+      "invoice_date": "2025-02-27",
+      "supplier_vat": "B41982075",
+      "customer_vat": "75236270G",
+      "total_amount": 1366.38,
+      "tax_amount": 246.46,
+      "subtotal": 1119.92,
+      "due_date": null,
+      "supplier_name": "FABRILAMP ILUMINACIÓN S.L.",
+      "supplier_address": "CL. Trabajo Nº 4",
+      "supplier_city": "Rincónada (La)",
+      "supplier_zip": "41309",
+      "customer_name": "ANTONIO PLAZA BONACHERA",
+      "customer_address": "CRTA ALICUN 172",
+      "customer_city": "ROQUETAS DE MAR",
+      "customer_zip": "04740",
+      "recargo_equivalencia": 0,
+      "tax_rate": 21,
+      "recargo_rate": 0,
+      "payment_method": null,
+      "payment_terms": null,
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "VENTILADOR BAYOMO 5WW 6980LM NIQUEL 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+          "quantity": 5,
+          "price_unit": 39.97,
+          "discount": 10,
+          "default_code": "142591403",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 5,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR BAYOMO 5W 6980LM BLANCO 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+          "quantity": 10,
+          "price_unit": 39.97,
+          "discount": 10,
+          "default_code": "142591401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 10,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC MATANUSKA 72W 6120LM BLANCO BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+          "quantity": 2,
+          "price_unit": 69.97,
+          "discount": 10,
+          "default_code": "142791401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 2,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC MATANUSKA 72W 6120LM NIQUEL BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+          "quantity": 2,
+          "price_unit": 69.97,
+          "discount": 10,
+          "default_code": "142791403",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 2,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE TETEIÓ BLANCO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+          "quantity": 5,
+          "price_unit": 14.98,
+          "discount": 10,
+          "default_code": "183941001",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE RISE BLANC 3VEL 4SW REG43X40CM OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 2,
+          "price_unit": 20.97,
+          "discount": 10,
+          "default_code": "184041001",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DC DANI 5W 6980LM BLANCO 4ASPAS 6VELOCIDADES 107D...",
+          "quantity": 3,
+          "price_unit": 39.98,
+          "discount": 10,
+          "default_code": "165391401",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "Canon ECORAEE RD/208/2005 0.12",
+          "quantity": 3,
+          "price_unit": 0.12,
+          "discount": 0,
+          "default_code": "CANON/3",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA CAPE MEDIANO BLANCO 3VEL 35W OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 4,
+          "price_unit": 13.92,
+          "discount": 10,
+          "default_code": "184171101",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA CAPE PEQUEÑO BLANCO 2VEL 25W OSCILANTE 3 ASPAS BLANCAS...",
+          "quantity": 4,
+          "price_unit": 12.89,
+          "discount": 10,
+          "default_code": "184171201",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR DE PIE TETEIÓ NEGRO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+          "quantity": 5,
+          "price_unit": 14.98,
+          "discount": 10,
+          "default_code": "183941009",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA PIZARRO MINI NEGRO 2VEL 2W ORIENTABLE 27X20X15CM",
+          "quantity": 4,
+          "price_unit": 7.96,
+          "discount": 10,
+          "default_code": "238071009",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        },
+        {
+          "name": "VENTILADOR SOBREMESA PIZARRO PEQUEÑO NEGRO ZVELOCIDADES 25W ORIENTABLE FJ D...",
+          "quantity": 3,
+          "price_unit": 11.98,
+          "discount": 10,
+          "default_code": "238071109",
+          "ean13": null,
+          "tax_rate": 21,
+          "recargo_rate": 0
+        }
+      ]
+    },
+    "validation": {
+      "totals_valid": false,
+      "details": {
+        "subtotal": {
+          "declared": 1119.92,
+          "calculated": 1232.16,
+          "difference": 112.24,
+          "valid": false
+        },
+        "tax_amount": {
+          "declared": 246.46,
+          "calculated": 258.75,
+          "difference": 12.29,
+          "valid": false
+        },
+        "recargo_equivalencia": {
+          "declared": 0.0,
+          "calculated": 0.0,
+          "difference": 0.0,
+          "valid": true
+        },
+        "total_amount": {
+          "declared": 1366.38,
+          "calculated": 1490.91,
+          "difference": 124.53,
+          "valid": false
+        },
+        "is_valid": false
+      }
+    }
+  },
+  "extracted_data": {
+    "invoice_number": "32506198",
+    "invoice_date": "2025-02-27",
+    "supplier_vat": "B41982075",
+    "customer_vat": "75236270G",
+    "total_amount": 1366.38,
+    "tax_amount": 246.46,
+    "subtotal": 1119.92,
+    "due_date": null,
+    "supplier_name": "FABRILAMP ILUMINACIÓN S.L.",
+    "supplier_address": "CL. Trabajo Nº 4",
+    "supplier_city": "Rincónada (La)",
+    "supplier_zip": "41309",
+    "customer_name": "ANTONIO PLAZA BONACHERA",
+    "customer_address": "CRTA ALICUN 172",
+    "customer_city": "ROQUETAS DE MAR",
+    "customer_zip": "04740",
+    "recargo_equivalencia": 0,
+    "tax_rate": 21,
+    "recargo_rate": 0,
+    "payment_method": null,
+    "payment_terms": null,
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "VENTILADOR BAYOMO 5WW 6980LM NIQUEL 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+        "quantity": 5,
+        "price_unit": 39.97,
+        "discount": 10,
+        "default_code": "142591403",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "Canon ECORAEE RD/208/2005 0.12",
+        "quantity": 5,
+        "price_unit": 0.12,
+        "discount": 0,
+        "default_code": "CANON/3",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR BAYOMO 5W 6980LM BLANCO 4 ASPAS DESP. 34.5/42X50/107 D-3 COLOR...",
+        "quantity": 10,
+        "price_unit": 39.97,
+        "discount": 10,
+        "default_code": "142591401",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "Canon ECORAEE RD/208/2005 0.12",
+        "quantity": 10,
+        "price_unit": 0.12,
+        "discount": 0,
+        "default_code": "CANON/3",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DC MATANUSKA 72W 6120LM BLANCO BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+        "quantity": 2,
+        "price_unit": 69.97,
+        "discount": 10,
+        "default_code": "142791401",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "Canon ECORAEE RD/208/2005 0.12",
+        "quantity": 2,
+        "price_unit": 0.12,
+        "discount": 0,
+        "default_code": "CANON/3",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DC MATANUSKA 72W 6120LM NIQUEL BLUETHOOTH 32/47X55/108D 3 ASPAS...",
+        "quantity": 2,
+        "price_unit": 69.97,
+        "discount": 10,
+        "default_code": "142791403",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "Canon ECORAEE RD/208/2005 0.12",
+        "quantity": 2,
+        "price_unit": 0.12,
+        "discount": 0,
+        "default_code": "CANON/3",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DE PIE TETEIÓ BLANCO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+        "quantity": 5,
+        "price_unit": 14.98,
+        "discount": 10,
+        "default_code": "183941001",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DE PIE RISE BLANC 3VEL 4SW REG43X40CM OSCILANTE 3 ASPAS BLANCAS...",
+        "quantity": 2,
+        "price_unit": 20.97,
+        "discount": 10,
+        "default_code": "184041001",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DC DANI 5W 6980LM BLANCO 4ASPAS 6VELOCIDADES 107D...",
+        "quantity": 3,
+        "price_unit": 39.98,
+        "discount": 10,
+        "default_code": "165391401",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "Canon ECORAEE RD/208/2005 0.12",
+        "quantity": 3,
+        "price_unit": 0.12,
+        "discount": 0,
+        "default_code": "CANON/3",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR SOBREMESA CAPE MEDIANO BLANCO 3VEL 35W OSCILANTE 3 ASPAS BLANCAS...",
+        "quantity": 4,
+        "price_unit": 13.92,
+        "discount": 10,
+        "default_code": "184171101",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR SOBREMESA CAPE PEQUEÑO BLANCO 2VEL 25W OSCILANTE 3 ASPAS BLANCAS...",
+        "quantity": 4,
+        "price_unit": 12.89,
+        "discount": 10,
+        "default_code": "184171201",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR DE PIE TETEIÓ NEGRO 3 VELOCIDADES 40W OS CILANTE 3 ASPAS BLANCAS...",
+        "quantity": 5,
+        "price_unit": 14.98,
+        "discount": 10,
+        "default_code": "183941009",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR SOBREMESA PIZARRO MINI NEGRO 2VEL 2W ORIENTABLE 27X20X15CM",
+        "quantity": 4,
+        "price_unit": 7.96,
+        "discount": 10,
+        "default_code": "238071009",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      },
+      {
+        "name": "VENTILADOR SOBREMESA PIZARRO PEQUEÑO NEGRO ZVELOCIDADES 25W ORIENTABLE FJ D...",
+        "quantity": 3,
+        "price_unit": 11.98,
+        "discount": 10,
+        "default_code": "238071109",
+        "ean13": null,
+        "tax_rate": 21,
+        "recargo_rate": 0
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "ABRILA - factura_32506198.pdf",
+    "processed_at": "2025-07-19T12:07:03.036194",
+    "processed_by": "admin",
+    "ocr_id": "20250719120703_ABRILA - factura_32506198"
+  }
+}

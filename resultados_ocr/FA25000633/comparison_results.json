@@ -1,0 +1,89 @@
+{
+  "pdf_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/ejemplos/ALMCE/FA25000633.PDF",
+  "filename": "FA25000633.PDF",
+  "timestamp": "2025-07-18T21:03:25.603087",
+  "methods": {
+    "original": {
+      "time": 14.449698448181152,
+      "char_count": 1420,
+      "word_count": 225,
+      "number_count": 263,
+      "extracted_data": {
+        "number": "Unknown",
+        "date": "08/01/25",
+        "partner_name": "Unknown Supplier",
+        "amount_total": 0.0,
+        "lines": [],
+        "due_dates": [],
+        "customer_order_ref": null
+      }
+    },
+    "optimized": {
+      "time": 11.250523328781128,
+      "char_count": 1376,
+      "word_count": 210,
+      "number_count": 237,
+      "doc_type": "general",
+      "product_codes": [
+        "ANTONIO",
+        "PLAZA",
+        "BONACHERA",
+        "ALMCE",
+        "PELOTAZO",
+        "14891592",
+        "FAUSTO",
+        "GARCIA",
+        "14014",
+        "RDOBA",
+        "ALICUN",
+        "04740",
+        "ROQUETAS",
+        "ALMERIA",
+        "FECHA",
+        "FACTURA",
+        "CLIENTE",
+        "25000633",
+        "43004323",
+        "752362706",
+        "DESCRIPCI",
+        "UNIDADES",
+        "PRECIO",
+        "IMPORTE",
+        "ALBAR",
+        "25000518",
+        "FECHA",
+        "25000536PO",
+        "COW4854TW",
+        "COW4854TWM",
+        "55P61B",
+        "55P61B",
+        "CCHM703W",
+        "CCHM703W",
+        "CO4104TWM",
+        "CO4104TWM6",
+        "TOTAL",
+        "IMPORTE",
+        "TOTAL",
+        "ALMCE",
+        "29983",
+        "13210"
+      ],
+      "extracted_data": {
+        "invoice_number": null,
+        "invoice_date": "09/01/2025",
+        "due_date": "08/01/2025",
+        "supplier_name": null,
+        "supplier_vat": "25000536P",
+        "customer_name": null,
+        "customer_vat": null,
+        "total_amount": null,
+        "tax_info": {
+          "iva": [],
+          "recargo": []
+        },
+        "product_codes": null
+      }
+    }
+  },
+  "similarity": 1.0
+}

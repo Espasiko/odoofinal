@@ -1,0 +1,68 @@
+{
+  "invoice_number": "32506198",
+  "invoice_date": "25/06/2025",
+  "due_date": "25/07/2025",
+  "supplier_name": "FABRILAMP ILUMINACIÓN S.L.",
+  "supplier_vat": "B41982075",
+  "customer_name": "ANTONIO PLAZA BONACHERA",
+  "customer_vat": "75236270G",
+  "total_amount": 363.38,
+  "base_imponible": 183.51999999999998,
+  "iva_amount": 179.86,
+  "discount_amount": null,
+  "tax_info": {
+    "iva": [],
+    "recargo": []
+  },
+  "product_codes": null,
+  "lines": [
+    {
+      "product_code": "238071209",
+      "name": "VENTILADOR SOBREMESA PIZARRO MEDIANO",
+      "quantity": 4,
+      "price_unit": 12.97,
+      "discount": 10,
+      "price_subtotal": 46.69
+    },
+    {
+      "product_code": "238371009",
+      "name": "VENTILADOR DE TORRE CUCO NEGRO",
+      "quantity": 2,
+      "price_unit": 19.9,
+      "discount": 10,
+      "price_subtotal": 35.82
+    },
+    {
+      "product_code": "240071001",
+      "name": "MINIVENTILADOR INALAMBRICO SOBREMESA",
+      "quantity": 3,
+      "price_unit": 8.95,
+      "discount": 10,
+      "price_subtotal": 24.16
+    },
+    {
+      "product_code": "241871001",
+      "name": "VENTILADOR INALAMBRICO SOBREMESA AGUILA",
+      "quantity": 2,
+      "price_unit": 12.89,
+      "discount": 10,
+      "price_subtotal": 23.2
+    },
+    {
+      "product_code": "242071015",
+      "name": "VENTILADOR INALAMBRICO SOBREMESA PACHECO",
+      "quantity": 2,
+      "price_unit": 14.97,
+      "discount": 10,
+      "price_subtotal": 26.95
+    },
+    {
+      "product_code": "242171028",
+      "name": "VENTILADOR INALAMBRICO DC PORTATIL J ERICO",
+      "quantity": 3,
+      "price_unit": 9.89,
+      "discount": 10,
+      "price_subtotal": 26.7
+    }
+  ]
+}

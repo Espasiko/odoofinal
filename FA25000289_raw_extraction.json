@@ -1,0 +1,196 @@
+{
+  "success": true,
+  "message": "Extracci\u00f3n cruda completada",
+  "filename": "FA25000289.PDF",
+  "file_type": ".pdf",
+  "ocr_text": "                                                                         ANTONIO PLAZA BONACHERA\n\n                                   ALMCE S.L.\n                                   C.I.F.: B-14891592                    EL PELOTAZO\n                                   C/ FAUSTO GARCIA TENA N\u00ba 23\n                                                                         CTRA. ALICUN, 172\n                                   14014 - C\u00d3RDOBA\n                                   TELF: 957 34 30 85                    04740 ROQUETAS DE MAR\n                                                                         ALMERIA\n\n\n\n  FECHA          FACTURA           CLIENTE             N.I.F.               TEL\u00c9FONO                 P\u00c1G.\n   07/01/25         25000289        43004323        75236270G                670 968 607               1\n\n  C\u00d3DIGO                   DESCRIPCI\u00d3N                                  UNIDADES       PRECIO                       IMPORTE\n\n\n                ALBAR\u00c1N PO-25000206 FECHA 07/01/25\n                Ped. 25000232PO\nCCATP10GB       Calentador Corbero CCATP10GBNOX, Capacidad 10 L.,                  1              162.36                       162.36\n\n\n\n\n                                                                                                                               (\u20ac)\n TOTAL IMP.          %            IMPORTE        BASE               %         I.V.A.       %        REC.          TOTAL FRA.\n          162.36                                         162.36                    34.10                   8.44                204.90\n                                                                    21.00                  5.20\n\n\n                                                                                                                                     Eur\n\n  Forma de Pago GIRO A 30 DIAS\n         Banco:\n\n\n\n\nVencimientos:\n06/02/25\n 204.90\n\n      Devoluciones de Producto:\n   Cualquier incidencia en la mercancia ocasionada por el trasporte debera ser comunicada en\n   las 24 horas siguientes a la recepci\u00f3n de la misma.\n   No se aceptaran devoluciones de producto sin previa conformidad escrita de nuestro dpto. comercial.\n   Todas las devoluciones por causas no imputables a ALMCE S.L. sufriran una depreciacion\n   minima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomesticos S.L. Inscrita en el Registro Mercantil del C\u00f3rdoba\nfolio 101 tomo 2181 hoja CO-29983 inscripcion 1\u00aa. N\u00ba RII-AEE:13210\n\f",
+  "ocr_data": {
+    "invoice_number": "23",
+    "invoice_date": "07/01/25",
+    "due_date": "",
+    "supplier_name": "ANTONIO PLAZA BONACHERA",
+    "supplier_vat": "75236270G",
+    "supplier_address": "",
+    "supplier_city": "",
+    "supplier_zip": "",
+    "customer_name": "N.I.F.               TEL",
+    "customer_vat": "",
+    "customer_address": "",
+    "customer_city": "",
+    "customer_zip": "",
+    "total_amount": null,
+    "tax_amount": null,
+    "subtotal": null,
+    "tax_rate": null,
+    "recargo_equivalencia": null,
+    "recargo_rate": null,
+    "payment_method": "",
+    "payment_terms": "",
+    "currency": "EUR",
+    "lines": []
+  },
+  "tabula_data": {
+    "invoice_number": "CLIENTE",
+    "invoice_date": "",
+    "due_date": "",
+    "supplier_name": "07/01/25 25000289 43004323 75236270G 670 968 607 1",
+    "supplier_vat": "75236270G",
+    "supplier_address": "",
+    "supplier_city": "",
+    "supplier_zip": "",
+    "customer_name": "",
+    "customer_vat": "",
+    "customer_address": "",
+    "customer_city": "",
+    "customer_zip": "",
+    "total_amount": null,
+    "tax_amount": null,
+    "subtotal": null,
+    "tax_rate": null,
+    "recargo_equivalencia": null,
+    "recargo_rate": null,
+    "payment_method": "",
+    "payment_terms": "",
+    "currency": "EUR",
+    "lines": [
+      {
+        "quantity": null,
+        "description": "Forma de PagoGIRO A 30 DIAS",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "Devoluciones de Producto:",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "Cualquier incidencia en la mercancia ocasionada por el trasporte debera ser comunicada en",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "las 24 horas siguientes a la recepci\u00f3n de la misma.",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "No se aceptaran devoluciones de producto sin previa conformidad escrita de nuestro dpto. comercial.",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "Todas las devoluciones por causas no imputables a ALMCE S.L. sufriran una depreciacion",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "minima del 10% sobre el importe originalmente facturado.",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "Ahora la mejor compra electrodomesticos S.L. Inscrita en el Registro Mercantil del C\u00f3rdoba",
+        "price_unit": null,
+        "price_total": null
+      },
+      {
+        "quantity": null,
+        "description": "folio 101 tomo 2181 hoja CO-29983 inscripcion 1a.  No RII-AEE:13210",
+        "price_unit": null,
+        "price_total": null
+      }
+    ]
+  },
+  "tables": [
+    {
+      "FECHA": {
+        "0": "07/01/25"
+      },
+      "FACTURA": {
+        "0": 25000289
+      },
+      "CLIENTE": {
+        "0": 43004323
+      },
+      "N.I.F.": {
+        "0": "75236270G"
+      },
+      "TEL\u00c9FONO": {
+        "0": "670 968 607"
+      },
+      "P\u00c1G.": {
+        "0": 1
+      }
+    },
+    {
+      "TOTAL IMP.": {
+        "0": 162.36,
+        "1": "",
+        "2": ""
+      },
+      "%": {
+        "0": "",
+        "1": "",
+        "2": ""
+      },
+      "IMPORTE": {
+        "0": "",
+        "1": "",
+        "2": ""
+      },
+      "BASE": {
+        "0": "",
+        "1": "",
+        "2": ""
+      },
+      "Unnamed: 0": {
+        "0": 162.36,
+        "1": "",
+        "2": ""
+      },
+      "%.1": {
+        "0": "",
+        "1": 21.0,
+        "2": ""
+      },
+      "I.V.A.": {
+        "0": 34.1,
+        "1": "",
+        "2": ""
+      },
+      "%.2": {
+        "0": "",
+        "1": 5.2,
+        "2": ""
+      },
+      "REC.": {
+        "0": "",
+        "1": "",
+        "2": ""
+      },
+      "Unnamed: 1": {
+        "0": 8.44,
+        "1": "",
+        "2": ""
+      },
+      "TOTAL FRA.": {
+        "0": "",
+        "1": "",
+        "2": ""
+      },
+      "(\u20ac)": {
+        "0": "204.90",
+        "1": "",
+        "2": "Eur"
+      }
+    }
+  ]
+}

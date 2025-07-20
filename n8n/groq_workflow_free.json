@@ -1,0 +1,101 @@
+{
+  "name": "Asistente Odoo 18 con Groq - API Gratuita",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.2,
+      "position": [300, 300],
+      "webhookId": "a889d2ae-2159-402f-b326-5f61e90f602e"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "maxTokens": 1024,
+          "temperature": 0.7
+        }
+      },
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1.0,
+      "position": [700, 500],
+      "credentials": {
+        "groqApi": {
+          "id": "ng2el7NuRQ7DOZeL",
+          "name": "Groq API Key Gratuita"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "systemMessage": "Eres un asistente experto en Odoo 18 y procesamiento de facturas. Responde en español de manera clara y concisa. Ayuda con preguntas sobre:\n\n1. Configuración de Odoo 18\n2. Procesamiento OCR de facturas\n3. Integración con n8n y FastAPI\n4. Validación de datos de facturas\n5. Automatización de flujos de trabajo\n\nSi no conoces la respuesta, indícalo claramente y sugiere dónde buscar más información.",
+        "options": {
+          "memory": {
+            "type": "simple"
+          },
+          "systemMessageEnabled": true
+        }
+      },
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "content": "Este nodo proporciona información sobre Odoo 18:\n\n- Módulos principales\n- Configuración del sistema\n- Procesamiento de facturas\n- Integración con OCR\n- Automatización de flujos"
+      },
+      "name": "Información Odoo 18",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Información Odoo 18": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "tools",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "Europe/Madrid"
+  }
+}

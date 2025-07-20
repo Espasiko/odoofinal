@@ -1,0 +1,26 @@
+{
+  "filename": "Portafolios PDF nuevo.pdf",
+  "doc_type": "general",
+  "original": {
+    "time": 2.8271894454956055,
+    "chars": 106,
+    "words": 17,
+    "numbers": 0,
+    "product_codes": 0,
+    "output_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/resultados_ocr/Portafolios PDF nuevo/original_ocr.txt"
+  },
+  "improved": {
+    "time": 2.21492862701416,
+    "chars": 102,
+    "words": 16,
+    "numbers": 0,
+    "product_codes": 0,
+    "output_path": "/home/espasiko/mainmanusodoo/manusodoo-roto/resultados_ocr/Portafolios PDF nuevo/improved_ocr.txt"
+  },
+  "comparison": {
+    "similarity": 0.9807692307692307,
+    "char_diff": -4,
+    "char_diff_percent": -3.7735849056603774,
+    "time_diff_percent": -21.656165258289445
+  }
+}
