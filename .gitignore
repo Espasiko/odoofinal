@@ -21,6 +21,11 @@ logs/
 data_test/
 scripts/
 
+# Archivos grandes
+*.zip
+*.gif
+filestore/
+
 # Archivos y carpetas comunes de Python
 __pycache__
 *.py[cod]
