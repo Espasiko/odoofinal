@@ -23,14 +23,20 @@ scripts/
 
 # Archivos grandes
 *.zip
-*.gif
 filestore/
-*.png
-*.svg
-*.json
 facturas_jsons/
 relicaHostingerMCP/
-package-lock.json
+resultados_ocr/
+
+# Excepciones importantes (NO excluir)
+!api/**/*.py
+!api/**/*.md
+!src/**/*.tsx
+!src/**/*.ts
+!src/**/*.jsx
+!src/**/*.js
+!src/**/*.css
+!src/**/*.scss
 
 # Archivos y carpetas comunes de Python
 __pycache__
