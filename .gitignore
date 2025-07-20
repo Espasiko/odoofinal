@@ -11,8 +11,11 @@ plantillasodoo
 de_manus
 /mcp-odoo-you
 tests/
-legacy/
+/legacy/
 relicaHostingerMCP/
+
+# Permitir rutas específicas
+!api/routes/legacy/
 
 # Archivos grandes
 *.zip
