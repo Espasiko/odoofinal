@@ -25,6 +25,12 @@ scripts/
 *.zip
 *.gif
 filestore/
+*.png
+*.svg
+*.json
+facturas_jsons/
+relicaHostingerMCP/
+package-lock.json
 
 # Archivos y carpetas comunes de Python
 __pycache__
