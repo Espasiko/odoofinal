@@ -39,6 +39,9 @@ CHUNK_SIZE = 25  # Procesar en lotes de 50 productos
 async def process_and_load_excel(
     file: UploadFile = File(...),
     proveedor_nombre: str = Form(...),
+    start_row: int = Form(0),
+    chunk_size: int = Form(50),
+    only_first_sheet: bool = Form(False),
     current_user: User = Depends(get_current_active_user)
 ):
     """
@@ -71,15 +74,49 @@ async def process_and_load_excel(
         if test_mode:
             logger.info(f"Modo de prueba activado: procesando solo los primeros {max_products} productos")
             raw_data = raw_data[:max_products]
+            
+        # Aplicar paginación según los parámetros recibidos
+        total_rows = len(raw_data)
+        logger.info(f"Total de filas en el Excel: {total_rows}")
+        
+        # Si start_row es mayor que el total de filas, no hay más datos para procesar
+        if start_row >= total_rows:
+            logger.info(f"No hay más datos para procesar. start_row ({start_row}) >= total_rows ({total_rows})")
+            return JSONResponse(content={
+                "message": "No hay más datos para procesar",
+                "total_intentados": 0,
+                "total_creados_o_actualizados": 0,
+                "total_fallidos": 0,
+                "productos_creados_o_actualizados": [],
+                "productos_fallidos": []
+            }, status_code=200)
+            
+        # Obtener solo el chunk actual según start_row y chunk_size
+        end_row = min(start_row + chunk_size, total_rows)
+        current_chunk = raw_data[start_row:end_row]
+        logger.info(f"Procesando chunk desde fila {start_row} hasta {end_row-1} (total: {len(current_chunk)} filas)")
+        
+        # Si el chunk está vacío, terminar
+        if not current_chunk:
+            logger.info("Chunk vacío, no hay más datos para procesar")
+            return JSONResponse(content={
+                "message": "No hay más datos para procesar",
+                "total_intentados": 0,
+                "total_creados_o_actualizados": 0,
+                "total_fallidos": 0,
+                "productos_creados_o_actualizados": [],
+                "productos_fallidos": []
+            }, status_code=200)
         
         # Verificar si hay productos sin ID y loguear esta información
-        products_without_id = [p for p in raw_data if not any(k.lower() in str(k).lower() and v for k, v in p.items() 
+        products_without_id = [p for p in current_chunk if not any(k.lower() in str(k).lower() and v for k, v in p.items() 
                                                            for id_key in ['id', 'ref', 'código', 'codigo', 'referencia'])]
         if products_without_id:
-            logger.warning(f"Se encontraron {len(products_without_id)} productos sin ID o referencia")
+            logger.warning(f"Se encontraron {len(products_without_id)} productos sin ID o referencia en el chunk actual")
             
-        chunks = [raw_data[i:i + CHUNK_SIZE] for i in range(0, len(raw_data), CHUNK_SIZE)]
-        logger.info(f"Datos divididos en {len(chunks)} lotes de ~{CHUNK_SIZE} productos cada uno.")
+        # Procesar solo el chunk actual, no dividir en más chunks
+        chunks = [current_chunk]
+        logger.info(f"Procesando 1 lote con {len(current_chunk)} productos.")
 
         business_rules = preprocessed_data.get("business_rules", {})
         prompt_rules = "\n".join([f'- {k}: {v}' for k, v in business_rules.items()])

@@ -13,5 +13,6 @@ router = APIRouter(
 def upload_test(file: UploadFile = File(...), current_user: User = Depends(get_current_user)) -> JSONResponse:
     return JSONResponse(content={
         "message": "Archivo recibido con éxito",
-        "filename": file.filename
+        "filename": file.filename,
+        "user": current_user.username
     })

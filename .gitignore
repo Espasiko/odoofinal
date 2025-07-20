@@ -9,17 +9,10 @@ main
 plantillasodoo
 /mcp-odoo-yourtechtribe
 de_manus
-addons_backup/
-informes/
-ejemplos/
-backups/
-legacy/
-facturas-jsons/
-resultados_ocr/
+/mcp-odoo-you
 tests/
-logs/
-data_test/
-scripts/
+legacy/
+relicaHostingerMCP/
 
 # Archivos grandes
 *.zip

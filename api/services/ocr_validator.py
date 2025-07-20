@@ -2,10 +2,11 @@
 Validador de datos OCR para facturas
 Este módulo proporciona funciones para validar y corregir datos extraídos por OCR
 """
-import re
 import logging
-import datetime
-from typing import Dict, List, Any, Optional, Union, Tuple
+import re
+from datetime import datetime
+from typing import Dict, Any, Tuple, Optional, List
+from .nif_cif_validator import validate_nif_cif as validate_spanish_nif_cif
 
 logger = logging.getLogger(__name__)
 
@@ -279,29 +280,25 @@ class OCRValidator:
         return False, None
     
     @staticmethod
-    def validate_invoice_number(invoice_number: str) -> tuple[bool, Optional[str]]:
+    def validate_invoice_number(invoice_number: str) -> Tuple[bool, str]:
         """
-        Valida y corrige un número de factura
+        Valida y corrige el número de factura
         
         Args:
             invoice_number: Número de factura a validar
             
         Returns:
-            Tupla (es_válido, versión_corregida)
+            Tupla (es_válido, número_corregido)
         """
         if not invoice_number:
-            return False, None
+            return False, ""
             
-        # Eliminar espacios y caracteres especiales
-        cleaned = re.sub(r'[^\w\-]', '', invoice_number.upper())
+        # Eliminar espacios y caracteres no alfanuméricos excepto guiones y barras
+        cleaned = re.sub(r'[^\w\-\/]', '', invoice_number)
         
-        # Verificar si el número de factura contiene solo números y letras
-        if not re.match(r'^[A-Z0-9\-]+$', cleaned):
-            return False, None
-            
-        # Verificar longitud mínima
-        if len(cleaned) < 3:
-            return False, None
+        # Si quedó vacío después de limpiar, no es válido
+        if not cleaned:
+            return False, ""
             
         return True, cleaned
     
@@ -338,6 +335,7 @@ class OCRValidator:
     def validate_invoice_data(invoice_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Valida y corrige los datos de una factura extraída por OCR
+        Respeta los datos verificados por humano (marcados con _verified = True)
         
         Args:
             invoice_data: Datos de la factura extraídos por OCR
@@ -347,22 +345,35 @@ class OCRValidator:
         """
         validated_data = {}
         
-        # Validar número de factura
-        if 'invoice_number' in invoice_data:
+        # Primero, preservar todos los datos verificados por humano
+        # Estos datos tienen prioridad absoluta y no deben ser modificados
+        for key in list(invoice_data.keys()):
+            if key.endswith('_verified') and invoice_data[key] is True:
+                # Obtener el nombre del campo original sin el sufijo _verified
+                base_field = key.replace('_verified', '')
+                if base_field in invoice_data:
+                    # Copiar el valor verificado directamente sin validación
+                    validated_data[base_field] = invoice_data[base_field]
+                    # Conservar también el indicador de verificación
+                    validated_data[key] = True
+                    logger.info(f"Campo {base_field} verificado por humano: {invoice_data[base_field]}")
+        
+        # Validar número de factura (solo si no está verificado por humano)
+        if 'invoice_number' in invoice_data and 'invoice_number' not in validated_data:
             is_valid, corrected = OCRValidator.validate_invoice_number(invoice_data['invoice_number'])
             if is_valid:
                 validated_data['invoice_number'] = corrected
         
-        # Validar fechas
+        # Validar fechas (solo si no están verificadas por humano)
         for date_field in ['invoice_date', 'due_date']:
-            if date_field in invoice_data:
+            if date_field in invoice_data and date_field not in validated_data:
                 is_valid, corrected = OCRValidator.validate_date(invoice_data[date_field])
                 if is_valid:
                     validated_data[date_field] = corrected
         
-        # Validar NIF/CIF
+        # Validar NIF/CIF (solo si no están verificados por humano)
         for field in ['supplier_vat', 'customer_vat']:
-            if field in invoice_data:
+            if field in invoice_data and field not in validated_data:
                 is_valid, corrected = OCRValidator.validate_nif_cif(invoice_data[field])
                 if is_valid:
                     validated_data[field] = corrected
@@ -379,7 +390,7 @@ class OCRValidator:
             validated_data['lines'] = validated_lines
         
         # Validar totales
-        for field in ['total_amount', 'tax_amount', 'subtotal']:
+        for field in ['total_amount', 'tax_amount', 'subtotal', 'base_imponible', 'iva_amount', 'recargo_amount']:
             if field in invoice_data:
                 try:
                     # Convertir a float y redondear a 2 decimales
@@ -388,4 +399,249 @@ class OCRValidator:
                 except (ValueError, TypeError):
                     pass
         
+        # Copiar el resto de campos sin validación específica
+        for key, value in invoice_data.items():
+            if key not in validated_data:
+                validated_data[key] = value
+        
+        # Verificar cálculos matemáticos
+        OCRValidator.verify_tax_calculations(validated_data)
+        
+        # Verificar suma de líneas
+        OCRValidator.verify_line_sum(validated_data)
+        
         return validated_data
+    
+    @staticmethod
+    def verify_tax_calculations(invoice_data: Dict[str, Any]) -> None:
+        """
+        Verifica los cálculos de impuestos y corrige pequeñas discrepancias
+        
+        Args:
+            invoice_data: Datos de la factura validados
+        """
+        try:
+            # Obtener valores base
+            base = invoice_data.get('base_imponible', invoice_data.get('subtotal', 0))
+            if not base:
+                return
+                
+            # Asegurarse de que base es un número
+            if isinstance(base, str):
+                try:
+                    base = float(base.replace(',', '.'))
+                except (ValueError, TypeError):
+                    return
+            
+            # Obtener valores de impuestos
+            iva = invoice_data.get('iva_amount', invoice_data.get('tax_amount', 0))
+            recargo = invoice_data.get('recargo_amount', 0)
+            total = invoice_data.get('total_amount', 0)
+            
+            # Convertir a números si son strings
+            if isinstance(iva, str):
+                try:
+                    iva = float(iva.replace(',', '.'))
+                except (ValueError, TypeError):
+                    iva = 0
+                    
+            if isinstance(recargo, str):
+                try:
+                    recargo = float(recargo.replace(',', '.'))
+                except (ValueError, TypeError):
+                    recargo = 0
+                    
+            if isinstance(total, str):
+                try:
+                    total = float(total.replace(',', '.'))
+                except (ValueError, TypeError):
+                    total = 0
+            
+            # Calcular IVA esperado (21%)
+            expected_iva = round(base * 0.21, 2)
+            
+            # Calcular recargo esperado (5.2%)
+            expected_recargo = round(base * 0.052, 2) if recargo > 0 else 0
+            
+            # Calcular total esperado
+            expected_total = round(base + expected_iva + expected_recargo, 2)
+            
+            # Tolerancia para redondeos (2 céntimos)
+            tolerance = 0.02
+            
+            # Verificar y corregir IVA si es necesario
+            if abs(iva - expected_iva) <= tolerance:
+                invoice_data['iva_amount'] = expected_iva
+                if 'tax_amount' in invoice_data:
+                    invoice_data['tax_amount'] = expected_iva
+            
+            # Verificar y corregir recargo si es necesario
+            if recargo > 0 and abs(recargo - expected_recargo) <= tolerance:
+                invoice_data['recargo_amount'] = expected_recargo
+            
+            # Verificar y corregir total si es necesario
+            if abs(total - expected_total) <= tolerance:
+                invoice_data['total_amount'] = expected_total
+                
+            logger.info(f"Verificación de cálculos: Base={base}, IVA={iva} (esperado {expected_iva}), "
+                       f"Recargo={recargo} (esperado {expected_recargo}), "
+                       f"Total={total} (esperado {expected_total})")
+                
+        except Exception as e:
+            logger.error(f"Error al verificar cálculos de impuestos: {str(e)}")
+    
+    @staticmethod
+    def verify_line_sum(invoice_data: Dict[str, Any]) -> None:
+        """
+        Verifica que la suma de las líneas coincida con la base imponible
+        
+        Args:
+            invoice_data: Datos de la factura validados
+        """
+        try:
+            lines = invoice_data.get('lines', [])
+            base = invoice_data.get('base_imponible', invoice_data.get('subtotal', 0))
+            
+            if not lines or not base:
+                return
+                
+            # Asegurarse de que base es un número
+            if isinstance(base, str):
+                try:
+                    base = float(base.replace(',', '.'))
+                except (ValueError, TypeError):
+                    return
+                
+            # Calcular suma de líneas
+            line_sum = 0
+            for line in lines:
+                quantity = 0
+                price = 0
+                discount = 0
+                
+                # Obtener cantidad
+                if 'quantity' in line:
+                    try:
+                        quantity = float(str(line['quantity']).replace(',', '.'))
+                    except (ValueError, TypeError):
+                        quantity = 0
+                
+                # Obtener precio
+                if 'price' in line:
+                    try:
+                        price = float(str(line['price']).replace(',', '.'))
+                    except (ValueError, TypeError):
+                        price = 0
+                
+                # Obtener descuento
+                if 'discount' in line:
+                    try:
+                        discount_str = str(line['discount']).replace(',', '.').replace('%', '')
+                        discount = float(discount_str) / 100
+                    except (ValueError, TypeError):
+                        discount = 0
+                
+                # Calcular importe de línea con descuento
+                line_amount = quantity * price * (1 - discount)
+                line_sum += round(line_amount, 2)
+                
+                # Actualizar importe de línea si no existe
+                if 'amount' not in line:
+                    line['amount'] = round(line_amount, 2)
+            
+            # Redondear suma total de líneas
+            line_sum = round(line_sum, 2)
+            
+            # Tolerancia para redondeos (5 céntimos)
+            tolerance = 0.05
+            
+            # Verificar y corregir base imponible si es necesario
+            if abs(base - line_sum) <= tolerance:
+                invoice_data['base_imponible'] = line_sum
+                if 'subtotal' in invoice_data:
+                    invoice_data['subtotal'] = line_sum
+                logger.info(f"Base imponible corregida: {base} -> {line_sum}")
+            else:
+                logger.warning(f"Discrepancia en suma de líneas: Base={base}, Suma={line_sum}, Diferencia={abs(base - line_sum)}")
+                
+        except Exception as e:
+            logger.error(f"Error al verificar suma de líneas: {str(e)}")
+    
+    @staticmethod
+    def cross_validate_ocr_tabula(ocr_data: Dict[str, Any], tabula_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Realiza validación cruzada entre datos extraídos por OCR y Tabula
+        Respeta los datos verificados por humano (marcados con _verified = True)
+        
+        Args:
+            ocr_data: Datos extraídos por OCR
+            tabula_data: Datos extraídos por Tabula
+            
+        Returns:
+            Datos validados y mejorados
+        """
+        result = ocr_data.copy()
+        
+        try:
+            # Primero identificar los campos verificados por humano
+            verified_fields = []
+            for key in list(result.keys()):
+                if key.endswith('_verified') and result[key] is True:
+                    base_field = key.replace('_verified', '')
+                    verified_fields.append(base_field)
+                    logger.info(f"Campo verificado por humano en validación cruzada: {base_field}")
+            
+            # Validar datos del proveedor (solo si no están verificados por humano)
+            if not result.get('supplier_name') and tabula_data.get('supplier_name') and 'supplier_name' not in verified_fields:
+                result['supplier_name'] = tabula_data['supplier_name']
+                
+            if not result.get('supplier_vat') and tabula_data.get('supplier_vat') and 'supplier_vat' not in verified_fields:
+                is_valid, corrected = OCRValidator.validate_nif_cif(tabula_data['supplier_vat'])
+                if is_valid:
+                    result['supplier_vat'] = corrected
+            
+            # Validar número de factura (solo si no está verificado por humano)
+            if not result.get('invoice_number') and tabula_data.get('invoice_number') and 'invoice_number' not in verified_fields:
+                is_valid, corrected = OCRValidator.validate_invoice_number(tabula_data['invoice_number'])
+                if is_valid:
+                    result['invoice_number'] = corrected
+            
+            # Validar fechas (solo si no están verificadas por humano)
+            for date_field in ['invoice_date', 'due_date']:
+                if not result.get(date_field) and tabula_data.get(date_field) and date_field not in verified_fields:
+                    is_valid, corrected = OCRValidator.validate_date(tabula_data[date_field])
+                    if is_valid:
+                        result[date_field] = corrected
+            
+            # Validar totales (solo si no están verificados por humano)
+            for field in ['total_amount', 'tax_amount', 'subtotal', 'base_imponible', 'iva_amount', 'recargo_amount']:
+                if not result.get(field) and tabula_data.get(field) and field not in verified_fields:
+                    try:
+                        value = round(float(str(tabula_data[field]).replace(',', '.')), 2)
+                        result[field] = value
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Validar líneas de productos (solo si no están verificadas por humano)
+            if not result.get('lines') and tabula_data.get('lines') and 'lines' not in verified_fields:
+                result['lines'] = tabula_data['lines']
+            elif result.get('lines') and tabula_data.get('lines') and 'lines' not in verified_fields:
+                # Si ambos tienen líneas, usar las que tengan más información
+                if len(tabula_data['lines']) > len(result['lines']):
+                    # Verificar que no hay líneas verificadas individualmente
+                    has_verified_lines = False
+                    for line in result.get('lines', []):
+                        if line.get('verified', False):
+                            has_verified_lines = True
+                            break
+                    
+                    # Solo reemplazar si no hay líneas verificadas
+                    if not has_verified_lines:
+                        result['lines'] = tabula_data['lines']
+                    
+            logger.info("Validación cruzada OCR-Tabula completada")
+                
+        except Exception as e:
+            logger.error(f"Error en validación cruzada OCR-Tabula: {str(e)}")
+            
+        return result

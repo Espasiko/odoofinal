@@ -32,21 +32,62 @@ class OdooInvoiceService(OdooBaseService):
         return ids[0] if ids else None
 
     def _ensure_product(self, default_code: str, name: str) -> int:
-        """Busca product.product por default_code, si no existe crea stub y devuelve product_id"""
-        product_domain = [("default_code", "=", default_code)]
-        product_ids = self._execute_kw("product.product", "search", [product_domain], {"limit": 1})
-        if product_ids:
-            return product_ids[0]
-
+        """Busca product.product por default_code o nombre, si no existe crea stub y devuelve product_id"""
+        logger.info(f"Buscando producto con código '{default_code}' o nombre '{name}'")
+        
+        # Paso 1: Buscar por default_code exacto
+        if default_code:
+            product_domain = [("default_code", "=", default_code)]
+            product_ids = self._execute_kw("product.product", "search", [product_domain], {"limit": 1})
+            if product_ids:
+                logger.info(f"Producto encontrado por código exacto: {product_ids[0]}")
+                return product_ids[0]
+        
+        # Paso 2: Buscar por nombre exacto si tenemos nombre
+        if name and len(name) > 3:  # Evitar búsquedas con nombres muy cortos
+            name_domain = [("name", "=", name)]
+            product_ids = self._execute_kw("product.product", "search", [name_domain], {"limit": 1})
+            if product_ids:
+                logger.info(f"Producto encontrado por nombre exacto: {product_ids[0]}")
+                return product_ids[0]
+            
+            # Paso 3: Buscar por nombre parcial (contiene)
+            name_like_domain = [("name", "ilike", name[:30])]  # Usar los primeros 30 caracteres
+            product_ids = self._execute_kw("product.product", "search", [name_like_domain], {"limit": 1})
+            if product_ids:
+                logger.info(f"Producto encontrado por nombre parcial: {product_ids[0]}")
+                return product_ids[0]
+        
+        # Paso 4: Si no se encuentra, crear un nuevo producto
+        logger.info(f"No se encontró producto, creando uno nuevo con nombre: {name or default_code}")
+        
+        # Generar un código por defecto si no existe
+        if not default_code and name:
+            import hashlib
+            default_code = f"OCR-{hashlib.md5(name.encode()).hexdigest()[:8]}"
+            logger.info(f"Generando código para nuevo producto: {default_code}")
+        
         template_vals = {
             "name": name or default_code,
-            "default_code": default_code,
-            "type": "product",
+            "default_code": default_code or f"OCR-{int(time.time())}",
+            "type": "consu",  # Usar 'consu' en lugar de 'product' para Odoo 18
         }
-        template_id = self._execute_kw("product.template", "create", [[template_vals]])
-        # product.product se crea automáticamente; buscarlo
-        product_ids = self._execute_kw("product.product", "search", [[("product_tmpl_id", "=", template_id)]], {"limit": 1})
-        return product_ids[0] if product_ids else 0
+        
+        try:
+            template_id = self._execute_kw("product.template", "create", [template_vals])
+            logger.info(f"Plantilla de producto creada con ID: {template_id}")
+            
+            # product.product se crea automáticamente; buscarlo
+            product_ids = self._execute_kw("product.product", "search", [["product_tmpl_id", "=", template_id]], {"limit": 1})
+            if product_ids:
+                logger.info(f"Producto creado con ID: {product_ids[0]}")
+                return product_ids[0]
+            else:
+                logger.error("No se pudo encontrar el producto recién creado")
+                return 0
+        except Exception as e:
+            logger.error(f"Error al crear producto: {str(e)}")
+            return 0
 
     def _get_purchase_journal_id(self, company_id: int = 1) -> int:
         """
@@ -345,21 +386,103 @@ class OdooInvoiceService(OdooBaseService):
                     "account.tax",
                     "search_read",
                     [["company_id", "=", company_id]],
-                    {"fields": ["name", "type_tax_use"]}
+                    {"fields": ["name", "type_tax_use", "amount", "description"]}
                 )
                 
                 logger.info(f"Impuestos disponibles para la compañía {company_id}: {json.dumps(taxes, default=str)}")
                 
                 # Buscar impuestos de compra para esta compañía
-                purchase_taxes = [tax['id'] for tax in taxes if tax.get('type_tax_use') == 'purchase'] if taxes else []
-                logger.info(f"Impuestos de compra disponibles: {purchase_taxes}")
+                purchase_taxes = [tax for tax in taxes if tax.get('type_tax_use') == 'purchase'] if taxes else []
+                logger.info(f"Impuestos de compra disponibles: {json.dumps([{tax['id']: tax['name']} for tax in purchase_taxes], default=str)}")
+                
+                # Identificar impuestos específicos por nombre, descripción o porcentaje
+                iva_21_id = None
+                iva_10_id = None
+                iva_4_id = None
+                recargo_equivalencia_id = None
+                
+                # Buscar impuestos específicos por nombre, descripción o porcentaje
+                for tax in purchase_taxes:
+                    name = str(tax.get('name', '')).lower() if tax.get('name') else ''
+                    if isinstance(name, dict) and 'en_US' in name:
+                        name = str(name.get('en_US', '')).lower()
+                    
+                    description = str(tax.get('description', '')).lower() if tax.get('description') else ''
+                    if isinstance(description, dict) and 'es_ES' in description:
+                        description = str(description.get('es_ES', '')).lower()
+                    
+                    amount = float(tax.get('amount', 0))
+                    
+                    logger.info(f"Analizando impuesto: {name} / {description} / {amount}%")
+                    
+                    # Identificar IVA 21%
+                    if (('21' in name or '21' in description) and ('iva' in name or 'iva' in description)) or \
+                       (amount == 21.0 and tax.get('type_tax_use') == 'purchase'):
+                        iva_21_id = tax['id']
+                        logger.info(f"Identificado impuesto IVA 21%: {name} (ID: {tax['id']})")
+                    
+                    # Identificar IVA 10%
+                    elif (('10' in name or '10' in description) and ('iva' in name or 'iva' in description)) or \
+                         (amount == 10.0 and tax.get('type_tax_use') == 'purchase'):
+                        iva_10_id = tax['id']
+                        logger.info(f"Identificado impuesto IVA 10%: {name} (ID: {tax['id']})")
+                    
+                    # Identificar IVA 4%
+                    elif (('4' in name or '4' in description) and ('iva' in name or 'iva' in description)) or \
+                         (amount == 4.0 and tax.get('type_tax_use') == 'purchase'):
+                        iva_4_id = tax['id']
+                        logger.info(f"Identificado impuesto IVA 4%: {name} (ID: {tax['id']})")
+                    
+                    # Identificar Recargo de Equivalencia (5.2% o similar)
+                    elif ('recargo' in name or 'equivalencia' in name or 'r.e.' in name or 
+                          'recargo' in description or 'equivalencia' in description or 'r.e.' in description) or \
+                         (amount > 5.0 and amount < 5.5 and tax.get('type_tax_use') == 'purchase'):  # Aproximadamente 5.2%
+                        recargo_equivalencia_id = tax['id']
+                        logger.info(f"Identificado Recargo de Equivalencia: {name} (ID: {tax['id']})")
+                
+                # Si no se encontraron impuestos específicos, buscar por porcentaje
+                if not iva_21_id:
+                    for tax in purchase_taxes:
+                        if float(tax.get('amount', 0)) == 21.0:
+                            iva_21_id = tax['id']
+                            logger.info(f"Identificado IVA 21% por porcentaje: {tax['id']}")
+                            break
+                
+                if not iva_10_id:
+                    for tax in purchase_taxes:
+                        if float(tax.get('amount', 0)) == 10.0:
+                            iva_10_id = tax['id']
+                            logger.info(f"Identificado IVA 10% por porcentaje: {tax['id']}")
+                            break
+                
+                if not iva_4_id:
+                    for tax in purchase_taxes:
+                        if float(tax.get('amount', 0)) == 4.0:
+                            iva_4_id = tax['id']
+                            logger.info(f"Identificado IVA 4% por porcentaje: {tax['id']}")
+                            break
+                
+                # Guardar los IDs de impuestos identificados para uso posterior
+                tax_mapping = {
+                    'iva_21': iva_21_id,
+                    'iva_10': iva_10_id,
+                    'iva_4': iva_4_id,
+                    'recargo_equivalencia': recargo_equivalencia_id
+                }
+                
+                logger.info(f"Mapeo de impuestos identificados: {json.dumps(tax_mapping, default=str)}")
                 
                 # Si no hay impuestos de compra, no usaremos impuestos
                 use_taxes = len(purchase_taxes) > 0
+                
+                # Convertir a lista de IDs para uso posterior
+                purchase_tax_ids = [tax['id'] for tax in purchase_taxes]
+                
             except Exception as e:
-                logger.error(f"Error al buscar impuestos: {str(e)}")
+                logger.error(f"Error al buscar impuestos: {str(e)}", exc_info=True)
                 taxes = []
-                purchase_taxes = []
+                purchase_tax_ids = []
+                tax_mapping = {}
                 use_taxes = False
             
             # Obtener cuenta contable válida para la factura
@@ -388,16 +511,212 @@ class OdooInvoiceService(OdooBaseService):
                     "price_unit": l.get("price_unit", 0.0),
                 }
                 
+                # Añadir descuento si está presente en los datos
+                if "discount" in l and l["discount"] is not None:
+                    try:
+                        # Intentar convertir el descuento a float, manejando diferentes formatos
+                        discount_str = str(l["discount"]).replace('%', '').strip()
+                        discount = float(discount_str)
+                        if 0 <= discount <= 100:  # Validar que el descuento esté en un rango válido
+                            line_vals["discount"] = discount
+                            logger.info(f"Aplicando descuento de {discount}% a la línea de factura")
+                        else:
+                            logger.warning(f"Descuento fuera de rango válido: {discount}%")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Error al convertir descuento '{l.get('discount')}' a float: {e}")
+                
+                # Intentar extraer descuento del nombre si no está explícitamente en el campo discount
+                elif "name" in l and l["name"]:
+                    name = l["name"]
+                    # Buscar patrones comunes de descuento en el nombre (ej: "Producto XYZ -10%" o "Descuento: 15%")
+                    import re
+                    discount_patterns = [
+                        r'\s-\s?(\d+)\s?%',  # Formato: "Producto - 10%"
+                        r'\s(\d+)\s?%\s+dto',  # Formato: "Producto 10% dto"
+                        r'descuento[:\s]+(\d+)\s?%',  # Formato: "Descuento: 10%"
+                        r'dto\.?[:\s]+(\d+)\s?%',  # Formato: "Dto.: 10%"
+                        r'(\d+)\s?%\s+descuento',  # Formato: "10% descuento"
+                    ]
+                    
+                    for pattern in discount_patterns:
+                        match = re.search(pattern, name.lower())
+                        if match:
+                            try:
+                                discount = float(match.group(1))
+                                if 0 < discount <= 100:  # Solo aplicar si es un descuento válido
+                                    line_vals["discount"] = discount
+                                    logger.info(f"Descuento de {discount}% extraído del nombre del producto")
+                                    break
+                            except (ValueError, IndexError):
+                                pass
+                
+                
                 # Añadir la cuenta contable explícitamente si la encontramos
                 if account_id:
                     line_vals["account_id"] = account_id
                 
                 # Añadir impuestos de la compañía correcta si están disponibles
-                if use_taxes and purchase_taxes:
-                    # Usar solo el primer impuesto de compra disponible para esta compañía
-                    # En un caso real, se debería seleccionar el impuesto correcto según el producto
-                    line_vals["tax_ids"] = [(6, 0, [purchase_taxes[0]])]
-                    logger.info(f"Añadiendo impuesto ID {purchase_taxes[0]} a la línea de factura")
+                if use_taxes:
+                    # Determinar qué impuestos aplicar basándonos en la información de la línea
+                    tax_ids_to_apply = []
+                    
+                    # Verificar si la línea tiene información específica de impuestos
+                    tax_type = l.get("tax_type", "")
+                    apply_recargo = l.get("apply_recargo_equivalencia", False)
+                    
+                    # Si no hay tax_type explícito, intentar inferirlo del nombre o descripción
+                    if not tax_type and "name" in l:
+                        name_lower = l["name"].lower() if l["name"] else ""
+                        if "iva 21" in name_lower or "21%" in name_lower:
+                            tax_type = "iva_21"
+                            logger.info(f"Tipo de impuesto inferido del nombre: IVA 21%")
+                        elif "iva 10" in name_lower or "10%" in name_lower:
+                            tax_type = "iva_10"
+                            logger.info(f"Tipo de impuesto inferido del nombre: IVA 10%")
+                        elif "iva 4" in name_lower or "4%" in name_lower:
+                            tax_type = "iva_4"
+                            logger.info(f"Tipo de impuesto inferido del nombre: IVA 4%")
+                        
+                        # Detectar recargo de equivalencia en el nombre
+                        if "recargo" in name_lower or "r.e." in name_lower or "equivalencia" in name_lower:
+                            apply_recargo = True
+                            logger.info(f"Recargo de equivalencia inferido del nombre")
+                    
+                    # Aplicar impuesto según el tipo especificado o usar IVA 21% por defecto
+                    if tax_type == "iva_21" and tax_mapping.get("iva_21"):
+                        tax_ids_to_apply.append(tax_mapping["iva_21"])
+                        logger.info(f"Aplicando IVA 21% (ID: {tax_mapping['iva_21']}) a la línea de factura")
+                    elif tax_type == "iva_10" and tax_mapping.get("iva_10"):
+                        tax_ids_to_apply.append(tax_mapping["iva_10"])
+                        logger.info(f"Aplicando IVA 10% (ID: {tax_mapping['iva_10']}) a la línea de factura")
+                    elif tax_type == "iva_4" and tax_mapping.get("iva_4"):
+                        tax_ids_to_apply.append(tax_mapping["iva_4"])
+                        logger.info(f"Aplicando IVA 4% (ID: {tax_mapping['iva_4']}) a la línea de factura")
+                    elif tax_mapping.get("iva_21"):  # Si no se especifica, usar IVA 21% como predeterminado
+                        tax_ids_to_apply.append(tax_mapping["iva_21"])
+                        logger.info(f"Aplicando IVA 21% por defecto (ID: {tax_mapping['iva_21']}) a la línea de factura")
+                    elif purchase_tax_ids:  # Si no hay IVA 21%, usar el primer impuesto disponible
+                        default_tax_id = purchase_tax_ids[0]
+                        tax_ids_to_apply.append(default_tax_id)
+                        logger.info(f"Aplicando impuesto por defecto (ID: {default_tax_id}) a la línea de factura")
+                    
+                    # Añadir Recargo de Equivalencia si está indicado y disponible
+                    if apply_recargo and tax_mapping.get("recargo_equivalencia"):
+                        tax_ids_to_apply.append(tax_mapping["recargo_equivalencia"])
+                        logger.info(f"Aplicando Recargo de Equivalencia (ID: {tax_mapping['recargo_equivalencia']}) a la línea de factura")
+                    
+                    # Si se encontraron impuestos para aplicar, añadirlos a la línea
+                    if tax_ids_to_apply:
+                        line_vals["tax_ids"] = [(6, 0, tax_ids_to_apply)]
+                        logger.info(f"Añadiendo impuestos IDs {tax_ids_to_apply} a la línea de factura")
+                    else:
+                        # Forzar la aplicación de al menos un impuesto si hay impuestos disponibles
+                        if purchase_tax_ids:
+                            # Primero intentar encontrar IVA 21% (el más común)
+                            default_tax_id = None
+                            iva_21_id = None
+                            iva_10_id = None
+                            iva_4_id = None
+                            recargo_21_id = None
+                            recargo_10_id = None
+                            recargo_4_id = None
+                            
+                            # Buscar impuestos por porcentaje y tipo
+                            for tax in purchase_taxes:
+                                amount = float(tax.get('amount', 0))
+                                name = tax.get('name', '').lower()
+                                
+                                # Identificar impuestos IVA
+                                if amount == 21.0 and 'iva' in name and 'recargo' not in name:
+                                    iva_21_id = tax['id']
+                                elif amount == 10.0 and 'iva' in name and 'recargo' not in name:
+                                    iva_10_id = tax['id']
+                                elif amount == 4.0 and 'iva' in name and 'recargo' not in name:
+                                    iva_4_id = tax['id']
+                                # Identificar recargos de equivalencia
+                                elif (amount == 5.2 or amount == 5.0) and ('recargo' in name or 'r.e.' in name or 'equivalencia' in name):
+                                    recargo_21_id = tax['id']
+                                elif (amount == 1.4 or amount == 1.5) and ('recargo' in name or 'r.e.' in name or 'equivalencia' in name):
+                                    recargo_10_id = tax['id']
+                                elif (amount == 0.5 or amount == 0.6) and ('recargo' in name or 'r.e.' in name or 'equivalencia' in name):
+                                    recargo_4_id = tax['id']
+                                # Cualquier impuesto positivo como respaldo
+                                elif amount > 0 and 'iva' in name and 'recargo' not in name:  
+                                    if not default_tax_id:
+                                        default_tax_id = tax['id']
+                            
+                            # Si no encontramos impuestos por nombre, buscar solo por porcentaje
+                            if not (iva_21_id or iva_10_id or iva_4_id):
+                                for tax in purchase_taxes:
+                                    amount = float(tax.get('amount', 0))
+                                    if amount == 21.0:
+                                        iva_21_id = tax['id']
+                                    elif amount == 10.0:
+                                        iva_10_id = tax['id']
+                                    elif amount == 4.0:
+                                        iva_4_id = tax['id']
+                                    elif amount > 0:  # Cualquier impuesto positivo como respaldo
+                                        if not default_tax_id:
+                                            default_tax_id = tax['id']
+                            
+                            # Priorizar IVA 21%, luego 10%, luego 4%, luego cualquier impuesto positivo
+                            tax_to_apply = iva_21_id or iva_10_id or iva_4_id or default_tax_id or purchase_tax_ids[0]
+                            
+                            if tax_to_apply:
+                                # Determinar el recargo correspondiente al impuesto seleccionado
+                                recargo_to_apply = None
+                                recargo_rate = line.get('recargo_rate', None)
+                                
+                                if apply_recargo:
+                                    # Si tenemos una tasa de recargo específica, buscar el impuesto correspondiente
+                                    if recargo_rate is not None:
+                                        logger.info(f"Buscando recargo con tasa específica: {recargo_rate}%")
+                                        # Buscar el recargo más cercano a la tasa especificada
+                                        closest_recargo = None
+                                        min_diff = float('inf')
+                                        
+                                        for tax in purchase_taxes:
+                                            if 'recargo' in tax.get('name', '').lower() or 'r.e.' in tax.get('name', '').lower() or 'equivalencia' in tax.get('name', '').lower():
+                                                amount = float(tax.get('amount', 0))
+                                                diff = abs(amount - recargo_rate)
+                                                if diff < min_diff:
+                                                    min_diff = diff
+                                                    closest_recargo = tax['id']
+                                        
+                                        if closest_recargo:
+                                            recargo_to_apply = closest_recargo
+                                            logger.info(f"Recargo encontrado con tasa más cercana a {recargo_rate}%: ID {closest_recargo}")
+                                    
+                                    # Si no encontramos por tasa específica o no teníamos tasa, usar la lógica anterior
+                                    if not recargo_to_apply:
+                                        if tax_to_apply == iva_21_id and recargo_21_id:
+                                            recargo_to_apply = recargo_21_id
+                                        elif tax_to_apply == iva_10_id and recargo_10_id:
+                                            recargo_to_apply = recargo_10_id
+                                        elif tax_to_apply == iva_4_id and recargo_4_id:
+                                            recargo_to_apply = recargo_4_id
+                                        elif tax_mapping.get("recargo_equivalencia"):
+                                            recargo_to_apply = tax_mapping["recargo_equivalencia"]
+                                
+                                # Aplicar impuesto y recargo si corresponde
+                                if recargo_to_apply:
+                                    line_vals["tax_ids"] = [(6, 0, [tax_to_apply, recargo_to_apply])]
+                                    logger.info(f"Aplicando impuesto ID {tax_to_apply} con recargo de equivalencia ID {recargo_to_apply}")
+                                else:
+                                    line_vals["tax_ids"] = [(6, 0, [tax_to_apply])]
+                                    logger.info(f"Forzando aplicación de impuesto ID {tax_to_apply} a la línea de factura")
+                        else:
+                            logger.warning("No se encontraron impuestos aplicables para esta línea de factura")
+                            # Intentar buscar impuestos de compra nuevamente con criterios más amplios
+                            fallback_tax_ids = self._execute_kw(
+                                "account.tax",
+                                "search",
+                                [[['type_tax_use', '=', 'purchase'], ['active', '=', True]]],
+                                {"limit": 5}
+                            )
+                            if fallback_tax_ids:
+                                line_vals["tax_ids"] = [(6, 0, [fallback_tax_ids[0]])]
+                                logger.info(f"Usando impuesto de respaldo ID {fallback_tax_ids[0]} como último recurso")
                 
                 invoice_line_ids.append((0, 0, line_vals))
             

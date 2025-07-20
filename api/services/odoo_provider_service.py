@@ -193,8 +193,18 @@ class OdooProviderService(OdooBaseService):
             return None
 
     # Alias para mantener compatibilidad con interfaz anterior
-    def create_provider(self, supplier_data):
-        return self.create_supplier(supplier_data)
+    def create_provider(self, supplier_data, update_if_exists: bool = False):
+        """
+        Crea o actualiza un proveedor en Odoo
+        
+        Args:
+            supplier_data: Datos del proveedor
+            update_if_exists: Si se debe actualizar el proveedor si ya existe
+            
+        Returns:
+            ID del proveedor creado o actualizado
+        """
+        return self.create_supplier(supplier_data, update_if_exists=update_if_exists)
     
     def find_or_create_provider(self, provider_name: str) -> Optional[dict]:
         """
@@ -269,11 +279,16 @@ class OdooProviderService(OdooBaseService):
             logger.error(f"Error al buscar o crear proveedor '{provider_name}': {e}", exc_info=True)
             return None
 
-    def create_supplier(self, supplier_data) -> Optional[Provider]:
+    def create_supplier(self, supplier_data, update_if_exists: bool = False) -> Optional[Provider]:
         """
-        Crea un nuevo proveedor en Odoo.
-        Acepta un Pydantic model ProviderCreate o un dict.
-        Sanea los campos de string que puedan ser False o None a "".
+        Crea un nuevo proveedor en Odoo o actualiza uno existente.
+        
+        Args:
+            supplier_data: Datos del proveedor (ProviderCreate o dict)
+            update_if_exists: Si se debe actualizar el proveedor si ya existe
+            
+        Returns:
+            Provider creado o actualizado, o None si hay error
         """
         import logging
         logger = logging.getLogger("odoo_provider_service.create_supplier")
@@ -296,9 +311,20 @@ class OdooProviderService(OdooBaseService):
                 existing_ids = self._execute_kw('res.partner', 'search', [[['name', 'ilike', data['name']], ['is_company', '=', True], ['supplier_rank', '>', 0]]]) or []
 
             if existing_ids:
-                logger.info(f"Proveedor duplicado detectado, id existente: {existing_ids[0]}. No se crea uno nuevo.")
-                provider_data = self._execute_kw('res.partner','read',[[existing_ids[0]]],{'fields':['id','name','vat','email','phone']})
-                return Provider(**provider_data[0])
+                existing_id = existing_ids[0]
+                if update_if_exists:
+                    logger.info(f"Proveedor duplicado detectado, id existente: {existing_id}. Actualizando datos.")
+                    # Preparar datos para actualización
+                    update_data = {k: v for k, v in data.items() if k not in ['id'] and v is not None}
+                    # Actualizar proveedor existente
+                    self._execute_kw('res.partner', 'write', [[existing_id], update_data])
+                    logger.info(f"Proveedor actualizado correctamente: {existing_id}")
+                else:
+                    logger.info(f"Proveedor duplicado detectado, id existente: {existing_id}. No se crea uno nuevo.")
+                
+                # Leer datos actualizados
+                provider_data = self._execute_kw('res.partner','read',[[existing_id]],{'fields':['id','name','vat','email','phone']})
+                return existing_id
 
             # Saneamiento de campos string
             all_string_fields = [

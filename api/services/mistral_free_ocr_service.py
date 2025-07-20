@@ -12,6 +12,7 @@ from .mistral_ocr_client import mistral_ocr_client
 from .document_processing_service import document_processing_service
 from .invoice_extraction_service import invoice_extraction_service
 from .json_extraction_service import extract_json_from_text
+from .ocr_validator import OCRValidator
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class MistralFreeOCRService:
             logger.error(f"Error al validar el tamaño del archivo: {e}")
             return False
     
-    def process_invoice_file(self, file_path: str) -> Dict[str, Any]:
+    def process_invoice_file(self, file_path: str, provider_info: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Procesa un archivo de factura (PDF o imagen) y extrae datos estructurados
         usando la API de Mistral Chat y luego mejora los resultados
@@ -79,6 +80,7 @@ class MistralFreeOCRService:
         
         Args:
             file_path: Ruta al archivo de factura
+            provider_info: Información previa del proveedor (opcional)
             
         Returns:
             Dict[str, Any]: Diccionario con los resultados del procesamiento
@@ -134,14 +136,64 @@ class MistralFreeOCRService:
             # Paso 3: Extraer datos estructurados del texto OCR
             initial_data = invoice_extraction_service.extract_invoice_data_from_text(ocr_text)
             
-            # Paso 4: Procesar con agente de facturas para mejorar los datos
-            enhanced_data = mistral_ocr_client.process_with_invoice_agent(ocr_text, initial_data)
+            # Guardar los datos crudos de OCR para análisis antes de cualquier modificación
+            raw_ocr_data = initial_data.copy()
             
-            logger.info("Archivo de factura procesado correctamente")
+            # Paso 3: Incorporar información previa del proveedor si existe
+            # IMPORTANTE: Estos datos son proporcionados por un humano y tienen prioridad
+            if provider_info:
+                logger.info(f"Incorporando información confiable del proveedor: {provider_info}")
+                # Inyectamos los datos confiables del proveedor en los datos iniciales
+                if 'supplier_name' in provider_info:
+                    initial_data['supplier_name'] = provider_info['supplier_name']
+                    # Marcamos este campo como verificado por humano
+                    initial_data['supplier_name_verified'] = True
+                if 'supplier_vat' in provider_info:
+                    initial_data['supplier_vat'] = provider_info['supplier_vat']
+                    # Marcamos este campo como verificado por humano
+                    initial_data['supplier_vat_verified'] = True
+                # Si tenemos datos del cliente (opcional)
+                if 'customer_name' in provider_info:
+                    initial_data['customer_name'] = provider_info['customer_name']
+                    initial_data['customer_name_verified'] = True
+                if 'customer_vat' in provider_info:
+                    initial_data['customer_vat'] = provider_info['customer_vat']
+                    initial_data['customer_vat_verified'] = True
+                # Si tenemos número de factura verificado
+                if 'invoice_number' in provider_info:
+                    initial_data['invoice_number'] = provider_info['invoice_number']
+                    initial_data['invoice_number_verified'] = True
+                    logger.info(f"Número de factura verificado por humano: {provider_info['invoice_number']}")
+                
+                # Registrar todos los campos verificados por humano
+                verified_fields = [k.replace('_verified', '') for k in initial_data.keys() if k.endswith('_verified')]
+                if verified_fields:
+                    logger.info(f"Campos verificados por humano: {', '.join(verified_fields)}")
+                else:
+                    logger.info("No se proporcionaron campos verificados por humano")
+            
+            # Paso 4: Mejorar los datos con un agente especializado en facturas
+            logger.info("Mejorando datos con agente especializado en facturas")
+            enhanced_data = mistral_ocr_client.process_with_invoice_agent(ocr_text, initial_data, provider_info)
+            
+            # Generar un ID único para esta extracción OCR
+            import datetime
+            import os
+            ocr_id = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{os.path.basename(file_path)}"
+            
+            # Validar los datos extraídos con OCRValidator
+            logger.info("Validando datos extraídos con OCRValidator")
+            validator = OCRValidator()
+            enhanced_data = validator.validate_invoice_data(enhanced_data)
+            
+            # Devolver resultados incluyendo datos crudos para análisis
             return {
                 'success': True,
                 'invoice_data': enhanced_data,
-                'ocr_text': ocr_text
+                'raw_ocr_data': raw_ocr_data,  # Datos crudos del OCR inicial
+                'raw_ocr_text': ocr_text,      # Texto OCR completo
+                'ocr_confidence': 'unknown',    # Por ahora no tenemos esta métrica
+                'ocr_id': ocr_id
             }
             
         except Exception as e:

@@ -15,6 +15,7 @@ from ..services.mistral_free_ocr_service import MistralFreeOCRService
 from ..services.ocr_cache_service import OCRCacheService
 from ..services.odoo_invoice_service import OdooInvoiceService
 from ..services.tabula_extraction_service import TabulaExtractionService
+from ..services.ocr_validator import OCRValidator
 from ..utils.parsing import parse_date, parse_decimal
 from ..utils.price_utils import adjust_price_for_supplier, extract_tax_info, get_price_net
 from ..services.auth_service import get_current_user
@@ -53,6 +54,8 @@ router = APIRouter(
 async def process_invoice_free(
     file: UploadFile = File(...),
     create_in_odoo: str = Form("false"),
+    supplier_name: Optional[str] = Form(None),
+    supplier_vat: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ) -> JSONResponse:
     # Convertir create_in_odoo a booleano
@@ -104,19 +107,57 @@ async def process_invoice_free(
         else:
             # Procesar factura con OCR gratuito (no está en caché)
             logger.info(f"Procesando factura con OCR (no en caché): {file.filename}")
-            # Procesar la factura con el servicio OCR
-            ocr_result = service.process_invoice_file(temp_file_path)
+            
+            # Información previa del proveedor para mejorar el OCR
+            provider_info = {}
+            if supplier_name:
+                logger.info(f"Información previa del proveedor - Nombre: {supplier_name}")
+                provider_info['supplier_name'] = supplier_name
+            if supplier_vat:
+                logger.info(f"Información previa del proveedor - NIF/CIF: {supplier_vat}")
+                provider_info['supplier_vat'] = supplier_vat
+            
+            # Procesar la factura con el servicio OCR, incluyendo información del proveedor
+            ocr_result = service.process_invoice_file(temp_file_path, provider_info=provider_info)
             
             # Mejorar los datos con Tabula si es un PDF
             if file_extension.lower() == '.pdf':
                 try:
                     logger.info(f"Mejorando datos con Tabula para: {file.filename}")
-                    enhanced_data = tabula_extraction_service.enhance_invoice_data(
+                    tabula_data = tabula_extraction_service.enhance_invoice_data(
                         ocr_result.get('invoice_data', {}),
                         temp_file_path
                     )
-                    ocr_result['invoice_data'] = enhanced_data
-                    logger.info(f"Datos mejorados con Tabula: recargo_equivalencia={enhanced_data.get('recargo_equivalencia')}")
+                    
+                    # Guardar los datos crudos para análisis
+                    if 'raw_ocr_data' not in ocr_result:
+                        ocr_result['raw_ocr_data'] = ocr_result.get('invoice_data', {}).copy()
+                    
+                    # Guardar los datos crudos de Tabula
+                    ocr_result['raw_tabula_data'] = tabula_data.copy()
+                    
+                    # Guardar las tablas originales extraídas por Tabula
+                    try:
+                        import tabula
+                        raw_tables = tabula.read_pdf(temp_file_path, pages='all', multiple_tables=True)
+                        ocr_result['raw_tabula_tables'] = [table.to_dict() for table in raw_tables]
+                    except Exception as table_err:
+                        logger.error(f"Error al extraer tablas crudas: {str(table_err)}")
+                    
+                    # Realizar validación cruzada entre OCR y Tabula
+                    logger.info("Realizando validación cruzada entre OCR y Tabula")
+                    validator = OCRValidator()
+                    ocr_result['invoice_data'] = validator.cross_validate_ocr_tabula(
+                        ocr_result.get('invoice_data', {}),
+                        tabula_data
+                    )
+                    
+                    # Verificar cálculos matemáticos
+                    logger.info("Verificando cálculos matemáticos")
+                    validator.verify_tax_calculations(ocr_result['invoice_data'])
+                    validator.verify_line_sum(ocr_result['invoice_data'])
+                    logger.info("Verificación de cálculos completada")
+                    
                 except Exception as e:
                     logger.error(f"Error al mejorar datos con Tabula: {str(e)}")
                     # Continuamos con los datos originales sin mejorar
