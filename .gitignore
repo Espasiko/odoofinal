@@ -19,10 +19,14 @@ relicaHostingerMCP/
 
 # Archivos grandes
 *.zip
+*.msi
+*.xlsx
 filestore/
 facturas_jsons/
 relicaHostingerMCP/
 resultados_ocr/
+addons_backup/zips*
+ejemplos/proveedores_exl_csv/*.xlsx
 
 # Excepciones importantes (NO excluir)
 !api/**/*.py
