@@ -1,370 +1,169 @@
 {
-  "name": "Cumplimiento RGPD",
+  "name": "Parse and Extract Data from Documents/Images with Mistral OCR",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "solicitud-rgpd",
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "purpose",
+              "value": "ocr"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {}
       },
+      "id": "c499b8cc-7cc8-411d-9c22-d46c7654e169",
+      "name": "Mistral Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1808,
+        672
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "path": "/api/v1/n8n/process-rgpd",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "08cbe4b7-2adc-4ea0-8dfc-af107369b1dd",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
       "position": [
-        250,
-        300
-      ]
+        576,
+        672
+      ],
+      "typeVersion": 1.1
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "odooUrl",
-              "value": "http://odoo:8069"
-            },
-            {
-              "name": "odooDb",
-              "value": "fresh_odoo_db"
-            },
-            {
-              "name": "odooUid",
-              "value": "2"
-            },
-            {
-              "name": "odooPassword",
-              "value": "admin"
-            },
-            {
-              "name": "apiUrl",
-              "value": "http://fastapi:8000/api/v1"
-            },
-            {
-              "name": "authToken",
-              "value": "Bearer {{$json[\"token\"]}}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "name": "Set Variables",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.2,
-      "position": [
-        450,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "dataType": "string",
-        "value1": "={{$json[\"tipo_solicitud\"]}}",
-        "rules": {
-          "rules": [
-            {
-              "value2": "acceso",
-              "outputKey": "tipo",
-              "output": "acceso"
-            },
-            {
-              "value2": "rectificacion",
-              "outputKey": "tipo",
-              "output": "rectificacion"
-            },
-            {
-              "value2": "supresion",
-              "outputKey": "tipo",
-              "output": "supresion"
-            },
-            {
-              "value2": "limitacion",
-              "outputKey": "tipo",
-              "output": "limitacion"
-            },
-            {
-              "value2": "portabilidad",
-              "outputKey": "tipo",
-              "output": "portabilidad"
-            },
-            {
-              "value2": "oposicion",
-              "outputKey": "tipo",
-              "output": "oposicion"
-            }
-          ]
-        },
-        "fallbackOutput": "desconocido",
-        "options": {}
-      },
-      "name": "Switch",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 2,
-      "position": [
-        650,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=http://odoo:8069/jsonrpc",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "bodyParameters": {
+        "url": "=https://api.mistral.ai/v1/files/{{ $json.id }}/url",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendQuery": true,
+        "queryParameters": {
           "parameters": [
             {
-              "name": "jsonrpc",
-              "value": "2.0"
-            },
-            {
-              "name": "method",
-              "value": "call"
-            },
-            {
-              "name": "params",
-              "value": "={{ { \"service\": \"object\", \"method\": \"execute_kw\", \"args\": [ \"fresh_odoo_db\", $node[\"Set Variables\"].json[\"odooUid\"], $node[\"Set Variables\"].json[\"odooPassword\"], \"res.partner\", \"search_read\", [[\"email\", \"=\", $json[\"email\"]]], {\"fields\": [\"name\", \"email\", \"phone\", \"vat\", \"street\", \"city\", \"zip\", \"country_id\"]} ] } }}"
-            },
-            {
-              "name": "id",
-              "value": "1"
+              "name": "expiry",
+              "value": "24"
             }
           ]
         },
-        "options": {}
-      },
-      "name": "Buscar Datos en Odoo",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        850,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=http://odoo:8069/jsonrpc",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "jsonrpc",
-              "value": "2.0"
-            },
-            {
-              "name": "method",
-              "value": "call"
-            },
-            {
-              "name": "params",
-              "value": "={{ { \"service\": \"object\", \"method\": \"execute_kw\", \"args\": [ \"fresh_odoo_db\", $node[\"Set Variables\"].json[\"odooUid\"], $node[\"Set Variables\"].json[\"odooPassword\"], \"res.partner\", \"write\", [[$json[\"partner_id\"]], $json[\"datos_actualizados\"]] ] } }}"
-            },
-            {
-              "name": "id",
-              "value": "1"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "name": "Actualizar Datos en Odoo",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        850,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=http://odoo:8069/jsonrpc",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "jsonrpc",
-              "value": "2.0"
-            },
-            {
-              "name": "method",
-              "value": "call"
-            },
-            {
-              "name": "params",
-              "value": "={{ { \"service\": \"object\", \"method\": \"execute_kw\", \"args\": [ \"fresh_odoo_db\", $node[\"Set Variables\"].json[\"odooUid\"], $node[\"Set Variables\"].json[\"odooPassword\"], \"rgpd.request\", \"create\", [{ \"partner_id\": $json[\"partner_id\"], \"request_type\": $json[\"tipo_solicitud\"], \"request_date\": $now, \"state\": \"done\", \"notes\": $json[\"descripcion\"] }] ] } }}"
-            },
-            {
-              "name": "id",
-              "value": "1"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "name": "Registrar Solicitud RGPD",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [
-        1050,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{$node[\"Set Variables\"].json[\"apiUrl\"] + \"/notifications/send-email\"}}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "={{$node[\"Set Variables\"].json[\"authToken\"]}}"
-            },
-            {
-              "name": "Content-Type",
+              "name": "Accept",
               "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "to",
-              "value": "={{$json[\"email\"]}}"
-            },
-            {
-              "name": "subject",
-              "value": "Confirmación de solicitud RGPD - {{$json[\"tipo_solicitud\"]}}"
-            },
-            {
-              "name": "body",
-              "value": "Estimado/a {{$json[\"nombre\"]}}:\n\nHemos recibido y procesado su solicitud de derechos RGPD de tipo {{$json[\"tipo_solicitud\"]}}.\n\nSu solicitud ha sido registrada con el identificador {{$json[\"id\"]}} y ha sido procesada correctamente.\n\nSi necesita cualquier aclaración adicional, no dude en contactarnos.\n\nAtentamente,\nEquipo de Protección de Datos\nPelotazo ERP"
             }
           ]
         },
         "options": {}
       },
-      "name": "Enviar Confirmación",
+      "id": "965f294a-5d77-4190-ad4f-ff191aba0948",
+      "name": "Mistral Signed URL",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
       "position": [
-        1250,
-        300
-      ]
+        2016,
+        672
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/ocr",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mistral-ocr-latest\",\n  \"document\": {\n    \"type\": \"document_url\",\n    \"document_url\": \"{{ $json.url }}\"\n  },\n  \"include_image_base64\": true\n}",
+        "options": {}
+      },
+      "id": "f623f066-fc70-40fa-b608-f28a75a8ac8c",
+      "name": "Mistral DOC OCR",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2208,
+        672
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "content": "## Document Parsing with Mistral OCR\nUp your structured document parsing game with Mistral's latest release... **Mistral-OCR**!\n* Designed to specifically parse PDF and image files.\n* Handles multiple-page documents and images up to 10k pixels.\n* Each page is conveniently transcribed as markdown only - there is no plain text output.\n* Incredible pricing at only $0.001 per page!\n\n### Requirements\n* You'll need a Mistral Cloud API Key\n* This template only works with the Mistral Cloud API for Mistral OCR.",
+        "height": 640,
+        "width": 380
+      },
+      "id": "3caaa30b-21f2-4643-93dd-8dff6f3c1920",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Example 2. Privately Hosted via Mistral Cloud\nGive Mistral OCR private and secure access to your files by uploading them to Mistral cloud first. Retrieve the file using a signed URL and pass this to Mistral OCR. Benefit of storing via Mistral could be faster cache access and reduced latency for repeat docs.",
+        "height": 560,
+        "width": 920,
+        "color": 7
+      },
+      "id": "b968d6ab-9582-495d-84af-f75833701e2a",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1520,
+        528
+      ],
+      "typeVersion": 1
     }
   ],
+  "pinData": {},
   "connections": {
     "Webhook": {
       "main": [
         [
           {
-            "node": "Set Variables",
+            "node": "Mistral Upload",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Variables": {
+    "Mistral Upload": {
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "Mistral Signed URL",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Switch": {
+    "Mistral Signed URL": {
       "main": [
         [
           {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Datos en Odoo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar Datos en Odoo": {
-      "main": [
-        [
-          {
-            "node": "Registrar Solicitud RGPD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Actualizar Datos en Odoo": {
-      "main": [
-        [
-          {
-            "node": "Registrar Solicitud RGPD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Registrar Solicitud RGPD": {
-      "main": [
-        [
-          {
-            "node": "Enviar Confirmación",
+            "node": "Mistral DOC OCR",
             "type": "main",
             "index": 0
           }
@@ -372,22 +171,15 @@
       ]
     }
   },
-  "pinData": {},
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
-  "tags": [
-    {
-      "name": "RGPD",
-      "color": "#ff0000"
-    },
-    {
-      "name": "Cumplimiento",
-      "color": "#0000ff"
-    }
-  ],
-  "triggerCount": 1,
-  "updatedAt": "2025-07-19T16:49:00.000Z",
-  "versionId": "1"
+  "versionId": "790a2a91-d237-4c22-bbe9-89d7900c301f",
+  "meta": {
+    "templateId": "3102",
+    "instanceId": "9a3c1ce180d6c36adae76bbdb64a1ece777a6b1c8285f378d5482dc3c290cd8d"
+  },
+  "id": "Lt0fGFhDb00CWUvN",
+  "tags": []
 }
