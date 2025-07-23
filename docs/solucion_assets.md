@@ -14,13 +14,13 @@ Assets corruptos o mal generados almacenados en:
 ### 1. Limpieza de Assets del Sistema de Archivos
 ```bash
 # Eliminar archivos de assets del filestore
-docker exec manusodoo-roto_odoo_1 find /var/lib/odoo/filestore/manus_odoo-bd -name "*assets*" -delete
+docker exec manusodoo-roto_odoo_1 find /var/lib/odoo/filestore/fresh_odoo_db -name "*assets*" -delete
 ```
 
 ### 2. Limpieza de Assets de la Base de Datos
 ```sql
 -- Eliminar registros de assets corruptos de la BD
-docker exec manusodoo-roto_db_1 psql -U odoo -d manus_odoo-bd -c "DELETE FROM ir_attachment WHERE name LIKE '%assets%';"
+docker exec manusodoo-roto_db_1 psql -U odoo -d fresh_odoo_db -c "DELETE FROM ir_attachment WHERE name LIKE '%assets%';"
 ```
 **Resultado**: 41 registros eliminados
 

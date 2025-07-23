@@ -1,0 +1,66 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "",
+      "invoice_date": "07/01/25",
+      "supplier_name": "ALMCE S.L. C.I.F.: B-14891592 C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA TELF: 957 34 30 85",
+      "total_amount": 0.0,
+      "line_items": [
+        {
+          "name": "CÓDIGO",
+          "quantity": 1.0,
+          "price_unit": 0.0,
+          "default_code": ""
+        },
+        {
+          "name": "TOTAL IMP.",
+          "quantity": 1.0,
+          "price_unit": 0.0,
+          "default_code": ""
+        },
+        {
+          "name": "162.36",
+          "quantity": 204.9,
+          "price_unit": 0.0,
+          "default_code": ""
+        }
+      ],
+      "text": "# ALMCE\n\nALMCE S.L. C.I.F.: B-14891592 C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA TELF: 957 34 30 85\n\nANTONIO PLAZA BONACHERA\n\nEL PELOTAZO CTRA. ALICUN, 172 04740 ROQUETAS DE MAR ALMERÍA\n\n|  FECHA | FACTURA | CLIENTE | N.I.F. | TELÉFONO | PÁG.  |\n| --- | --- | --- | --- | --- | --- |\n|  07/01/25 | 25000289 | 43004323 | 75236270G | 670 968 607 | 1  |\n\n|  CÓDIGO | DESCRIPCIÓN | UNIDADES | PRECIO | IMPORTE  |\n| --- | --- | --- | --- | --- |\n|  |   |   |   |   |\n\nALBARÁN PO-25000206 FECHA 07/01/25 Ped. 25000232PO\n\nCCATP10GB Calentador Corbero CCATP10GBNOX, Capacidad 10 L., 1 162.36 162.36\n\n|  TOTAL IMP. | % | IMPORTE | BASE | % | I.V.A. | % | REC. | TOTAL FRA. | (€)  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  162.36 |  |  | 162.36 | 21.00 | 34.10 | 5.20 | 8.44 | 204.90 |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n\nForma de Pago GIRO A 30 DIAS Banco:\n\nVencimientos: 06/02/25 204.90\n\nDevoluciones de Producto: Cualquier incidencia en la mercancía ocasionada por el trasporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. No se aceptarán devoluciones de producto sin previa conformidad escrita de nuestro dpto. comercial. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba folio 101 tomo 2181 hoja CO-29983 inscripción 1ª. Nº RII-AEE:13210"
+    },
+    "ocr_text": "# ALMCE\n\nALMCE S.L. C.I.F.: B-14891592 C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA TELF: 957 34 30 85\n\nANTONIO PLAZA BONACHERA\n\nEL PELOTAZO CTRA. ALICUN, 172 04740 ROQUETAS DE MAR ALMERÍA\n\n|  FECHA | FACTURA | CLIENTE | N.I.F. | TELÉFONO | PÁG.  |\n| --- | --- | --- | --- | --- | --- |\n|  07/01/25 | 25000289 | 43004323 | 75236270G | 670 968 607 | 1  |\n\n|  CÓDIGO | DESCRIPCIÓN | UNIDADES | PRECIO | IMPORTE  |\n| --- | --- | --- | --- | --- |\n|  |   |   |   |   |\n\nALBARÁN PO-25000206 FECHA 07/01/25 Ped. 25000232PO\n\nCCATP10GB Calentador Corbero CCATP10GBNOX, Capacidad 10 L., 1 162.36 162.36\n\n|  TOTAL IMP. | % | IMPORTE | BASE | % | I.V.A. | % | REC. | TOTAL FRA. | (€)  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  162.36 |  |  | 162.36 | 21.00 | 34.10 | 5.20 | 8.44 | 204.90 |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n\nForma de Pago GIRO A 30 DIAS Banco:\n\nVencimientos: 06/02/25 204.90\n\nDevoluciones de Producto: Cualquier incidencia en la mercancía ocasionada por el trasporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. No se aceptarán devoluciones de producto sin previa conformidad escrita de nuestro dpto. comercial. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba folio 101 tomo 2181 hoja CO-29983 inscripción 1ª. Nº RII-AEE:13210"
+  },
+  "extracted_data": {
+    "invoice_number": "",
+    "invoice_date": "07/01/25",
+    "supplier_name": "ALMCE S.L. C.I.F.: B-14891592 C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA TELF: 957 34 30 85",
+    "total_amount": 0.0,
+    "line_items": [
+      {
+        "name": "CÓDIGO",
+        "quantity": 1.0,
+        "price_unit": 0.0,
+        "default_code": ""
+      },
+      {
+        "name": "TOTAL IMP.",
+        "quantity": 1.0,
+        "price_unit": 0.0,
+        "default_code": ""
+      },
+      {
+        "name": "162.36",
+        "quantity": 204.9,
+        "price_unit": 0.0,
+        "default_code": ""
+      }
+    ],
+    "text": "# ALMCE\n\nALMCE S.L. C.I.F.: B-14891592 C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA TELF: 957 34 30 85\n\nANTONIO PLAZA BONACHERA\n\nEL PELOTAZO CTRA. ALICUN, 172 04740 ROQUETAS DE MAR ALMERÍA\n\n|  FECHA | FACTURA | CLIENTE | N.I.F. | TELÉFONO | PÁG.  |\n| --- | --- | --- | --- | --- | --- |\n|  07/01/25 | 25000289 | 43004323 | 75236270G | 670 968 607 | 1  |\n\n|  CÓDIGO | DESCRIPCIÓN | UNIDADES | PRECIO | IMPORTE  |\n| --- | --- | --- | --- | --- |\n|  |   |   |   |   |\n\nALBARÁN PO-25000206 FECHA 07/01/25 Ped. 25000232PO\n\nCCATP10GB Calentador Corbero CCATP10GBNOX, Capacidad 10 L., 1 162.36 162.36\n\n|  TOTAL IMP. | % | IMPORTE | BASE | % | I.V.A. | % | REC. | TOTAL FRA. | (€)  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  162.36 |  |  | 162.36 | 21.00 | 34.10 | 5.20 | 8.44 | 204.90 |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n|  |   |   |   |   |   |   |   |   |   |\n\nForma de Pago GIRO A 30 DIAS Banco:\n\nVencimientos: 06/02/25 204.90\n\nDevoluciones de Producto: Cualquier incidencia en la mercancía ocasionada por el trasporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. No se aceptarán devoluciones de producto sin previa conformidad escrita de nuestro dpto. comercial. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba folio 101 tomo 2181 hoja CO-29983 inscripción 1ª. Nº RII-AEE:13210"
+  },
+  "metadata": {
+    "filename": "FA25000289.PDF",
+    "processed_at": "2025-07-08T08:38:40.309282",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708083840_FA25000289"
+  }
+}

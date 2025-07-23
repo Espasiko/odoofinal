@@ -1,0 +1,276 @@
+{
+  "name": "PDF Invoice Processing - Antonio",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "={{ $json.pdf_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "http-request-pdf",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enmascarar datos sensibles de Antonio\nconst sensitiveData = {\n  'Antonio': '[AUTONOMO]',\n  'NIF_ANTONIO': '[NIF_MASKED]',\n  'DIRECCION_ANTONIO': '[DIRECCION_MASKED]',\n  'TELEFONO_ANTONIO': '[TELEFONO_MASKED]',\n  'EMAIL_ANTONIO': '[EMAIL_MASKED]'\n};\n\n// Obtener el texto procesado por Mistral\nlet processedText = $input.first().json.choices[0].message.content;\n\n// Aplicar enmascaramiento\nfor (const [original, masked] of Object.entries(sensitiveData)) {\n  const regex = new RegExp(original, 'gi');\n  processedText = processedText.replace(regex, masked);\n}\n\n// Parsear el JSON si es posible\ntry {\n  const parsedData = JSON.parse(processedText);\n  return {\n    json: {\n      masked_data: parsedData,\n      original_masked: true,\n      processing_timestamp: new Date().toISOString()\n    }\n  };\n} catch (error) {\n  return {\n    json: {\n      masked_text: processedText,\n      original_masked: true,\n      processing_timestamp: new Date().toISOString(),\n      parse_error: error.message\n    }\n  };\n}"
+      },
+      "id": "data-masking",
+      "name": "Data Masking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "mistral-large-latest",
+        "messages": {
+          "messageValues": [
+            {
+              "role": "system",
+              "content": "Eres un experto en procesamiento de facturas. Analiza el texto extraído de una factura PDF y extrae la siguiente información en formato JSON:\n\n{\n  \"proveedor\": {\n    \"nombre\": \"\",\n    \"cif\": \"\",\n    \"direccion\": \"\",\n    \"telefono\": \"\",\n    \"email\": \"\"\n  },\n  \"cliente\": {\n    \"nombre\": \"\",\n    \"nif\": \"\",\n    \"direccion\": \"\"\n  },\n  \"factura\": {\n    \"numero\": \"\",\n    \"fecha\": \"\",\n    \"fecha_vencimiento\": \"\"\n  },\n  \"productos\": [\n    {\n      \"codigo\": \"\",\n      \"descripcion\": \"\",\n      \"cantidad\": 0,\n      \"precio_unitario\": 0,\n      \"total\": 0\n    }\n  ],\n  \"totales\": {\n    \"subtotal\": 0,\n    \"iva\": 0,\n    \"recargo_equivalencia\": 0,\n    \"total\": 0\n  }\n}\n\nSi algún campo no está disponible, déjalo vacío. Asegúrate de que los números sean numéricos, no strings."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 2000
+        }
+      },
+      "id": "mistral-analysis",
+      "name": "Mistral AI Analysis",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ],
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "mistral-credentials",
+          "name": "Mistral API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simular extracción OCR del PDF\n// En un entorno real, aquí usarías un servicio OCR real\n\nconst pdfBuffer = $input.first().binary.data;\n\n// Simulación de texto extraído (reemplazar con OCR real)\nconst extractedText = `\nFACTURA: FAC-2025-001\nFecha: 21/01/2025\nProveedor: NEVIR S.A.\nCIF: A12345678\nDirección: Calle Ejemplo 123, Madrid\n\nCliente: Antonio García\nNIF: 12345678Z\nDirección: Calle Cliente 456, Barcelona\n\nProductos:\n- NVR-12345 Monitor 24\" - Cantidad: 2 - Precio: 150.00€ - Total: 300.00€\n- NVR-67890 Teclado USB - Cantidad: 1 - Precio: 25.00€ - Total: 25.00€\n\nSubtotal: 325.00€\nIVA (21%): 68.25€\nTotal: 393.25€\n`;\n\nreturn {\n  json: {\n    text: extractedText,\n    pdf_processed: true,\n    extraction_method: 'simulated_ocr',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "ocr-processing",
+      "name": "OCR Processing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://fastapi:8000/api/v1/invoices/process-n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $json.api_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "invoice_data",
+              "value": "={{ $json.masked_data }}"
+            },
+            {
+              "name": "source",
+              "value": "n8n_workflow"
+            },
+            {
+              "name": "workflow_id",
+              "value": "pdf_processing_antonio"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "send-to-fastapi",
+      "name": "Send to FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://odoo:8069/xmlrpc/2/object",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "service",
+              "value": "object"
+            },
+            {
+              "name": "method",
+              "value": "execute_kw"
+            },
+            {
+              "name": "args",
+              "value": "=[\"fresh_odoo_db\", 2, \"admin\", \"account.move\", \"create\", [{{ $json.odoo_invoice_data }}]]"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "create-odoo-invoice",
+      "name": "Create Odoo Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "pdf_url",
+        "value": "https://example.com/sample-invoice.pdf"
+      },
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        40,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "OCR Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Masking": {
+      "main": [
+        [
+          {
+            "node": "Send to FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Data Masking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Processing": {
+      "main": [
+        [
+          {
+            "node": "Mistral AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to FastAPI": {
+      "main": [
+        [
+          {
+            "node": "Create Odoo Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "pdf-processing-workflow",
+  "tags": [
+    {
+      "createdAt": "2025-07-21T20:26:47.000Z",
+      "updatedAt": "2025-07-21T20:26:47.000Z",
+      "id": "antonio-invoices",
+      "name": "antonio-invoices"
+    }
+  ]
+}

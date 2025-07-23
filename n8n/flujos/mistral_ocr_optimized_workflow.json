@@ -1,0 +1,189 @@
+{
+  "name": "Mistral OCR Optimized Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c5d076d2-ce8c-4f4b-8719-e96aebd0091f",
+        "authentication": "none",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        300
+      ],
+      "webhookId": "c5d076d2-ce8c-4f4b-8719-e96aebd0091f"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "extractText",
+        "model": "pixtral-12b-2409",
+        "documentType": "document_url",
+        "inputType": "binary",
+        "binaryProperty": "file",
+        "options": {
+          "deleteFiles": true
+        }
+      },
+      "id": "mistral-ocr",
+      "name": "Mistral OCR",
+      "type": "n8n-nodes-base.mistralAi",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ],
+      "credentials": {
+        "mistralCloudApi": {
+          "apiKey": "qlsBKB80fbxr7YQPg9VnMKAdIIZKA11m",
+          "name": "Mistral Cloud API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatear la respuesta del OCR de Mistral\nconst ocrResult = $input.first();\n\n// Verificar si hay datos\nif (!ocrResult) {\n  return {\n    success: false,\n    error: 'No data received from Mistral OCR node',\n    raw_response: ''\n  };\n}\n\n// Extraer el texto del resultado\nlet extractedText = '';\nlet confidence = 0;\nlet pageCount = 0;\n\nif (ocrResult.json && ocrResult.json.text) {\n  extractedText = ocrResult.json.text;\n  confidence = ocrResult.json.confidence || 0;\n  pageCount = ocrResult.json.pages?.length || 1;\n} else if (ocrResult.json && ocrResult.json.choices && ocrResult.json.choices[0]) {\n  extractedText = ocrResult.json.choices[0].message?.content || '';\n} else if (typeof ocrResult.json === 'string') {\n  extractedText = ocrResult.json;\n} else if (ocrResult.json) {\n  extractedText = JSON.stringify(ocrResult.json, null, 2);\n}\n\n// Estadísticas del texto\nconst wordCount = extractedText.split(/\\s+/).filter(word => word.length > 0).length;\nconst charCount = extractedText.length;\nconst lineCount = extractedText.split('\\n').length;\n\n// Detectar idioma (simple detección)\nconst spanishWords = ['el', 'la', 'de', 'que', 'y', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'con', 'para', 'al', 'del', 'los', 'las'];\nconst englishWords = ['the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at'];\n\nconst words = extractedText.toLowerCase().split(/\\s+/);\nconst spanishCount = words.filter(word => spanishWords.includes(word)).length;\nconst englishCount = words.filter(word => englishWords.includes(word)).length;\n\nconst detectedLanguage = spanishCount > englishCount ? 'Spanish' : 'English';\n\n// Crear respuesta estructurada\nconst response = {\n  success: true,\n  timestamp: new Date().toISOString(),\n  document_info: {\n    type: 'Image (processed)',\n    pages: pageCount,\n    language: detectedLanguage,\n    confidence: confidence\n  },\n  text_analysis: {\n    character_count: charCount,\n    word_count: wordCount,\n    line_count: lineCount,\n    has_content: charCount > 0\n  },\n  extracted_text: extractedText,\n  processing_info: {\n    model_used: 'mistral-ocr-latest',\n    processed_at: new Date().toISOString(),\n    processing_time: 'N/A'\n  }\n};\n\nreturn response;"
+      },
+      "id": "format-response",
+      "name": "Format OCR Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Manejar errores del OCR\nconst errorData = $input.first();\n\nconst errorResponse = {\n  success: false,\n  timestamp: new Date().toISOString(),\n  error: {\n    message: errorData.error?.message || 'OCR processing failed',\n    type: 'OCR_ERROR',\n    details: errorData.error || 'Unknown error occurred during OCR processing'\n  },\n  document_info: {\n    type: 'Image (processed)',\n    status: 'Failed'\n  },\n  suggestions: [\n    'Ensure the document/image is clear and readable',\n    'Check if the file format is supported',\n    'Try with a different document if the issue persists'\n  ]\n};\n\nreturn errorResponse;"
+      },
+      "id": "handle-error",
+      "name": "Handle OCR Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-success",
+      "name": "Respond with Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-error",
+      "name": "Respond with Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        620,
+        480
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR": {
+      "main": [
+        [
+          {
+            "node": "Format OCR Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Handle OCR Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format OCR Response": {
+      "main": [
+        [
+          {
+            "node": "Respond with Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle OCR Error": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": {
+      "active": false
+    }
+  },
+  "staticData": {},
+  "tags": [
+    {
+      "createdAt": "2025-07-22T20:38:55.000Z",
+      "updatedAt": "2025-07-22T20:38:55.000Z",
+      "id": "ocr-tag",
+      "name": "OCR"
+    },
+    {
+      "createdAt": "2025-07-22T20:38:55.000Z",
+      "updatedAt": "2025-07-22T20:38:55.000Z",
+      "id": "mistral-tag",
+      "name": "Mistral"
+    }
+  ],
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": null,
+      "invoice_date": null,
+      "due_date": null,
+      "supplier_name": null,
+      "supplier_vat": null,
+      "supplier_address": null,
+      "supplier_city": null,
+      "supplier_zip": null,
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 0.0,
+      "tax_amount": 0.0,
+      "total_amount": 0.0,
+      "tax_rate": null,
+      "payment_method": null,
+      "payment_terms": null,
+      "currency": "EUR",
+      "line_items": []
+    },
+    "ocr_text": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, puedo guiarte sobre cómo extraer la información de una factura manualmente. Aquí tienes una lista de los elementos que debes buscar y extraer de la factura:\n\n1. **Número de factura**: Generalmente se encuentra en la parte superior o en la sección de detalles de la factura.\n2. **Fecha de factura**: También suele estar en la parte superior o cerca del número de factura.\n3. **Fecha de vencimiento**: Puede estar cerca de la fecha de factura o en la sección de términos de pago.\n4. **Datos del proveedor**:\n   - **Nombre del proveedor**: Normalmente en la parte superior o en la sección de información del proveedor.\n   - **NIF/CIF del proveedor**: Generalmente cerca del nombre del proveedor.\n   - **Dirección del proveedor**: Puede estar en la misma sección que el nombre y el NIF/CIF.\n   - **Teléfono del proveedor**: Puede estar junto a la dirección o en una sección de contacto.\n   - **Email del proveedor**: Puede estar junto al teléfono o en una sección de contacto.\n5. **Datos del cliente**:\n   - **Nombre del cliente**: \"El Pelotazo\".\n   - **NIF del cliente**: \"B04957403\".\n6. **Líneas de productos**:\n   - **Código del producto**: Puede estar en una columna específica.\n   - **Descripción del producto**: Generalmente en una columna cercana al código.\n   - **Cantidad**: Puede estar en una columna específica.\n   - **Precio unitario**: Puede estar en una columna específica.\n   - **Descuentos**: Puede estar en una columna específica.\n7. **Subtotales, impuestos y total**: Estos suelen estar en la parte inferior de la factura.\n8. **Método de pago y condiciones**: Puede estar en la parte inferior o en una sección de términos y condiciones.\n\nSi puedes describir el contenido de la factura o proporcionar una copia legible del texto, puedo ayudarte a organizar la información de manera más estructurada."
+  },
+  "extracted_data": {
+    "invoice_number": null,
+    "invoice_date": null,
+    "due_date": null,
+    "supplier_name": null,
+    "supplier_vat": null,
+    "supplier_address": null,
+    "supplier_city": null,
+    "supplier_zip": null,
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 0.0,
+    "tax_amount": 0.0,
+    "total_amount": 0.0,
+    "tax_rate": null,
+    "payment_method": null,
+    "payment_terms": null,
+    "currency": "EUR",
+    "line_items": []
+  },
+  "metadata": {
+    "filename": "FA25000289.PDF",
+    "processed_at": "2025-07-08T16:15:37.250305",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708161537_FA25000289"
+  }
+}

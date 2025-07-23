@@ -1,0 +1,114 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "245S1-240062333",
+      "invoice_date": "12/02/2025",
+      "supplier_name": "Avda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890",
+      "total_amount": 599.85,
+      "line_items": [
+        {
+          "name": "02427 Bolero CoolMarket Combi 322 Black Cristal D",
+          "quantity": 1.0,
+          "price_unit": 441.61,
+          "default_code": ""
+        },
+        {
+          "name": "02157 Bolero CoolMarket TT 114 L Black",
+          "quantity": 1.0,
+          "price_unit": 133.51,
+          "default_code": ""
+        },
+        {
+          "name": "Día",
+          "quantity": 1.0,
+          "price_unit": 0.0,
+          "default_code": ""
+        },
+        {
+          "name": "$0,00 €$",
+          "quantity": 1.0,
+          "price_unit": 24.72,
+          "default_code": ""
+        },
+        {
+          "name": "METODO DE PAGO",
+          "quantity": 1.0,
+          "price_unit": 0.0,
+          "default_code": ""
+        },
+        {
+          "name": "$50 \\% 30$ días - $50 \\% 60$ di",
+          "quantity": 1.0,
+          "price_unit": 299.93,
+          "default_code": ""
+        },
+        {
+          "name": "240062333-1",
+          "quantity": 1.0,
+          "price_unit": 299.92,
+          "default_code": ""
+        }
+      ],
+      "text": "# CECOTEC INNOVACIONES, S.L\n\nAvda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890\n\n## FACTURA 245S1-240062333\n\n$13 / 02 / 25$\n\n## cecotec\n\nAntonio Plaza Bonachera Carretera de Alicún, $n^{\\circ} 172$ 04740 Roquetas de Mar ESPAÑA NIF: ES75236270G Ref.Compra: B25002507-1\n\nCLIENTE: C0083178 TELEFONO: 670968607 MAIL CLIENTE: elpelotazo23@gmail.com № Pedido Cliente: 258025969674\n\n|  Ref. | Descripción | EAN | Cant. | Precio Ud. | Portes | Total BI | IVA | Total | ID-Exp. | № ped. B25  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  ALBARÁN: 245132919 (12/02/2025) | Nㅜ ref. Cliente pedido/entrega: B25002507-1 |  |  |  |  |  |  |  |  |   |\n|  02427 Bolero CoolMarket Combi 322 Black Cristal D |  | 8435484024273 | 1 | $364,97 €$ | $0,00 €$ | $364,97 €$ | $76,64 €$ | $441,61 €$ B25002507-1 |  | 2580259696 74  |\n|  02157 Bolero CoolMarket TT 114 L Black |  | 8435484021579 | 1 | $110,34 €$ | $0,00 €$ | $110,34 €$ | $23,17 €$ | $133,51 €$ B25002507-1 |  | 2580259696 74  |\n|  Día |  | Portes | Base | Total Base Imp. |  | Ret IRPP (0,00\\%) |  | Total IVA |  | R.E  |\n|   |  | $0,00 €$ | $475,31 €$ | $475,31 €$ |  | $0,00 €$ |  | $99,82 €$ |  | $24,72 €$  |\n|   |  |  |  |  |  |  |  | Total: |  | 599,85€  |\n\n$11 / 02 / 202512: 52: 00$ B25002507 Antonio Plaza Bonachera Based On Sales Orders 245101528. Basado en Entregas 245132919.\n\n|  METODO DE PAGO | DOC. DE PAGO | FECHA VENCIMIENTO |  |   |\n| --- | --- | --- | --- | --- |\n|  $50 \\% 30$ días - $50 \\% 60$ di | GIRO C | 240062333-1 | 25/03/2025 | 299,93€  |\n|   |  | 240062333-1 | 25/04/2025 | 299,92€  |\n\nCrédito y Caución Atradius"
+    },
+    "ocr_text": "# CECOTEC INNOVACIONES, S.L\n\nAvda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890\n\n## FACTURA 245S1-240062333\n\n$13 / 02 / 25$\n\n## cecotec\n\nAntonio Plaza Bonachera Carretera de Alicún, $n^{\\circ} 172$ 04740 Roquetas de Mar ESPAÑA NIF: ES75236270G Ref.Compra: B25002507-1\n\nCLIENTE: C0083178 TELEFONO: 670968607 MAIL CLIENTE: elpelotazo23@gmail.com № Pedido Cliente: 258025969674\n\n|  Ref. | Descripción | EAN | Cant. | Precio Ud. | Portes | Total BI | IVA | Total | ID-Exp. | № ped. B25  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  ALBARÁN: 245132919 (12/02/2025) | Nㅜ ref. Cliente pedido/entrega: B25002507-1 |  |  |  |  |  |  |  |  |   |\n|  02427 Bolero CoolMarket Combi 322 Black Cristal D |  | 8435484024273 | 1 | $364,97 €$ | $0,00 €$ | $364,97 €$ | $76,64 €$ | $441,61 €$ B25002507-1 |  | 2580259696 74  |\n|  02157 Bolero CoolMarket TT 114 L Black |  | 8435484021579 | 1 | $110,34 €$ | $0,00 €$ | $110,34 €$ | $23,17 €$ | $133,51 €$ B25002507-1 |  | 2580259696 74  |\n|  Día |  | Portes | Base | Total Base Imp. |  | Ret IRPP (0,00\\%) |  | Total IVA |  | R.E  |\n|   |  | $0,00 €$ | $475,31 €$ | $475,31 €$ |  | $0,00 €$ |  | $99,82 €$ |  | $24,72 €$  |\n|   |  |  |  |  |  |  |  | Total: |  | 599,85€  |\n\n$11 / 02 / 202512: 52: 00$ B25002507 Antonio Plaza Bonachera Based On Sales Orders 245101528. Basado en Entregas 245132919.\n\n|  METODO DE PAGO | DOC. DE PAGO | FECHA VENCIMIENTO |  |   |\n| --- | --- | --- | --- | --- |\n|  $50 \\% 30$ días - $50 \\% 60$ di | GIRO C | 240062333-1 | 25/03/2025 | 299,93€  |\n|   |  | 240062333-1 | 25/04/2025 | 299,92€  |\n\nCrédito y Caución Atradius"
+  },
+  "extracted_data": {
+    "invoice_number": "245S1-240062333",
+    "invoice_date": "12/02/2025",
+    "supplier_name": "Avda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890",
+    "total_amount": 599.85,
+    "line_items": [
+      {
+        "name": "02427 Bolero CoolMarket Combi 322 Black Cristal D",
+        "quantity": 1.0,
+        "price_unit": 441.61,
+        "default_code": ""
+      },
+      {
+        "name": "02157 Bolero CoolMarket TT 114 L Black",
+        "quantity": 1.0,
+        "price_unit": 133.51,
+        "default_code": ""
+      },
+      {
+        "name": "Día",
+        "quantity": 1.0,
+        "price_unit": 0.0,
+        "default_code": ""
+      },
+      {
+        "name": "$0,00 €$",
+        "quantity": 1.0,
+        "price_unit": 24.72,
+        "default_code": ""
+      },
+      {
+        "name": "METODO DE PAGO",
+        "quantity": 1.0,
+        "price_unit": 0.0,
+        "default_code": ""
+      },
+      {
+        "name": "$50 \\% 30$ días - $50 \\% 60$ di",
+        "quantity": 1.0,
+        "price_unit": 299.93,
+        "default_code": ""
+      },
+      {
+        "name": "240062333-1",
+        "quantity": 1.0,
+        "price_unit": 299.92,
+        "default_code": ""
+      }
+    ],
+    "text": "# CECOTEC INNOVACIONES, S.L\n\nAvda. Reyes Católicos, núm. 60 46910 VALENCIA ESPAÑA NIF: ESB97937890\n\n## FACTURA 245S1-240062333\n\n$13 / 02 / 25$\n\n## cecotec\n\nAntonio Plaza Bonachera Carretera de Alicún, $n^{\\circ} 172$ 04740 Roquetas de Mar ESPAÑA NIF: ES75236270G Ref.Compra: B25002507-1\n\nCLIENTE: C0083178 TELEFONO: 670968607 MAIL CLIENTE: elpelotazo23@gmail.com № Pedido Cliente: 258025969674\n\n|  Ref. | Descripción | EAN | Cant. | Precio Ud. | Portes | Total BI | IVA | Total | ID-Exp. | № ped. B25  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n|  ALBARÁN: 245132919 (12/02/2025) | Nㅜ ref. Cliente pedido/entrega: B25002507-1 |  |  |  |  |  |  |  |  |   |\n|  02427 Bolero CoolMarket Combi 322 Black Cristal D |  | 8435484024273 | 1 | $364,97 €$ | $0,00 €$ | $364,97 €$ | $76,64 €$ | $441,61 €$ B25002507-1 |  | 2580259696 74  |\n|  02157 Bolero CoolMarket TT 114 L Black |  | 8435484021579 | 1 | $110,34 €$ | $0,00 €$ | $110,34 €$ | $23,17 €$ | $133,51 €$ B25002507-1 |  | 2580259696 74  |\n|  Día |  | Portes | Base | Total Base Imp. |  | Ret IRPP (0,00\\%) |  | Total IVA |  | R.E  |\n|   |  | $0,00 €$ | $475,31 €$ | $475,31 €$ |  | $0,00 €$ |  | $99,82 €$ |  | $24,72 €$  |\n|   |  |  |  |  |  |  |  | Total: |  | 599,85€  |\n\n$11 / 02 / 202512: 52: 00$ B25002507 Antonio Plaza Bonachera Based On Sales Orders 245101528. Basado en Entregas 245132919.\n\n|  METODO DE PAGO | DOC. DE PAGO | FECHA VENCIMIENTO |  |   |\n| --- | --- | --- | --- | --- |\n|  $50 \\% 30$ días - $50 \\% 60$ di | GIRO C | 240062333-1 | 25/03/2025 | 299,93€  |\n|   |  | 240062333-1 | 25/04/2025 | 299,92€  |\n\nCrédito y Caución Atradius"
+  },
+  "metadata": {
+    "filename": "245S1-240062333..pdf",
+    "processed_at": "2025-07-07T19:33:45.704173",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250707193345_245S1-240062333."
+  }
+}

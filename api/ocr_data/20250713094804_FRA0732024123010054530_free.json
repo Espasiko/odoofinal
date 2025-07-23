@@ -1,0 +1,102 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "10054530",
+      "invoice_date": "2024-12-30",
+      "due_date": "2025-01-19",
+      "supplier_name": "SONIFER, S.A.",
+      "supplier_vat": "73236270G",
+      "supplier_address": "Avenida de San Pedro, 65",
+      "supplier_city": "Murcia",
+      "supplier_zip": "30007",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 357.64,
+      "tax_amount": 21.0,
+      "total_amount": 451.34,
+      "tax_rate": 21,
+      "payment_method": "GROS",
+      "payment_terms": "20 DIAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "18092 MIG 2047 CE MICROONDAS CE ORBEGO",
+          "quantity": 2.0,
+          "price_unit": 112.1,
+          "discount": 0,
+          "default_code": "18092",
+          "tax_rate": 21
+        },
+        {
+          "name": "18091 MI 2030 CE MICROONDAS CE ORBEGO",
+          "quantity": 2.0,
+          "price_unit": 91.2,
+          "discount": 0,
+          "default_code": "18091",
+          "tax_rate": 21
+        },
+        {
+          "name": "17939 PO 2720 HORNILLO GAS 2 FUEGOS",
+          "quantity": 2.0,
+          "price_unit": 100.55,
+          "discount": 0,
+          "default_code": "17939",
+          "tax_rate": 21
+        }
+      ]
+    },
+    "ocr_text": "```\nORBEGOZO\n\nSONIFER, S.A.\nAvenida de San Pedro, 65\n30007 MURCIA\nTeléfono: 968 23 16 00 - Fax: 968 24 53 62\nEmail: sonifer@sonifer.es\n\nFACTURA\n\n| Cliente | C.I.F. | Número | Fecha |\n|---------|--------|--------|-------|\n| 44047   | 73236270G | 10054530 | 30/12/24 |\n\n| Agencia | Forma de pago |\n|---------|----------------|\n| SENDA FACTORY, S.L. | GROS 20, DIAS |\n\n| Proveedor | Agente |\n|-----------|--------|\n| FERMOQUIM, S.L. | |\n\n| Código | Descripción | Cantidad | Precio | %Dto. | Importe |\n|--------|-------------|----------|--------|-------|---------|\n| ALBARAN: 2357450 27/12/2024 A: 4 |\n| Suelo/Pedido(s): 18092 MIG 2047 CE MICROONDAS CE ORBEGO 2.00 112.1000 33+7+3+5 128.73 |\n| 18091 MI 2030 CE MICROONDAS CE ORBEGO 2.00 91.2000 33+7+3+5 104.74 |\n| 17939 PO 2720 HORNILLO GAS 2 FUEGOS 2.00 100.5500 33+3+5 124.17 |\n\nENV/2023/000002860\nContribución SCRAP: 1.04 Euros\n\nVencimientos\n\n|               | TOTAL |\n|---------------|-------|\n| 451.34        | 19/01/2025 |\n| Base          | 357.64 € |\n| Cuota IVA     | 21.00 € |\n| Cuota REC     | 5.20 € |\n|               | 18.60 € |\n|               | 451.34 € |\n\nREGISTRO MERCANTIL DE MURCIA TOMO 4848 FOLIO 171 HOJA MU-8558. INSRIPCION IC-CIF-A-3041719\n\nPágina 1 de 1\n```"
+  },
+  "extracted_data": {
+    "invoice_number": "10054530",
+    "invoice_date": "2024-12-30",
+    "due_date": "2025-01-19",
+    "supplier_name": "SONIFER, S.A.",
+    "supplier_vat": "73236270G",
+    "supplier_address": "Avenida de San Pedro, 65",
+    "supplier_city": "Murcia",
+    "supplier_zip": "30007",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 357.64,
+    "tax_amount": 21.0,
+    "total_amount": 451.34,
+    "tax_rate": 21,
+    "payment_method": "GROS",
+    "payment_terms": "20 DIAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "18092 MIG 2047 CE MICROONDAS CE ORBEGO",
+        "quantity": 2.0,
+        "price_unit": 112.1,
+        "discount": 0,
+        "default_code": "18092",
+        "tax_rate": 21
+      },
+      {
+        "name": "18091 MI 2030 CE MICROONDAS CE ORBEGO",
+        "quantity": 2.0,
+        "price_unit": 91.2,
+        "discount": 0,
+        "default_code": "18091",
+        "tax_rate": 21
+      },
+      {
+        "name": "17939 PO 2720 HORNILLO GAS 2 FUEGOS",
+        "quantity": 2.0,
+        "price_unit": 100.55,
+        "discount": 0,
+        "default_code": "17939",
+        "tax_rate": 21
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "FRA0732024123010054530.pdf",
+    "processed_at": "2025-07-13T09:48:04.708609",
+    "processed_by": "admin",
+    "ocr_id": "20250713094804_FRA0732024123010054530"
+  }
+}

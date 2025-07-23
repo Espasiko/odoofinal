@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Fondo circular -->
+  <circle cx="16" cy="16" r="15" fill="#E31E24"/>
+  
+  <!-- Letra P simplificada -->
+  <path d="M8 6 L8 26 L10 26 L10 17 L18 17 C21 17 23 15 23 12 C23 9 21 7 18 7 L8 6 Z M10 8 L18 8 C19.5 8 21 9.5 21 12 C21 14.5 19.5 16 18 16 L10 16 Z" fill="white"/>
+  
+  <!-- Pelota pequeña -->
+  <circle cx="22" cy="10" r="4" fill="white"/>
+  <polygon points="22,8 23.5,9 22.5,11 21.5,11 20.5,9" fill="#E31E24"/>
+</svg>

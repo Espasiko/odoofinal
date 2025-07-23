@@ -25,15 +25,20 @@ const ImportInvoice: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const fileRef = useRef<File | null>(null);
   const freeFileRef = useRef<File | null>(null);
+  const n8nFileRef = useRef<File | null>(null);
 
   const [fileName, setFileName] = useState('');
   const [freeFileName, setFreeFileName] = useState('');
+  const [n8nFileName, setN8nFileName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [freeUploading, setFreeUploading] = useState(false);
+  const [n8nUploading, setN8nUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [freeProgress, setFreeProgress] = useState(0);
+  const [n8nProgress, setN8nProgress] = useState(0);
   const [status, setStatus] = useState('');
   const [freeStatus, setFreeStatus] = useState('');
+  const [n8nResult, setN8nResult] = useState<any>(null);
   const [createInOdoo, setCreateInOdoo] = useState(true);
   const [freeCreateInOdoo, setFreeCreateInOdoo] = useState(false);
   const [responseJson, setResponseJson] = useState<any>(null);
@@ -296,6 +301,35 @@ const ImportInvoice: React.FC = () => {
     }
   };
 
+  const handleN8nUpload = async () => {
+    if (!n8nFileRef.current) {
+      messageApi.error('Selecciona un archivo de factura (PDF / imagen).');
+      return;
+    }
+
+    setN8nUploading(true);
+    setN8nProgress(0);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', n8nFileRef.current);
+
+      const res = await fetch(`${API_URL}/api/v1/n8n/process-direct`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      setN8nResult(data);
+      messageApi.success('Archivo subido correctamente a n8n.');
+    } catch (err: any) {
+      console.error(err);
+      messageApi.error(err?.message ?? 'Error desconocido');
+    } finally {
+      setN8nUploading(false);
+    }
+  };
+
   // Función para enviar la factura a Odoo con el proveedor corregido
   const createInvoiceWithCorrectedSupplier = async () => {
     if (!freeResponseJson || !selectedProvider) {
@@ -305,7 +339,7 @@ const ImportInvoice: React.FC = () => {
     
     // Validar que el NIF/CIF sea válido
     if (!vatValidation.isValid) {
-      messageApi.error('El NIF/CIF del proveedor no es válido. Por favor, corrígalo antes de continuar.');
+      messageApi.error('El NIF/CIF del proveedor no es válido. Por favor, corrígelo antes de continuar.');
       return;
     }
 
@@ -1002,6 +1036,50 @@ const ImportInvoice: React.FC = () => {
               <Divider>Respuesta JSON</Divider>
               <pre style={{ background: '#1e1e1e', color: '#bfbfbf', padding: 12, marginTop: 16, maxHeight: 300, overflow: 'auto' }}>
                 {JSON.stringify(freeResponseJson, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: '3',
+      label: 'Prueba n8n',
+      children: (
+        <div>
+          <Paragraph>
+            Sube una factura en PDF o imagen para probar el flujo de trabajo de n8n.
+          </Paragraph>
+
+          <input
+            type="file"
+            accept="application/pdf,image/*"
+            onChange={(e) => {
+              n8nFileRef.current = e.target.files?.[0] ?? null;
+              setN8nFileName(n8nFileRef.current?.name ?? '');
+              if (n8nFileRef.current) {
+                setN8nResult(null);
+              }
+            }}
+            disabled={n8nUploading}
+          />
+          <Paragraph>{n8nFileName}</Paragraph>
+
+          <div style={{ marginTop: 16 }}>
+            <Button type="primary" onClick={handleN8nUpload} loading={n8nUploading} disabled={!n8nFileRef.current}>
+              Probar n8n
+            </Button>
+          </div>
+
+          {n8nUploading && (
+            <Progress percent={n8nProgress} status="active" style={{ marginTop: 16 }} />
+          )}
+
+          {n8nResult && (
+            <div style={{ marginTop: 16 }}>
+              <Divider>Resultado</Divider>
+              <pre style={{ background: '#1e1e1e', color: '#bfbfbf', padding: 12, marginTop: 16, maxHeight: 300, overflow: 'auto' }}>
+                {JSON.stringify(n8nResult, null, 2)}
               </pre>
             </div>
           )}

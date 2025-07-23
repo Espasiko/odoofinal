@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Personalizar el banner de la tienda -->
+    <template id="products_categories" inherit_id="website_sale.products_categories">
+        <xpath expr="//div[hasclass('s_three_columns')]" position="replace">
+            <div class="s_three_columns pt-5 pb-5 bg-light">
+                <div class="container">
+                    <div class="section-title text-center mb-5">
+                        <h2>Nuestras Categorías</h2>
+                        <p class="lead">Descubre nuestra amplia selección de productos</p>
+                    </div>
+                    <div class="row">
+                        <t t-foreach="categories" t-as="category">
+                            <div class="col-md-4 mb-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <a t-att-href="/shop/category/{{category.id}}/{{slug(category.name) or 'd'}}">
+                                        <img t-att-src="image_data_uri(category.image_512 or '/website/static/src/img/website_placeholder.png')" 
+                                             class="card-img-top" t-att-alt="category.name" style="height: 200px; object-fit: cover;"/>
+                                    </a>
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">
+                                            <a t-att-href="/shop/category/{{category.id}}/{{slug(category.name) or 'd'}}" t-esc="category.name"/>
+                                        </h5>
+                                        <a t-att-href="/shop/category/{{category.id}}/{{slug(category.name) or 'd'}}" 
+                                           class="btn btn-outline-primary btn-sm">Ver productos</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Personalizar la lista de productos -->
+    <template id="products_item" inherit_id="website_sale.products_item">
+        <xpath expr="//div[hasclass('oe_product')]" position="replace">
+            <div class="oe_product card h-100 border-0 shadow-sm">
+                <div class="oe_product_image">
+                    <a t-att-href="product['website_url']" class="d-block position-relative">
+                        <img t-att-src="product['website_image_url'] or '/website/static/src/img/website_placeholder.png'" 
+                             class="img-fluid" t-att-alt="product['name']" style="height: 200px; object-fit: contain; padding: 10px;"/>
+                        <t t-if="product.website_ribbon_id">
+                            <div t-attf-class="oe_ribbon position-absolute #{{'bg-' + product.website_ribbon_id.html_class or 'primary'}}">
+                                <span t-esc="product.website_ribbon_id.html or product.website_ribbon_id.name"/>
+                            </div>
+                        </t>
+                    </a>
+                </div>
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <a t-att-href="product['website_url']" t-esc="product['name']"/>
+                    </h5>
+                    <div class="product_price mt-2">
+                        <span t-if="product['price'] != 0" class="text-primary font-weight-bold" t-esc="format_amount(product['price'], product.currency_id)"/>
+                        <span t-if="product['price'] == 0">
+                            <a href="/contactus" class="btn btn-link">Consultar precio</a>
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <a t-att-href="product['website_url']" class="btn btn-primary btn-sm">
+                            <i class="fa fa-eye mr-1"></i> Ver producto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+</odoo>

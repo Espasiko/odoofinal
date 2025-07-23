@@ -1,0 +1,72 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "25002429",
+      "invoice_date": "2025-01-24",
+      "due_date": "2025-02-23",
+      "supplier_name": "ALMCE S.L.",
+      "supplier_vat": "B14891592",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "Córdoba",
+      "supplier_zip": "14014",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 182.71,
+      "tax_amount": 38.37,
+      "total_amount": 230.58,
+      "tax_rate": 21,
+      "payment_method": "GIRO A 30 DÍAS",
+      "payment_terms": "GIRO A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "BHCA96641B Campana Beko. BHCA96641BBHS DECORATIVA",
+          "quantity": 1,
+          "price_unit": 182.71,
+          "discount": 0,
+          "default_code": "BHCA96641B",
+          "ean13": "",
+          "tax_rate": 21
+        }
+      ]
+    },
+    "ocr_text": "```plaintext\nANTONIO PLAZA BONACHERA\nEL PELOTAZO\nCTRA. ALICUN, 172\n04740 ROQUETAS DE MAR\nALMERIA\n\nALMCE S.L.\nC.I.F.: B-14891592\nC/ FAUSTO GARCÍA TENA Nº 23\n14014 - CÓRDOBA\nTELF.: 957 34 30 85\n\nFECHA: 24/01/25\nFACTURA: 25002429\nCLIENTE: 43004323\nN.I.F.: 75236270G\nTELÉFONO: 670 966 607\nPAG: 1\n\nCÓDIGO DESCRIPCIÓN UNIDADES PRECIO IMPORTE\n\nALBARÁN PO-25002085 FECHA 23/01/25\nPed. 25002032PO\nBHCA96641B Campana Beko. BHCA96641BBHS DECORATIVA 1 182.71\n\nTOTAL IMP. % IMPORTE BASE % I.V.A. % REC. TOTAL FRA. (€)\n\n182.71 38.37 21.00 5.20 9.50 230.58\n\nForma de PagoGIRO A 30 DÍAS\nBanco:\n\nVencimientos:\n23/02/25\n230.58\n\nDevoluciones de Producto:\nCualquier incidencia en la mercancía ocasionada por el transporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. En caso contrario, se considerará que la mercancía ha sido recibida en perfecto estado de nuevo dpto., conforme. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originariamente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba\nFolleto 101 Tomo 2101 hoja CO-29903 Inscripción 1ª. Nº RIT-AEE: 13210\n```"
+  },
+  "extracted_data": {
+    "invoice_number": "25002429",
+    "invoice_date": "2025-01-24",
+    "due_date": "2025-02-23",
+    "supplier_name": "ALMCE S.L.",
+    "supplier_vat": "B14891592",
+    "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+    "supplier_city": "Córdoba",
+    "supplier_zip": "14014",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 182.71,
+    "tax_amount": 38.37,
+    "total_amount": 230.58,
+    "tax_rate": 21,
+    "payment_method": "GIRO A 30 DÍAS",
+    "payment_terms": "GIRO A 30 DÍAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "BHCA96641B Campana Beko. BHCA96641BBHS DECORATIVA",
+        "quantity": 1,
+        "price_unit": 182.71,
+        "discount": 0,
+        "default_code": "BHCA96641B",
+        "ean13": "",
+        "tax_rate": 21
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "FA25002429.PDF",
+    "processed_at": "2025-07-10T08:09:56.380200",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250710080956_FA25002429"
+  }
+}

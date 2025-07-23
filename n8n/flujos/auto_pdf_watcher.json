@@ -1,0 +1,152 @@
+{
+  "name": "Auto PDF Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "folderUpdated",
+        "folderToWatch": "/tmp/pdf_upload",
+        "watchFor": "added"
+      },
+      "id": "local-file-trigger",
+      "name": "Watch PDF Folder",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.path }}",
+              "operation": "endsWith",
+              "value2": ".pdf"
+            }
+          ]
+        }
+      },
+      "id": "filter-pdf",
+      "name": "Solo PDFs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "filePath": "={{ $json.path }}"
+      },
+      "id": "read-file",
+      "name": "Leer PDF",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "mistral-large-latest",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Analiza este PDF y extrae la información de factura: cliente, fecha, importe total, conceptos. Devuelve JSON estructurado."
+            }
+          ]
+        }
+      },
+      "id": "mistral-ocr",
+      "name": "Mistral OCR",
+      "type": "@n8n/n8n-nodes-langchain.lmChatMistralAi",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "mistralAiApi": {
+          "id": "mistral-credentials",
+          "name": "Mistral AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://fastapi:8000/api/v1/invoices/process",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}"
+      },
+      "id": "send-to-fastapi",
+      "name": "Enviar a FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "path": "={{ $('Watch PDF Folder').item.json.path }}"
+      },
+      "id": "delete-file",
+      "name": "Borrar PDF Procesado",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Watch PDF Folder": {
+      "main": [
+        [
+          {
+            "node": "Solo PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo PDFs": {
+      "main": [
+        [
+          {
+            "node": "Leer PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer PDF": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR": {
+      "main": [
+        [
+          {
+            "node": "Enviar a FastAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar a FastAPI": {
+      "main": [
+        [
+          {
+            "node": "Borrar PDF Procesado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

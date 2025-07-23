@@ -20,7 +20,8 @@ from api.routes.providers import router as providers_router
 from api.routes.mistral_ocr import router as mistral_ocr_router
 from api.routes.mistral_free_ocr import router as mistral_free_ocr_router
 from api.routes.invoices import router as invoices_router
-
+from api.routes.files import router as files_router
+from api.routes.n8n import router as n8n_router
 from api.routes.web_ui import router as web_ui_router
 # from api.routes.legacy.mistral_llm_excel import router as mistral_llm_excel_router  # Movido a legacy
 from api.routes.excel_importer import router as excel_importer_router
@@ -49,6 +50,11 @@ static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Configurar directorio temporal para archivos
+temp_dir = Path(__file__).parent / "temp"
+temp_dir.mkdir(exist_ok=True)
+app.mount("/temp", StaticFiles(directory=str(temp_dir)), name="temp")
+
 # Incluir rutas de API
 app.include_router(auth_router)
 app.include_router(products_router)
@@ -62,6 +68,8 @@ app.include_router(providers_router)
 app.include_router(mistral_ocr_router)
 app.include_router(mistral_free_ocr_router)
 app.include_router(invoices_router)
+app.include_router(files_router)
+app.include_router(n8n_router)
 
 # app.include_router(mistral_llm_excel_router)  # Desactivado - endpoint legacy
 app.include_router(excel_importer_router)

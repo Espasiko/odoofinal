@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    
+    <!-- Estilos adicionales para el tema -->
+    <template id="pelotazo_custom_styles" inherit_id="website.layout" name="Pelotazo Custom Styles">
+        <xpath expr="//head" position="inside">
+            <style>
+                @keyframes shine {
+                    0% { left: -100%; }
+                    100% { left: 100%; }
+                }
+                
+                .pelotazo-identifier {
+                    box-shadow: 0 2px 10px rgba(227, 6, 19, 0.4);
+                }
+                
+                /* Asegurar que el header sea distintivo */
+                .o_main_navbar, #top {
+                    background: linear-gradient(135deg, #e30613 0%, #c10511 100%) !important;
+                    border-bottom: 3px solid #ff4d4d !important;
+                }
+                
+                .o_main_navbar .navbar-nav .nav-link,
+                #top .navbar-nav .nav-link {
+                    color: white !important;
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                }
+            </style>
+        </xpath>
+    </template>
+</odoo>

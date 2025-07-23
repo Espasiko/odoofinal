@@ -1,0 +1,67 @@
+{
+  "name": "Mistral OCR Working Test",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "test-ocr",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.pdf_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "http-request-node",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simular OCR - extraer datos básicos\nconst filename = $('Webhook').first().json.filename || 'unknown.pdf';\nconst provider = $('Webhook').first().json.provider || 'unknown';\n\n// Datos simulados basados en el proveedor\nlet invoiceData = {\n  invoice_number: 'INV-' + Math.floor(Math.random() * 100000),\n  date: new Date().toISOString().split('T')[0],\n  supplier: provider,\n  total: (Math.random() * 1000 + 100).toFixed(2),\n  currency: 'EUR',\n  items: [\n    {\n      description: 'Servicio profesional',\n      quantity: 1,\n      unit_price: (Math.random() * 500 + 50).toFixed(2),\n      total: (Math.random() * 500 + 50).toFixed(2)\n    }\n  ]\n};\n\n// Enmascarar datos sensibles\nif (invoiceData.supplier && invoiceData.supplier.toLowerCase().includes('antonio')) {\n  invoiceData.supplier = invoiceData.supplier.replace(/antonio/gi, 'A***o');\n}\n\nconst result = {\n  success: true,\n  timestamp: new Date().toISOString(),\n  source: 'simulated-ocr',\n  data: invoiceData,\n  original_filename: filename\n};\n\nreturn [result];"
+      },
+      "id": "code-node",
+      "name": "Process OCR",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "Process OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

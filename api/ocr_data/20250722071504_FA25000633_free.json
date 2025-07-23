@@ -1,0 +1,361 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "25000XXX",
+      "invoice_date": "2025-02-08",
+      "due_date": "2025-02-08",
+      "supplier_vat": "B14851582",
+      "customer_vat": "75236270G",
+      "total_amount": 1058.93,
+      "tax_amount": 176.21,
+      "subtotal": 839.09,
+      "supplier_name": "ALMCE S.L.",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "CÓRDOBA",
+      "supplier_zip": "14014",
+      "customer_name": "ANTONIO PLAZA BONACHERA",
+      "customer_address": "Ctra. Alicun, 172",
+      "customer_city": "Roquetas de Mar",
+      "customer_zip": "04740",
+      "recargo_equivalencia": 43.63,
+      "tax_rate": 21,
+      "recargo_rate": 5.2,
+      "payment_method": "GIRO",
+      "payment_terms": "A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "Lavavajillas Candy COW4854TWM61S, 8+6KGS.",
+          "quantity": 1,
+          "price_unit": 228.27,
+          "discount": 0,
+          "default_code": "COW4854TWM61S",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Led TCL 55P61B, 4K HDR, HLG, TV with",
+          "quantity": 1,
+          "price_unit": 241.61,
+          "discount": 0,
+          "default_code": "55P61B",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Horno Comben CCHM703W, 65L, Cristal Blanco Perfil",
+          "quantity": 1,
+          "price_unit": 158.82,
+          "discount": 0,
+          "default_code": "CCHM703W",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16",
+          "quantity": 1,
+          "price_unit": 222.0,
+          "discount": 0,
+          "default_code": "CO4104TWM61S",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        }
+      ],
+      "iva_amount": 176.21
+    },
+    "raw_ocr_data": {
+      "invoice_number": "do",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "ALMCE S.L.",
+      "supplier_vat": "B14891592",
+      "supplier_address": "",
+      "supplier_city": "",
+      "supplier_zip": "",
+      "customer_name": "",
+      "customer_vat": "",
+      "total_amount": 22142.0,
+      "tax_amount": 17621.0,
+      "subtotal": 83909.0,
+      "customer_order_ref": "",
+      "line_items": [
+        {
+          "name": "- **Dirección:** C/ FAUSTO GARCÍA TENA Nº",
+          "quantity": 23.0,
+          "price_unit": 14014.0,
+          "default_code": ""
+        },
+        {
+          "name": "- **Teléfono:**",
+          "quantity": 957.0,
+          "price_unit": 34.0,
+          "default_code": ""
+        },
+        {
+          "name": "- **Dirección Completa:** Ctra. Alicun,",
+          "quantity": 172.0,
+          "price_unit": 4740.0,
+          "default_code": ""
+        },
+        {
+          "name": "- **Teléfono:**",
+          "quantity": 670.0,
+          "price_unit": 968.0,
+          "default_code": ""
+        }
+      ]
+    },
+    "raw_ocr_text": "### DATOS DEL PROVEEDOR:\n- **Nombre:** ALMCE S.L.\n- **CIF:** B-14891592\n- **Dirección:** C/ FAUSTO GARCÍA TENA Nº 23 14014 - CÓRDOBA\n- **Teléfono:** 957 34 30 85\n\n### DATOS DEL CLIENTE:\n- **Nombre:** ANTONIO PLAZA BONACHERA\n- **Dirección:** EL PELOTAZO\n- **Dirección Completa:** Ctra. Alicun, 172 04740 Roquetas de Mar Almería\n- **NIF/CIF:** 75236270G\n- **Teléfono:** 670 968 607\n\n### CÓDIGOS DE PRODUCTO:\n- **Código:** COW4854TWM61S\n- **Descripción:** Lavavajillas Candy COW4854TWM61S, 8+6KGS.\n- **Unidades:** 1\n- **Precio Unitario:** 228.27\n- **Importe Total:** 221.42\n\n- **Código:** 55P61B\n- **Descripción:** Led TCL 55P61B, 4K HDR, HLG, TV with\n- **Unidades:** 1\n- **Precio Unitario:** 241.61\n- **Importe Total:** 241.61\n\n- **Código:** CCHM703W\n- **Descripción:** Horno Comben CCHM703W, 65L, Cristal Blanco Perfil\n- **Unidades:** 1\n- **Precio Unitario:** 158.82\n- **Importe Total:** 154.06\n\n- **Código:** CO4104TWM61S\n- **Descripción:** Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16\n- **Unidades:** 1\n- **Precio Unitario:** 222.00\n- **Importe Total:** 222.00\n\n### IMPUESTOS:\n- **Base Imponible:** 839.09\n- **IVA (21%):** 176.21\n- **Recargo de Equivalencia (5.2%):** 43.63\n- **Total Factura:** 1,058.93\n\n### LÍNEAS DE PRODUCTOS:\n1. **Código:** COW4854TWM61S\n   - **Descripción:** Lavavajillas Candy COW4854TWM61S, 8+6KGS.\n   - **Unidades:** 1\n   - **Precio Unitario:** 228.27\n   - **Importe Total:** 221.42\n\n2. **Código:** 55P61B\n   - **Descripción:** Led TCL 55P61B, 4K HDR, HLG, TV with\n   - **Unidades:** 1\n   - **Precio Unitario:** 241.61\n   - **Importe Total:** 241.61\n\n3. **Código:** CCHM703W\n   - **Descripción:** Horno Comben CCHM703W, 65L, Cristal Blanco Perfil\n   - **Unidades:** 1\n   - **Precio Unitario:** 158.82\n   - **Importe Total:** 154.06\n\n4. **Código:** CO4104TWM61S\n   - **Descripción:** Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16\n   - **Unidades:** 1\n   - **Precio Unitario:** 222.00\n   - **Importe Total:** 222.00\n\n### TOTALES:\n- **Total Importe:** 839.09\n- **IVA (21%):** 176.21\n- **Recargo de Equivalencia (5.2%):** 43.63\n- **Total Factura:** 1,058.93\n\n### INFORMACIÓN ADICIONAL:\n- **Fecha de Pago GIRO:** A 30 DÍAS\n- **Banco:**\n- **Fecha de Vencimiento:** 08/02/25\n- **Total Factura:** 1,058.93\n\n### DEVOLUCIONES DE PRODUCTO:\n- **Nota:** Cualquier incidencia en la mercancía ocasionada por el transporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. Las devoluciones deberán realizarse en el mismo estado y embalaje en que fueron entregadas, sin conformidad escrita de nuestro dpto. comercial. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\n- **Aviso:** Ahorra la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba Folio 101 Tomo 2101 Hoja CO-29903 Inscripción 1ª. Nº RIT-AEE: 13210",
+    "ocr_confidence": "unknown",
+    "ocr_id": "20250722071451_tmp4f4q2vth.pdf",
+    "raw_tabula_data": {
+      "invoice_number": "25000XXX",
+      "invoice_date": "2025-02-08",
+      "due_date": "2025-02-08",
+      "supplier_vat": "B14851582",
+      "customer_vat": "75236270G",
+      "total_amount": 1058.93,
+      "tax_amount": 176.21,
+      "subtotal": 839.09,
+      "supplier_name": "ALMCE S.L.",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "CÓRDOBA",
+      "supplier_zip": "14014",
+      "customer_name": "ANTONIO PLAZA BONACHERA",
+      "customer_address": "Ctra. Alicun, 172",
+      "customer_city": "Roquetas de Mar",
+      "customer_zip": "04740",
+      "recargo_equivalencia": 43.63,
+      "tax_rate": 21,
+      "recargo_rate": 5.2,
+      "payment_method": "GIRO",
+      "payment_terms": "A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "Lavavajillas Candy COW4854TWM61S, 8+6KGS.",
+          "quantity": 1,
+          "price_unit": 228.27,
+          "discount": 0,
+          "default_code": "COW4854TWM61S",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Led TCL 55P61B, 4K HDR, HLG, TV with",
+          "quantity": 1,
+          "price_unit": 241.61,
+          "discount": 0,
+          "default_code": "55P61B",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Horno Comben CCHM703W, 65L, Cristal Blanco Perfil",
+          "quantity": 1,
+          "price_unit": 158.82,
+          "discount": 0,
+          "default_code": "CCHM703W",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        },
+        {
+          "name": "Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16",
+          "quantity": 1,
+          "price_unit": 222.0,
+          "discount": 0,
+          "default_code": "CO4104TWM61S",
+          "tax_rate": 21,
+          "recargo_rate": 5.2
+        }
+      ],
+      "iva_amount": 176.21
+    },
+    "raw_tabula_tables": [
+      {
+        "FECHA": {
+          "0": "09/01/25"
+        },
+        "FACTURA": {
+          "0": 25000633
+        },
+        "CLIENTE": {
+          "0": 43004323
+        },
+        "N.I.F.": {
+          "0": "75236270G"
+        },
+        "TELÉFONO": {
+          "0": "670 968 607"
+        },
+        "PÁG.": {
+          "0": 1
+        }
+      },
+      {
+        "CÓDIGO": {},
+        "DESCRIPCIÓN": {},
+        "UNIDADES": {},
+        "PRECIO": {},
+        "IMPORTE": {}
+      },
+      {
+        "TOTAL IMP.": {
+          "0": 839.09,
+          "1": NaN,
+          "2": NaN
+        },
+        "%": {
+          "0": NaN,
+          "1": NaN,
+          "2": NaN
+        },
+        "IMPORTE": {
+          "0": NaN,
+          "1": NaN,
+          "2": NaN
+        },
+        "BASE": {
+          "0": NaN,
+          "1": NaN,
+          "2": NaN
+        },
+        "Unnamed: 0": {
+          "0": 839.09,
+          "1": NaN,
+          "2": NaN
+        },
+        "%.1": {
+          "0": NaN,
+          "1": 21.0,
+          "2": NaN
+        },
+        "I.V.A.": {
+          "0": 176.21,
+          "1": NaN,
+          "2": NaN
+        },
+        "%.2": {
+          "0": NaN,
+          "1": 5.2,
+          "2": NaN
+        },
+        "REC.": {
+          "0": 43.63,
+          "1": NaN,
+          "2": NaN
+        },
+        "TOTAL FRA. (€)": {
+          "0": "1,058.93",
+          "1": NaN,
+          "2": NaN
+        },
+        "Unnamed: 1": {
+          "0": NaN,
+          "1": NaN,
+          "2": "Eur"
+        }
+      }
+    ],
+    "validation": {
+      "totals_valid": false,
+      "details": {
+        "subtotal": {
+          "declared": 839.09,
+          "calculated": 850.7,
+          "difference": 11.61,
+          "valid": false
+        },
+        "tax_amount": {
+          "declared": 176.21,
+          "calculated": 178.65,
+          "difference": 2.44,
+          "valid": false
+        },
+        "recargo_equivalencia": {
+          "declared": 43.63,
+          "calculated": 44.24,
+          "difference": 0.61,
+          "valid": false
+        },
+        "total_amount": {
+          "declared": 1058.93,
+          "calculated": 1073.58,
+          "difference": 14.65,
+          "valid": false
+        },
+        "is_valid": false
+      }
+    }
+  },
+  "extracted_data": {
+    "invoice_number": "25000XXX",
+    "invoice_date": "2025-02-08",
+    "due_date": "2025-02-08",
+    "supplier_vat": "B14851582",
+    "customer_vat": "75236270G",
+    "total_amount": 1058.93,
+    "tax_amount": 176.21,
+    "subtotal": 839.09,
+    "supplier_name": "ALMCE S.L.",
+    "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+    "supplier_city": "CÓRDOBA",
+    "supplier_zip": "14014",
+    "customer_name": "ANTONIO PLAZA BONACHERA",
+    "customer_address": "Ctra. Alicun, 172",
+    "customer_city": "Roquetas de Mar",
+    "customer_zip": "04740",
+    "recargo_equivalencia": 43.63,
+    "tax_rate": 21,
+    "recargo_rate": 5.2,
+    "payment_method": "GIRO",
+    "payment_terms": "A 30 DÍAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "Lavavajillas Candy COW4854TWM61S, 8+6KGS.",
+        "quantity": 1,
+        "price_unit": 228.27,
+        "discount": 0,
+        "default_code": "COW4854TWM61S",
+        "tax_rate": 21,
+        "recargo_rate": 5.2
+      },
+      {
+        "name": "Led TCL 55P61B, 4K HDR, HLG, TV with",
+        "quantity": 1,
+        "price_unit": 241.61,
+        "discount": 0,
+        "default_code": "55P61B",
+        "tax_rate": 21,
+        "recargo_rate": 5.2
+      },
+      {
+        "name": "Horno Comben CCHM703W, 65L, Cristal Blanco Perfil",
+        "quantity": 1,
+        "price_unit": 158.82,
+        "discount": 0,
+        "default_code": "CCHM703W",
+        "tax_rate": 21,
+        "recargo_rate": 5.2
+      },
+      {
+        "name": "Lavadora Candy CO4104TWM61S, A, 10KG, 1400 rpm, 16",
+        "quantity": 1,
+        "price_unit": 222.0,
+        "discount": 0,
+        "default_code": "CO4104TWM61S",
+        "tax_rate": 21,
+        "recargo_rate": 5.2
+      }
+    ],
+    "iva_amount": 176.21
+  },
+  "metadata": {
+    "filename": "FA25000633.PDF",
+    "processed_at": "2025-07-22T07:15:04.299921",
+    "processed_by": "admin",
+    "ocr_id": "20250722071504_FA25000633"
+  }
+}

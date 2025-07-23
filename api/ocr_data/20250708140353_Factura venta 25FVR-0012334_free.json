@@ -1,0 +1,46 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "o",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, si describes el contenido de la factura o proporcionas el texto visible, estaré encantado de ayudarte a extraer y formatear la información según tus necesidades. Por favor, proporciona los detalles visibles de la factura, incluyendo números, tablas, fechas, nombres y cualquier otro texto visible.",
+      "supplier_vat": "",
+      "supplier_address": "",
+      "supplier_city": "",
+      "supplier_zip": "",
+      "customer_name": "",
+      "customer_vat": "",
+      "total_amount": 0.0,
+      "tax_amount": 0.0,
+      "subtotal": 0.0,
+      "customer_order_ref": "",
+      "line_items": []
+    },
+    "ocr_text": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, si describes el contenido de la factura o proporcionas el texto visible, estaré encantado de ayudarte a extraer y formatear la información según tus necesidades. Por favor, proporciona los detalles visibles de la factura, incluyendo números, tablas, fechas, nombres y cualquier otro texto visible."
+  },
+  "extracted_data": {
+    "invoice_number": "o",
+    "invoice_date": "",
+    "due_date": "",
+    "supplier_name": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, si describes el contenido de la factura o proporcionas el texto visible, estaré encantado de ayudarte a extraer y formatear la información según tus necesidades. Por favor, proporciona los detalles visibles de la factura, incluyendo números, tablas, fechas, nombres y cualquier otro texto visible.",
+    "supplier_vat": "",
+    "supplier_address": "",
+    "supplier_city": "",
+    "supplier_zip": "",
+    "customer_name": "",
+    "customer_vat": "",
+    "total_amount": 0.0,
+    "tax_amount": 0.0,
+    "subtotal": 0.0,
+    "customer_order_ref": "",
+    "line_items": []
+  },
+  "metadata": {
+    "filename": "Factura venta 25FVR-0012334.pdf",
+    "processed_at": "2025-07-08T14:03:53.664340",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708140353_Factura venta 25FVR-0012334"
+  }
+}

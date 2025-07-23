@@ -1,7 +1,7 @@
 # Updated Dockerfile for FastAPI with Tesseract OCR support
 FROM python:3.12-slim
 
-# Install system dependencies for Tesseract OCR and Pillow
+# Install system dependencies for Tesseract OCR, Pillow and tabula-py
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     tesseract-ocr \
@@ -22,7 +22,9 @@ RUN apt-get update && \
     tk-dev \
     libharfbuzz-dev \
     libfribidi-dev \
-    poppler-utils && \
+    poppler-utils \
+    default-jre \
+    default-jdk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*  # Add other languages if needed, e.g., tesseract-ocr-spa for Spanish
 

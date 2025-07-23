@@ -1,0 +1,86 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "25006891",
+      "invoice_date": "2025-03-04",
+      "due_date": "2025-04-04",
+      "supplier_name": "ALMCE S.L.",
+      "supplier_vat": "B14891592",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "Córdoba",
+      "supplier_zip": "14014",
+      "customer_name": "El Pelotazo (Antonio Plaza Bonachera)",
+      "customer_vat": "B04957403",
+      "subtotal": 256.06,
+      "tax_amount": 53.77,
+      "total_amount": 323.15,
+      "tax_rate": 21,
+      "payment_method": "GIRO",
+      "payment_terms": "A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "Campana conv. Grupo filrante Cata G 45 WH (02039)",
+          "quantity": 1,
+          "price_unit": 66.65,
+          "discount": 0,
+          "default_code": "02039005",
+          "tax_rate": 21
+        },
+        {
+          "name": "Hombre Corbero CCHMD803W, 70L, Cristal Blanco, Mul",
+          "quantity": 1,
+          "price_unit": 189.41,
+          "discount": 0,
+          "default_code": "CCHMD803",
+          "tax_rate": 21
+        }
+      ]
+    },
+    "ocr_text": "```plaintext\nANTONIO PLAZA BONACHERA\nEL PELOTAZO\nCTRA. ALICUN, 172\n04740 ROQUETAS DE MAR\nALMERIA\n\nALMCE S.L.\nC.I.F.: B-14891592\nC/ FAUSTO GARCÍA TENA Nº 23\n14014 - CÓRDOBA\nTELF.: 957 34 30 85\n\nFECHA: 04/03/25\nFACTURA: 25006891\nCLIENTE: 43004323\nN.I.F.: 75236270G\nTELÉFONO: 670 968 607\nPÁG.: 1\n\nCÓDIGO DESCRIPCIÓN UNIDADES PRECIO IMPORTE\n\nALBARÁN PO-25005383 FECHA 04/03/25\nPed. 25005244PO\n02039005 Campana conv. Grupo filrante Cata G 45 WH (02039) 1 66.65 66.65\nCCHMD803 Hombre Corbero CCHMD803W, 70L, Cristal Blanco, Mul 1 189.41 189.41\n\nTOTAL IMP. 256.06 IMPORTE 256.06\nBASE 21.00 % I.V.A. 53.77 % REC. 13.32 TOTAL FRA. (€) 323.15\n\nForma de PagoGIRO A 30 DÍAS\nBanco:\n\nVencimientos:\n04/04/25 323.15\n\nDevoluciones de Producto:\nCualquier incidencia en la mercancía ocasionada por el transporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. En caso contrario, se entenderá que el cliente ha recibido la mercancía conforme. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originalmente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba\nFolio 101 Tomo 2101 hoja CO-29903 Inscripción 1ª. Nº RIT-AEE: 13210\n```"
+  },
+  "extracted_data": {
+    "invoice_number": "25006891",
+    "invoice_date": "2025-03-04",
+    "due_date": "2025-04-04",
+    "supplier_name": "ALMCE S.L.",
+    "supplier_vat": "B14891592",
+    "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+    "supplier_city": "Córdoba",
+    "supplier_zip": "14014",
+    "customer_name": "El Pelotazo (Antonio Plaza Bonachera)",
+    "customer_vat": "B04957403",
+    "subtotal": 256.06,
+    "tax_amount": 53.77,
+    "total_amount": 323.15,
+    "tax_rate": 21,
+    "payment_method": "GIRO",
+    "payment_terms": "A 30 DÍAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "Campana conv. Grupo filrante Cata G 45 WH (02039)",
+        "quantity": 1,
+        "price_unit": 66.65,
+        "discount": 0,
+        "default_code": "02039005",
+        "tax_rate": 21
+      },
+      {
+        "name": "Hombre Corbero CCHMD803W, 70L, Cristal Blanco, Mul",
+        "quantity": 1,
+        "price_unit": 189.41,
+        "discount": 0,
+        "default_code": "CCHMD803",
+        "tax_rate": 21
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "FA25006991.PDF",
+    "processed_at": "2025-07-10T11:42:22.844518",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250710114222_FA25006991"
+  }
+}

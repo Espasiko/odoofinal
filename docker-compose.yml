@@ -4,7 +4,7 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: manus_odoo-bd
+      POSTGRES_DB: fresh_odoo_db
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -14,7 +14,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U odoo -d manus_odoo-bd"]
+      test: ["CMD-SHELL", "pg_isready -U odoo -d fresh_odoo_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -40,7 +40,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8069"]
       interval: 30s
       timeout: 10s
-      retries: 3
+
 
   adminer:
     image: adminer
@@ -61,6 +61,7 @@ services:
       - "8000:8000"
     volumes:
       - ./:/app
+      - pdf-shared:/tmp/pdf_upload
     depends_on:
       odoo:
         condition: service_healthy
@@ -78,6 +79,47 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-mistral}
     command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_ENCRYPTION_KEY=pelotazo-n8n-secret-key
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_LOG_LEVEL=debug
+      - N8N_ODOO_URL=http://odoo:8069
+      - N8N_ODOO_DB=fresh_odoo_db
+      - N8N_ODOO_USER=admin
+      - N8N_ODOO_PASSWORD=admin
+      - DB_TYPE=sqlite
+      - DB_SQLITE_PATH=/home/node/.n8n/database.sqlite
+      - N8N_NODES_INCLUDE_LANGCHAIN=true
+      - N8N_AI_ENABLED=true
+      - N8N_AI_NODES_ENABLED=true
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - N8N_API_ENABLED=true
+      - N8N_API_AUTH_DISABLED=false
+      - N8N_API_AUTH_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMmUyYjZmZS04YmFiLTRmZmEtYTIzOS1jNDQ2MjBmMzM4Y2MiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzUzMTg1NDUzfQ.oqjjHwZYweWGj0JbJ71MiPpBsLTd78iunBv1KJdbP7k
+      - N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN=true
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - pdf-shared:/tmp/pdf_upload
+    depends_on:
+      odoo:
+        condition: service_healthy
+
 volumes:
   odoo-web-data:
+  n8n-data:
   odoo-db-data:
+  pdf-shared:

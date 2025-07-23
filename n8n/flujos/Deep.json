@@ -1,0 +1,125 @@
+{
+  "name": "Mistral OCR Local",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mistral-ocr",
+        "options": {}
+      },
+      "id": "webhook-id",
+      "name": "ERP Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [208, 432],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "url-assignment",
+              "name": "url",
+              "type": "string",
+              "value": "={{$json.body.documentUrl}}"
+            },
+            {
+              "id": "query-assignment",
+              "name": "query",
+              "type": "string",
+              "value": "={{$json.body.query || 'Resume el contenido'}}"
+            }
+          ]
+        }
+      },
+      "id": "input-processor",
+      "name": "Procesar Entrada",
+      "type": "n8n-nodes-base.set",
+      "position": [400, 432],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mistral-small-latest\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"{{ $json.query }}\"\n        },\n        {\n          \"type\": \"document_url\",\n          \"document_url\": \"{{ $json.url }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "fullResponse": true
+        }
+      },
+      "id": "mistral-ocr",
+      "name": "Mistral OCR Processing",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [600, 432],
+      "typeVersion": 4.2,
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "mistral-api-key",
+          "name": "Mistral API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "output-formatter",
+      "name": "Formatear Resultado",
+      "type": "n8n-nodes-base.set",
+      "position": [800, 432],
+      "typeVersion": 3.4
+    }
+  ],
+  "connections": {
+    "ERP Webhook": {
+      "main": [
+        [
+          {
+            "node": "Procesar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR Processing": {
+      "main": [
+        [
+          {
+            "node": "Formatear Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "credentials": {
+    "mistralCloudApi": {
+      "id": "mistral-api-key",
+      "name": "Mistral API Key",
+      "type": "mistralCloudApi",
+      "data": {
+        "apiKey": "Dn11EQcZl36z7BghhcM3mfa8mrjI5Ko2"
+      }
+    }
+  }
+}

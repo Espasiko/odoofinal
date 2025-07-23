@@ -30,7 +30,7 @@ import Customers from './pages/customers';
 import Providers from './pages/providers';
 import ImportExcelChunk from './ImportExcelChunk';
 import ImportInvoice from './ImportInvoice';
-
+import WebhookInvoiceProcessor from './WebhookInvoiceProcessor';
 
 
 // Importar contexto de Odoo
@@ -133,6 +133,14 @@ const App: React.FC = () => {
                     icon: "FilePdfOutlined",
                   },
                 },
+                {
+                  name: "webhook-invoice",
+                  list: "/webhook-invoice",
+                  meta: {
+                    label: "Factura con Webhook",
+                    icon: "ApiOutlined",
+                  },
+                },
 
               ]}
               options={{
@@ -178,6 +186,7 @@ const App: React.FC = () => {
                       <Route path="/providers" element={<Providers />} />
                       <Route path="/import-excel" element={<ImportExcelChunk />} />
                       <Route path="/import-invoice" element={<ImportInvoice />} />
+                      <Route path="/webhook-invoice" element={<WebhookInvoiceProcessor />} />
                       <Route path="*" element={<ErrorComponent />} />
                     </Routes>
                     <RefineKbar />

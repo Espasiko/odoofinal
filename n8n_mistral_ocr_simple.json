@@ -1,0 +1,225 @@
+{
+  "name": "Facturas OCR Mistral - URL Simple",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [200, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "pdf_url",
+              "value": "https://www.dropbox.com/scl/fi/n5wmb0uvzfjvp5x9liqqf/ABRILA-factura_32506198.pdf?rlkey=q0s2fbz2ti9uzyiaj9t6ujr18&st=so6ezwrj&dl=1"
+            }
+          ]
+        }
+      },
+      "id": "set-pdf-url",
+      "name": "Set PDF URL",
+      "type": "n8n-nodes-base.set",
+      "position": [400, 300],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.pdf_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "download-pdf",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [600, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "purpose",
+              "value": "ocr"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        }
+      },
+      "id": "mistral-upload",
+      "name": "Mistral Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [800, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "=https://api.mistral.ai/v1/files/{{ $json.id }}/url",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "expiry",
+              "value": "24"
+            }
+          ]
+        }
+      },
+      "id": "mistral-signed-url",
+      "name": "Get Signed URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1000, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mistralCloudApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "mistral-large-latest"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": [{\"type\": \"text\", \"text\": \"Analiza esta factura y extrae la información en formato JSON con los siguientes campos: proveedor (nombre, cif, direccion), cliente (nombre, nif, direccion), factura (numero, fecha), productos (array con codigo, descripcion, cantidad, precio_unitario, total), totales (subtotal, iva, total). Enmascara cualquier dato personal del autónomo Antonio.\"}, {\"type\": \"image_url\", \"image_url\": {\"url\": \"{{ $json.signed_url }}\"}}]}, {\"role\": \"assistant\", \"content\": \"Analizaré la factura y extraeré la información solicitada en formato JSON.\"}]"
+            },
+            {
+              "name": "temperature",
+              "value": 0.1
+            },
+            {
+              "name": "max_tokens",
+              "value": 2000
+            }
+          ]
+        }
+      },
+      "id": "mistral-ocr",
+      "name": "Mistral OCR Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [1200, 300],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer y formatear la respuesta de Mistral\nconst response = $input.first().json;\nconst content = response.choices[0].message.content;\n\n// Intentar parsear JSON de la respuesta\ntry {\n  const invoiceData = JSON.parse(content);\n  \n  return {\n    json: {\n      success: true,\n      invoice_data: invoiceData,\n      raw_response: content,\n      timestamp: new Date().toISOString(),\n      provider: \"MISTRAL_OCR\"\n    }\n  };\n} catch (error) {\n  // Si no es JSON válido, devolver como texto\n  return {\n    json: {\n      success: false,\n      error: \"JSON parsing failed\",\n      raw_response: content,\n      timestamp: new Date().toISOString(),\n      provider: \"MISTRAL_OCR\"\n    }\n  };\n}"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "position": [1400, 300],
+      "typeVersion": 2
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set PDF URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set PDF URL": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "Mistral Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral Upload": {
+      "main": [
+        [
+          {
+            "node": "Get Signed URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Signed URL": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR Analysis": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "mistral-ocr-simple",
+  "tags": [
+    {
+      "createdAt": "2025-07-21T21:41:47.000Z",
+      "updatedAt": "2025-07-21T21:41:47.000Z",
+      "id": "ocr-facturas",
+      "name": "ocr-facturas"
+    }
+  ]
+}

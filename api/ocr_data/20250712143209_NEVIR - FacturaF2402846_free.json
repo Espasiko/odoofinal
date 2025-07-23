@@ -1,0 +1,162 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "F24-02846",
+      "invoice_date": "2024-12-31",
+      "due_date": null,
+      "supplier_name": "Nevir S.A.",
+      "supplier_vat": "A28968307",
+      "supplier_address": "Calle Francisco Rabal, 3",
+      "supplier_city": "Alcalá de Henares",
+      "supplier_zip": "28806",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 3892.13,
+      "tax_amount": 831.52,
+      "total_amount": 4711.87,
+      "tax_rate": 21.5,
+      "payment_method": null,
+      "payment_terms": "30 Y 60 DIAS S/A",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "CONGELADOR VERTICAL BLANCO NEVIR",
+          "quantity": 1,
+          "price_unit": 182.55,
+          "discount": 0,
+          "default_code": "NVR-AS00003D",
+          "ean13": null,
+          "tax_rate": 21.5
+        },
+        {
+          "name": "FRIGORIFICO DOBLE PUERTA NEVIR",
+          "quantity": 3,
+          "price_unit": 145.65,
+          "discount": 0,
+          "default_code": "NVR-BT150DE",
+          "ean13": null,
+          "tax_rate": 21.5
+        },
+        {
+          "name": "COMBI TOTAL NO FROST INDX NEVIR",
+          "quantity": 2,
+          "price_unit": 321.65,
+          "discount": 0,
+          "default_code": "NVR-MRCTCHFDE",
+          "ean13": null,
+          "tax_rate": 21.5
+        },
+        {
+          "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+          "quantity": 6,
+          "price_unit": 186.97,
+          "discount": 0,
+          "default_code": "NVR-WAFL2800MA-8C",
+          "ean13": null,
+          "tax_rate": 21.5
+        },
+        {
+          "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+          "quantity": 6,
+          "price_unit": 176.55,
+          "discount": 0,
+          "default_code": "NVR-WAFL1283MA-8D",
+          "ean13": null,
+          "tax_rate": 21.5
+        },
+        {
+          "name": "HORNO ELECTRICO SEL NEVIR",
+          "quantity": 4,
+          "price_unit": 112.05,
+          "discount": 5,
+          "default_code": "NVR-HMEL4L",
+          "ean13": null,
+          "tax_rate": 21.5
+        }
+      ]
+    },
+    "ocr_text": "### FACTURA\n\n**N° Factura:** F24-02846\n\n**Fecha:** 31/12/2024\n\n**Albarán n°:** 128359\n\n**Su pedido n°:**\n\n**Zona:** DI-MRA-0104-A\n\n**Cod. Cliente:** 04744-A\n\n**Cod. Proveedor:**\n\n| Ref. | Uds. | Descripción | Precio Bruto | Des. | Precio Neto | Otros | CCP | Total Unit. | Total |\n|------|-----|-------------|--------------|-----|-------------|------|----|-------------|-------|\n| NVR-AS00003D | 1 | CONGELADOR VERTICAL BLANCO NEVIR | 182.55 | 0.00% | 182.55 | 0.00 | 0.00 | 182.55 | 182.55 |\n| NVR-BT150DE | 3 | FRIGORIFICO DOBLE PUERTA NEVIR | 145.65 | 0.00% | 145.65 | 0.00 | 0.00 | 145.65 | 436.95 |\n| NVR-MRCTCHFDE | 2 | COMBI TOTAL NO FROST INDX NEVIR | 321.65 | 0.00% | 321.65 | 0.00 | 0.00 | 321.65 | 643.30 |\n| NVR-WAFL2800MA-8C | 6 | LAVADORA VAPOR INV. 8K BLANCA NEVIR | 186.97 | 0.00% | 186.97 | 0.00 | 0.00 | 186.97 | 1,121.82 |\n| NVR-WAFL1283MA-8D | 6 | LAVADORA VAPOR INV. 8K BLANCA NEVIR | 176.55 | 0.00% | 176.55 | 0.00 | 0.00 | 176.55 | 1,059.30 |\n| NVR-HMEL4L | 4 | HORNO ELECTRICO SEL NEVIR | 117.95 | 5.00% | 112.05 | 0.00 | 0.00 | 112.05 | 448.21 |\n\n**Observaciones:**\nLLAMAR UN DIA ANTES DE ENTREGAR A ANTONIO PLAZA BONACHERA - 11 07098887\n\nCAMION CON TRAMPILLA Y TRASPALETA\n\n**Total Productos:** 3,892.13 €\n\n**Total Otros:** 0.00 €\n\n**Suma:** 3,892.13 €\n\n**Descuento:** 0.00 %\n\n**Subtotal:** 3,892.13 €\n\n**Total CCP:** 0.00 €\n\n**Base Imponible:** 3,892.13 €\n\n**IVA:** 21.50 %\n\n**Total IVA:** 831.52 €\n\n**R.E.:** 0.00 €\n\n**Total R.E.:** 0.00 €\n\n**Total Factura:** 4,811.87 €\n\n**CCP = compensación de copia privada**\n\n**Forma de pago:**\n- **Vencimientos:** 30 Y 60 DIAS S/A\n  - **Importe:** 4501.2025 €\n  - **Importe:** 2,455.95€\n\n**Dirección de entrega:**\nCRTA. DE ALCALÁN 172 - ROQUETAS DE MAR - 04740 - ALMERÍA - ESPAÑA\n\n**Operación asegurada por Solunion**\n\nNevir S.A. - A28968307 - Calle Francisco Rabal, 3 28806 Alcalá de Henares Madrid.\n\nTf. 91 737 27 77, fax: e-mail: nevir@nevir.es. Registro Mercantil de Madrid, Tomo 428, Folio 33, Sección 3ª Hoja 63023. Número de identificación en el Registro de Integrantes (RI) de productores de aparatos eléctricos y electrónicos: ENEV2023/00007076\n\nPara cualquier cuestión que pudiera derivarse, las partes acuerdan someterse a los Juzgados y Tribunales de Madrid, con renuncia expresa a cualquier otro fuero que pudiera corresponder.\n\n**Página 1 de 1**"
+  },
+  "extracted_data": {
+    "invoice_number": "F24-02846",
+    "invoice_date": "2024-12-31",
+    "due_date": null,
+    "supplier_name": "Nevir S.A.",
+    "supplier_vat": "A28968307",
+    "supplier_address": "Calle Francisco Rabal, 3",
+    "supplier_city": "Alcalá de Henares",
+    "supplier_zip": "28806",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 3892.13,
+    "tax_amount": 831.52,
+    "total_amount": 4711.87,
+    "tax_rate": 21.5,
+    "payment_method": null,
+    "payment_terms": "30 Y 60 DIAS S/A",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "CONGELADOR VERTICAL BLANCO NEVIR",
+        "quantity": 1,
+        "price_unit": 182.55,
+        "discount": 0,
+        "default_code": "NVR-AS00003D",
+        "ean13": null,
+        "tax_rate": 21.5
+      },
+      {
+        "name": "FRIGORIFICO DOBLE PUERTA NEVIR",
+        "quantity": 3,
+        "price_unit": 145.65,
+        "discount": 0,
+        "default_code": "NVR-BT150DE",
+        "ean13": null,
+        "tax_rate": 21.5
+      },
+      {
+        "name": "COMBI TOTAL NO FROST INDX NEVIR",
+        "quantity": 2,
+        "price_unit": 321.65,
+        "discount": 0,
+        "default_code": "NVR-MRCTCHFDE",
+        "ean13": null,
+        "tax_rate": 21.5
+      },
+      {
+        "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+        "quantity": 6,
+        "price_unit": 186.97,
+        "discount": 0,
+        "default_code": "NVR-WAFL2800MA-8C",
+        "ean13": null,
+        "tax_rate": 21.5
+      },
+      {
+        "name": "LAVADORA VAPOR INV. 8K BLANCA NEVIR",
+        "quantity": 6,
+        "price_unit": 176.55,
+        "discount": 0,
+        "default_code": "NVR-WAFL1283MA-8D",
+        "ean13": null,
+        "tax_rate": 21.5
+      },
+      {
+        "name": "HORNO ELECTRICO SEL NEVIR",
+        "quantity": 4,
+        "price_unit": 112.05,
+        "discount": 5,
+        "default_code": "NVR-HMEL4L",
+        "ean13": null,
+        "tax_rate": 21.5
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "NEVIR - FacturaF2402846.pdf",
+    "processed_at": "2025-07-12T14:32:09.239357",
+    "processed_by": "admin",
+    "ocr_id": "20250712143209_NEVIR - FacturaF2402846"
+  }
+}

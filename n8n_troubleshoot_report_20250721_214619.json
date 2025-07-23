@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-07-21T21:46:19.615963",
+  "tests": [
+    {
+      "name": "Docker Container Status",
+      "status": "PASS",
+      "message": "Contenedor n8n ejecutándose: n8n_n8n_1   Up 3 hours   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp, 0.0.0.0:5678->5678/tcp, :::5678->5678/tcp",
+      "details": {
+        "container_info": "n8n_n8n_1   Up 3 hours   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp, 0.0.0.0:5678->5678/tcp, :::5678->5678/tcp"
+      },
+      "timestamp": "2025-07-21T21:46:19.748912"
+    },
+    {
+      "name": "Basic Connectivity (http://localhost:5678)",
+      "status": "PASS",
+      "message": "n8n responde correctamente en http://localhost:5678",
+      "details": {
+        "status_code": 200,
+        "response": "{\"status\":\"ok\"}"
+      },
+      "timestamp": "2025-07-21T21:46:19.757747"
+    },
+    {
+      "name": "API Authentication",
+      "status": "FAIL",
+      "message": "Error de autenticación. API key inválida",
+      "details": {
+        "status_code": 401,
+        "api_key_prefix": "pelotazo-n..."
+      },
+      "timestamp": "2025-07-21T21:46:19.773623"
+    },
+    {
+      "name": "Local Workflow Files",
+      "status": "PASS",
+      "message": "Todos los 9 archivos de workflow son válidos",
+      "details": {
+        "valid_files": 9
+      },
+      "timestamp": "2025-07-21T21:46:19.776427"
+    }
+  ],
+  "summary": {
+    "total_tests": 4,
+    "passed": 3,
+    "failed": 1,
+    "warnings": 0
+  },
+  "recommendations": [
+    "Verificar la API key de n8n en las variables de entorno"
+  ]
+}

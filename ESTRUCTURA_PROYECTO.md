@@ -19,6 +19,9 @@ manusodoo-roto/
 │   ├── pages/              # Páginas de la aplicación
 │   └── services/           # Servicios para comunicación con la API
 ├── config/                 # Configuración de Odoo
+├── n8n/                    # Workflows de automatización n8n
+│   ├── flujos/             # Workflows JSON exportados
+│   └── docker-compose.yml  # Configuración n8n (DEPRECADO - migrado al principal)
 ├── addons/                 # Módulos personalizados para Odoo
 │   ├── app_barcode          # Módulo para gestión de códigos de barras
 │   ├── auto_database_backup # Módulo para respaldo automático de la base de datos
@@ -29,18 +32,18 @@ manusodoo-roto/
 │   └── theme_pelotazo       # Tema personalizado para la tienda
 └── docker-compose.yml      # Configuración de contenedores
 ```
-
+el front esta hecho con react y vite , comandos: npm run dev , docker-compose o start.sh, script para levantar  todos los contenedores  n8n tiene su contendor tambien. lea el grafo de MCP knowledge graph para mas informacion. 
 ## 2. Credenciales de Acceso
 
 ### Base de Datos PostgreSQL:
 - **Host**: localhost
 - **Puerto**: 5432 (interno), 5434 (externo)
-- **Base de Datos**: manus_odoo-bd
+- **Base de Datos**: fresh_odoo_db
 - **Usuario PostgreSQL**: odoo
 - **Contraseña PostgreSQL**: odoo
 
 ### Usuario Administrador Odoo:
-- **Email/Usuario**: yo@mail.com
+- **Email/Usuario**: admin
 - **Contraseña**: admin
 - **Nombre**: El pelotazo
 - **ID de Usuario**: 2
@@ -50,6 +53,7 @@ manusodoo-roto/
 - **Adminer (DB Manager)**: http://localhost:8080
 - **FastAPI Backend**: http://localhost:8000
 - **Frontend React**: http://localhost:3001
+- **n8n Workflows**: http://localhost:5678
 
 ## 3. Estructura de Contenedores
 
@@ -125,6 +129,85 @@ api/
 - **/api/v1/mistral-llm**: Procesamiento de Excel con LLM
 - **/api/v1/excel-import**: Importación de Excel
 - **/token**: Autenticación OAuth2
+endpoints disponibles 22 07: 
+POST   /token
+GET    /session
+GET    /api/v1/products
+POST   /api/v1/products
+GET    /api/v1/products/{product_id}
+PUT    /api/v1/products/{product_id}
+DELETE /api/v1/products/{product_id}
+GET    /api/v1/providers
+POST   /api/v1/providers
+GET    /api/v1/providers/all
+GET    /api/v1/providers/{provider_id}
+PUT    /api/v1/providers/{provider_id}
+DELETE /api/v1/providers/{provider_id}
+POST   /api/v1/mistral-ocr/save-verified-invoice
+POST   /api/v1/mistral-ocr/process-document
+POST   /api/v1/mistral-ocr/process-invoice
+POST   /api/v1/mistral-ocr/process-verified-invoice
+POST   /api/v1/mistral-ocr/process-from-url
+GET    /api/v1/mistral-ocr/supported-formats
+POST   /api/v1/mistral-free-ocr/process-invoice
+POST   /api/v1/mistral-free-ocr/create-invoice-with-supplier
+POST   /api/v1/mistral-free-ocr/create-invoice
+POST   /api/v1/invoices/import-ocr
+POST   /api/v1/invoices/purchase-orders/{po_id}/invoice
+POST   /api/v1/files/upload-temp
+POST   /api/v1/n8n/upload
+POST   /api/v1/n8n/upload-simple
+POST   /api/v1/n8n/process-direct
+POST   /api/v1/importer/
+GET    /{full_path}
+GET    /
+GET    /ocr
+GET    /mapeo
+GET    /docs-ui
+GET    /health
+## 📋 REPORTE COMPLETO - Estado del Sistema OCR
+✅ ENDPOINTS FUNCIONANDO CORRECTAMENTE:
+/api/v1/n8n/process-direct - ✅ FUNCIONAL
+Procesamiento directo con Mistral OCR
+Acepta solo imágenes (PNG/JPG)
+Rechaza PDFs temporalmente
+Respuesta JSON estructurada
+/api/v1/n8n/upload - ✅ FUNCIONAL
+Webhook a n8n workflow activo
+Procesa archivos a través de n8n
+URL corregida: 5FJvGpjCI4SqiGqQ/webhook/demo-mistral-webhook
+/api/v1/n8n/upload-simple - ✅ FUNCIONAL
+Guarda archivos en carpeta compartida /tmp/pdf_upload/
+Para uso con Local File Trigger de n8n
+/api/v1/files/upload-temp - ✅ FUNCIONAL (requiere auth)
+Error de validación corregido (size como string)
+Modelo de respuesta actualizado a Dict[str, Any]
+🧪 PRUEBAS REALIZADAS CON ÉXITO:
+BSH-balay.png: OCR completo con datos estructurados de factura
+NEVIR.png: Extracción de productos y totales
+cecotec.png: Procesamiento via webhook n8n
+🔧 PROBLEMAS RESUELTOS:
+Error 500 en /upload-temp: Tipo de dato size corregido
+Webhook 404: URL actualizada con ID de workflow
+Validación de respuesta: Modelo cambiado a Dict[str, Any]
+📁 RECURSOS DISPONIBLES:
+Imágenes de facturas reales en /ejemplos/:
+BSH-balay.png, NEVIR.png, JYSK.png, cecotec.png
+alfadyser.png, almce.png, electrodirecto.png
+Y muchas más en subdirectorios
+🎉 ESTADO 23/07/2025 - N8N WEBHOOK RGPD OCR:
+✅ WEBHOOK N8N FUNCIONANDO: http://n8n:5678/webhook/c5d076d2-ce8c-4f4b-8719-e96aebd0091f
+✅ ENMASCARADO RGPD PERFECTO: 6 regiones enmascaradas (DNI, teléfonos, direcciones)
+✅ PIPELINE FASTAPI: /api/v1/n8n/process-rgpd procesando PDFs e imágenes
+✅ MISTRAL OCR: API procesando (42 páginas confirmadas)
+❌ PENDIENTE: Nodo Mistral OCR no devuelve texto al Format OCR Response
+
+🚀 PRÓXIMOS PASOS RECOMENDADOS:
+Resolver conexión entre nodos Mistral OCR y Format OCR Response
+Investigar configuración de nodos n8n para obtener texto extraído
+Probar flujo completo desde frontend React
+Documentar APIs para uso en producción
+
 
 ## 5. Frontend (React)
 
@@ -164,9 +247,8 @@ La conexión con Odoo se realiza a través de XML-RPC utilizando el servicio bas
 ### Configuración de Conexión:
 
 - **URL**: http://odoo:8069 (nombre del servicio Docker)
-- **Base de datos**: manus_odoo-bd
-- **Usuario**: yo@mail.com
-- **Contraseña**: admin
+- **Base de datos**: fresh_odoo_db 
+- **Usuario**: admin **Contraseña**: admin
 
 ## 7. Funcionalidades Implementadas
 
@@ -372,5 +454,5 @@ python verificar_conexion.py
 ### Odoo
 ```bash
 # Acceder a la shell de Odoo
-docker-compose exec odoo odoo shell -d manus_odoo-bd
+docker-compose exec odoo odoo shell -d fresh_odoo_db
 ```

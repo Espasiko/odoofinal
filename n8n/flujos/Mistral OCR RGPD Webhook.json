@@ -1,0 +1,96 @@
+{
+  "name": "Mistral OCR RGPD Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mistral-ocr-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "WebhookTrigger",
+      "position": [
+        112,
+        304
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "8eb17937-7180-42c3-9206-1f01686c379a"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "extractText",
+        "model": "mistral-ocr-latest",
+        "documentType": "document_url",
+        "inputType": "binary",
+        "binaryProperty": "file",
+        "options": {
+          "deleteFiles": true
+        }
+      },
+      "id": "mistral-ocr",
+      "name": "Mistral OCR",
+      "position": [
+        304,
+        304
+      ],
+      "type": "n8n-nodes-base.mistralAi",
+      "typeVersion": 1,
+      "credentials": {
+        "mistralCloudApi": {
+          "id": "AN4OU6fE3D6zutDV",
+          "name": "Mistral Cloud API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "position": [
+        512,
+        304
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Mistral OCR": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Respond to Webhook",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "WebhookTrigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Mistral OCR",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8e0b0468-24ba-488f-85cf-664fb80dd1e4",
+  "meta": {
+    "instanceId": "9a3c1ce180d6c36adae76bbdb64a1ece777a6b1c8285f378d5482dc3c290cd8d"
+  },
+  "id": "HOaLTsXnOZ20E5kf",
+  "tags": []
+}

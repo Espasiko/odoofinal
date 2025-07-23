@@ -1,0 +1,38 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "",
+      "supplier_vat": "",
+      "supplier_address": "",
+      "total_amount": 0.0,
+      "tax_amount": 0.0,
+      "subtotal": 0.0,
+      "customer_order_ref": "",
+      "line_items": []
+    },
+    "ocr_text": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, puedo ayudarte a describir cómo extraer el texto de una factura utilizando herramientas de OCR (Reconocimiento Óptico de Caracteres). Aquí tienes una guía paso a paso:\n\n1. **Selecciona una herramienta de OCR**: Puedes usar aplicaciones como Adobe Acrobat, ABBYY FineReader, o incluso herramientas en línea como OnlineOCR.net.\n\n2. **Carga la imagen**: Abre la herramienta de OCR y carga la imagen de la factura.\n\n3. **Configura la detección de idiomas**: Asegúrate de seleccionar el idioma correcto para obtener mejores resultados.\n\n4. **Inicia el proceso de OCR**: Haz clic en el botón para iniciar el reconocimiento de texto.\n\n5. **Revisa y corrige el texto**: Después de que el proceso haya terminado, revisa el texto extraído para corregir cualquier error que pueda haber ocurrido durante el reconocimiento.\n\n6. **Guarda el archivo**: Una vez que estés satisfecho con la precisión del texto extraído, guarda el archivo en el formato deseado (por ejemplo, PDF o documento de texto).\n\nSi tienes el texto de la factura, puedo ayudarte a organizarlo o a responder cualquier pregunta específica que tengas sobre él."
+  },
+  "extracted_data": {
+    "invoice_number": "",
+    "invoice_date": "",
+    "due_date": "",
+    "supplier_name": "",
+    "supplier_vat": "",
+    "supplier_address": "",
+    "total_amount": 0.0,
+    "tax_amount": 0.0,
+    "subtotal": 0.0,
+    "customer_order_ref": "",
+    "line_items": []
+  },
+  "metadata": {
+    "filename": "Factura venta 25FVR-0012334.pdf",
+    "processed_at": "2025-07-08T14:37:12.565138",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708143712_Factura venta 25FVR-0012334"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "",
+      "invoice_date": "",
+      "due_date": "",
+      "supplier_name": "",
+      "supplier_vat": "",
+      "supplier_address": "",
+      "supplier_city": "",
+      "supplier_zip": "",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "total_amount": 0.0,
+      "tax_amount": 0.0,
+      "subtotal": 0.0,
+      "customer_order_ref": "",
+      "line_items": []
+    },
+    "ocr_text": "Lo siento, pero no puedo procesar imágenes directamente. Sin embargo, puedo ayudarte a describir cómo extraer el texto de una factura utilizando herramientas de OCR (Reconocimiento Óptico de Caracteres). Aquí tienes una guía paso a paso:\n\n1. **Selecciona una herramienta de OCR**: Puedes usar aplicaciones como Adobe Acrobat, ABBYY FineReader, o incluso herramientas gratuitas como Tesseract (para programadores) o aplicaciones móviles como Microsoft Office Lens.\n\n2. **Carga la imagen**: Abre la herramienta de OCR y carga la imagen de la factura.\n\n3. **Procesa la imagen**: La herramienta escaneará la imagen y convertirá el texto en un formato editable.\n\n4. **Revisa el texto**: Una vez que el texto haya sido extraído, revisa el documento para asegurarte de que no haya errores significativos.\n\n5. **Formatea el texto**: Si es necesario, ajusta el formato del texto para que se ajuste a tus necesidades.\n\nSi tienes acceso a la imagen de la factura, puedes seguir estos pasos para extraer el texto. Si necesitas ayuda adicional con el proceso, no dudes en preguntar."
+  },
+  "extracted_data": {
+    "invoice_number": "",
+    "invoice_date": "",
+    "due_date": "",
+    "supplier_name": "",
+    "supplier_vat": "",
+    "supplier_address": "",
+    "supplier_city": "",
+    "supplier_zip": "",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "total_amount": 0.0,
+    "tax_amount": 0.0,
+    "subtotal": 0.0,
+    "customer_order_ref": "",
+    "line_items": []
+  },
+  "metadata": {
+    "filename": "Factura venta 25FVR-0012334.pdf",
+    "processed_at": "2025-07-08T14:25:52.430111",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250708142552_Factura venta 25FVR-0012334"
+  }
+}

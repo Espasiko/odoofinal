@@ -1,0 +1,226 @@
+```json
+{
+  "name": "Factura OCR con Enmascaramiento GDPR",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "invoice-ocr",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "folderId": "={{ $parameter['folderId'] }}",
+        "filters": {
+          "fileNamePattern": "*.pdf,*.jpg,*.png,*.jpeg"
+        },
+        "triggerOn": "fileCreated",
+        "options": {}
+      },
+      "id": "Google Drive Trigger",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $json['id'] }}",
+        "options": {}
+      },
+      "id": "Google Drive Download",
+      "name": "Google Drive Download",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [
+        450,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "extractionMode": "fullText",
+          "outputFormat": "json"
+        }
+      },
+      "id": "Mistral OCR",
+      "name": "Mistral OCR",
+      "type": "n8n-nodes-base.mistralCloud",
+      "typeVersion": 1,
+      "position": [
+        650,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Enmascaramiento de datos sensibles para cumplir con GDPR\nconst text = $json.extractedText || $json.text || '';\n\n// Patrones de datos sensibles\nconst dniPattern = /\\b\\d{8}[A-Z]\\b/gi;\nconst nifPattern = /\\b[A-Z]?\\d{1,8}[A-Z0-9]\\b/gi;\nconst phonePattern = /\\b(\\+34|0034|34)?[\\s-]?[6789]\\d{8}\\b/g;\nconst emailPattern = /\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b/g;\nconst addressPattern = /(calle|avenida|plaza|paseo|carretera|c\\/|av\\.?|pza\\.?|pso\\.?|ctra\\.?)\\s+[\\w\\s\\d,ºª-]+/gi;\nconst ipPattern = /\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b/g;\nconst creditCardPattern = /\\b(?:\\d{4}[ -]?){3}\\d{4}\\b/g;\n\n// Función para enmascarar texto\nfunction maskText(text, pattern, maskChar = '*') {\n  return text.replace(pattern, (match) => {\n    const visibleChars = Math.min(2, Math.floor(match.length * 0.3));\n    const maskedLength = Math.max(1, match.length - visibleChars * 2);\n    \n    if (match.length <= 3) {\n      return maskChar.repeat(match.length);\n    }\n    \n    const start = match.substring(0, visibleChars);\n    const end = match.substring(match.length - visibleChars);\n    const masked = maskChar.repeat(maskedLength);\n    \n    return start + masked + end;\n  });\n}\n\n// Aplicar enmascaramiento\nlet maskedText = text;\nmaskedText = maskText(maskedText, dniPattern);\nmaskedText = maskText(maskedText, nifPattern);\nmaskedText = maskText(maskedText, phonePattern);\nmaskedText = maskText(maskedText, emailPattern);\nmaskedText = maskText(maskedText, ipPattern);\nmaskedText = maskText(maskedText, creditCardPattern);\n\n// Enmascarar direcciones (más conservador)\nmaskedText = maskedText.replace(addressPattern, (match) => {\n  return match.replace(/\\b(\\w{3,})\\b/g, (word) => {\n    if (word.length > 3) {\n      return word.charAt(0) + '*'.repeat(word.length - 2) + word.charAt(word.length - 1);\n    }\n    return word;\n  });\n});\n\n// Preparar datos para el modelo\nconst processedData = {\n  ...$json,\n  originalText: text,\n  maskedText: maskedText,\n  processingDate: new Date().toISOString(),\n  gdprCompliant: true,\n  maskedFields: [\n    'dni', 'nif', 'phone', 'email', 'address', 'ip', 'creditCard'\n  ]\n};\n\nreturn processedData;"
+      },
+      "id": "Enmascarar Datos",
+      "name": "Enmascarar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": "mistral-large-latest",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "Mistral AI Analysis",
+      "name": "Mistral AI Analysis",
+      "type": "n8n-nodes-base.mistralCloud",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "processedData",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Formatear Respuesta",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "options": {}
+      },
+      "id": "Responder Webhook",
+      "name": "Responder Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Drive Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Download": {
+      "main": [
+        [
+          {
+            "node": "Mistral OCR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral OCR": {
+      "main": [
+        [
+          {
+            "node": "Enmascarar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enmascarar Datos": {
+      "main": [
+        [
+          {
+            "node": "Mistral AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mistral AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "folderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE"
+  },
+  "meta": {
+    "instanceId": "invoice-ocr-gdpr-workflow"
+  }
+}
+```

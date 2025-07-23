@@ -1,0 +1,336 @@
+// Variables de colores
+$primary: #E31E24;
+$secondary: #333333;
+$light: #FFFFFF;
+$dark: #212529;
+$gray-100: #f8f9fa;
+$gray-200: #e9ecef;
+$gray-300: #dee2e6;
+$gray-400: #ced4da;
+$gray-500: #adb5bd;
+$gray-600: #6c757d;
+$gray-700: #495057;
+$gray-800: #343a40;
+$gray-900: #212529;
+
+// Estilos generales
+body {
+    font-family: 'Roboto', sans-serif;
+    color: $secondary;
+    background-color: $light;
+}
+
+// Encabezado
+header {
+    background-color: $light;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px 0;
+    
+    .navbar-brand {
+        img {
+            max-height: 50px;
+        }
+    }
+    
+    .nav-link {
+        color: $secondary !important;
+        font-weight: 500;
+        padding: 0.5rem 1rem !important;
+        position: relative;
+        
+        &:hover, &.active {
+            color: $primary !important;
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 1rem;
+                right: 1rem;
+                height: 2px;
+                background-color: $primary;
+            }
+        }
+    }
+    
+    .my_cart_quantity {
+        background-color: $primary;
+        color: white;
+        border-radius: 50%;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+        position: relative;
+        top: -10px;
+        right: 5px;
+    }
+}
+
+// Banner principal
+.s_banner {
+    background-color: $gray-100;
+    padding: 4rem 0;
+    text-align: center;
+    
+    h1 {
+        font-weight: 700;
+        color: $primary;
+        margin-bottom: 1.5rem;
+    }
+    
+    .lead {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-primary {
+        background-color: $primary;
+        border-color: $primary;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        
+        &:hover {
+            background-color: darken($primary, 10%);
+            border-color: darken($primary, 10%);
+        }
+    }
+}
+
+// Productos
+.oe_product {
+    transition: all 0.3s ease;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .oe_product_image {
+        position: relative;
+        overflow: hidden;
+        background: white;
+        
+        img {
+            transition: transform 0.3s ease;
+        }
+        
+        &:hover img {
+            transform: scale(1.05);
+        }
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+        
+        .card-title {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            
+            a {
+                color: $secondary;
+                text-decoration: none;
+                
+                &:hover {
+                    color: $primary;
+                }
+            }
+        }
+        
+        .product_price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: $primary;
+            margin-bottom: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: $primary;
+            border-color: $primary;
+            
+            &:hover {
+                background-color: darken($primary, 10%);
+                border-color: darken($primary, 10%);
+            }
+        }
+    }
+}
+
+// Categorías
+.s_three_columns {
+    .card {
+        transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        
+        &:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .card-title a {
+            color: $secondary;
+            text-decoration: none;
+            
+            &:hover {
+                color: $primary;
+            }
+        }
+        
+        .btn-outline-primary {
+            color: $primary;
+            border-color: $primary;
+            
+            &:hover {
+                background-color: $primary;
+                color: white;
+            }
+        }
+    }
+}
+
+// Pie de página
+.o_footer {
+    background-color: $dark !important;
+    color: $light;
+    padding: 3rem 0 1.5rem;
+    
+    h5 {
+        color: $light;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+    
+    a {
+        color: $gray-400;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        
+        &:hover {
+            color: $light;
+            text-decoration: none;
+        }
+    }
+    
+    .fa {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        color: $gray-400;
+        transition: color 0.3s ease;
+        
+        &:hover {
+            color: $light;
+        }
+    }
+    
+    .list-unstyled {
+        li {
+            margin-bottom: 0.5rem;
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 991.98px) {
+    header {
+        .navbar-collapse {
+            background: $light;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+    }
+}
+
+// Personalización de botones
+.btn-primary {
+    background-color: $primary;
+    border-color: $primary;
+    
+    &:hover, &:focus, &:active {
+        background-color: darken($primary, 10%);
+        border-color: darken($primary, 10%);
+    }
+}
+
+// Personalización de enlaces
+a {
+    color: $primary;
+    
+    &:hover {
+        color: darken($primary, 10%);
+        text-decoration: none;
+    }
+}
+
+// Estilos para la página de producto
+#product_detail {
+    .product_price {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: $primary;
+        margin: 1.5rem 0;
+    }
+    
+    .btn-primary {
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+    }
+    
+    .product_specs {
+        margin-top: 2rem;
+        
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: $secondary;
+        }
+    }
+}
+
+// Carrito de compras
+.oe_cart {
+    .oe_website_sale {
+        .table {
+            th {
+                border-top: none;
+                border-bottom: 2px solid $gray-200;
+                font-weight: 600;
+                color: $secondary;
+            }
+            
+            .td-qty {
+                input {
+                    width: 60px;
+                    text-align: center;
+                    border: 1px solid $gray-300;
+                    border-radius: 0.25rem;
+                    padding: 0.375rem 0.5rem;
+                }
+            }
+            
+            .td-price, .td-amount {
+                font-weight: 600;
+            }
+        }
+        
+        .oe_website_sale_right {
+            background: $gray-100;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            
+            h4 {
+                color: $secondary;
+                margin-bottom: 1.5rem;
+            }
+            
+            .btn-primary {
+                width: 100%;
+                padding: 0.75rem;
+                font-weight: 500;
+            }
+        }
+    }
+}

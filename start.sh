@@ -45,9 +45,9 @@ if ! docker info &> /dev/null; then
 fi
 
 # Verificar si los contenedores ya están ejecutándose
-if docker ps | grep -q "odoo\|db\|adminer\|fastapi"; then
+if docker ps | grep -q "odoo\|db\|adminer\|fastapi\|n8n"; then
     print_warning "Algunos contenedores ya están ejecutándose"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|odoo|db|adminer|fastapi"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "NAMES|odoo|db|adminer|fastapi|n8n"
 else
     print_status "Algunos contenedores ya están ejecutándose. Verificando estado..."
 fi
@@ -146,6 +146,26 @@ done
 echo ""
 print_status "✅ FastAPI está ejecutándose"
 
+# n8n ahora se inicia junto con los demás servicios en docker-compose principal
+print_status "✅ n8n se iniciará junto con los demás servicios"
+
+# Esperar a que n8n esté disponible
+retries=0
+max_retries=15
+while ! curl -s http://localhost:5678 > /dev/null; do
+    echo -n "."
+    sleep 3
+    retries=$((retries + 1))
+    if [ $retries -ge $max_retries ]; then
+        print_warning "Timeout esperando a n8n. El servicio podría necesitar más tiempo para iniciar."
+        break
+    fi
+done
+echo ""
+if [ $retries -lt $max_retries ]; then
+    print_status "✅ n8n está disponible"
+fi
+
 # Configurar entorno Python para middleware (si es necesario)
 if [ -f "requirements.txt" ]; then
     if [ ! -d "venv" ]; then
@@ -202,6 +222,7 @@ echo "   🏢 Odoo ERP: http://localhost:8069"
 echo "   🗄️  PostgreSQL: localhost:5432"
 echo "   🔌 API FastAPI: http://localhost:8000 (contenedor Docker)"
 echo "   🛠️  Adminer: http://localhost:8080"
+echo "   🔄 n8n: http://localhost:5678"
 if [ "$1" = "--with-frontend" ]; then
     echo "   🖥️  Frontend: http://localhost:3001"
 else
@@ -216,5 +237,6 @@ echo "   ./backup.sh                - Crear backup del sistema"
 echo "   docker-compose logs odoo   - Ver logs de Odoo"
 echo "   docker-compose logs db     - Ver logs de PostgreSQL"
 echo "   docker-compose logs fastapi - Ver logs de FastAPI"
+echo "   cd n8n && docker-compose logs - Ver logs de n8n"
 echo "   docker-compose ps          - Ver estado de contenedores"
 echo ""

@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # Configuración de conexión a Odoo
 ODOO_URL = "http://localhost:8069"
-ODOO_DB = "manus_odoo-bd"
+ODOO_DB = "fresh_odoo_db"
 ODOO_USERNAME = "admin"
 ODOO_PASSWORD = "admin"
 

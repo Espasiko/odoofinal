@@ -1,0 +1,70 @@
+{
+  "ocr_result": {
+    "success": true,
+    "invoice_data": {
+      "invoice_number": "25003427",
+      "invoice_date": "2025-02-03",
+      "due_date": "2025-03-05",
+      "supplier_name": "ALMCE S.L.",
+      "supplier_vat": "B14891592",
+      "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+      "supplier_city": "Córdoba",
+      "supplier_zip": "14014",
+      "customer_name": "El Pelotazo",
+      "customer_vat": "B04957403",
+      "subtotal": 263.53,
+      "tax_amount": 55.34,
+      "total_amount": 332.57,
+      "tax_rate": 21,
+      "payment_method": "GIRO A 30 DÍAS",
+      "payment_terms": "GIRO A 30 DÍAS",
+      "currency": "EUR",
+      "line_items": [
+        {
+          "name": "CF2PH1724W Frig. 2p. Corbero CF2PH1724W. 304L. Color Blanco.",
+          "quantity": 1,
+          "price_unit": 263.53,
+          "discount": 0,
+          "default_code": "CF2PH1724W",
+          "tax_rate": 21
+        }
+      ]
+    },
+    "ocr_text": "```plaintext\nALMCE S.L.\nC.I.F.: B-14891592\nC/ FAUSTO GARCÍA TENA Nº 23\n14014 - CÓRDOBA\nTELF.: 957 34 30 85\n\nANTONIO PLAZA BONACHERA\nEL PELOTAZO\nCTRA. ALICUN, 172\n04740 ROQUETAS DE MAR\nALMERÍA\n\nFECHA: 03/02/25\nFACTURA: 25003427\nCLIENTE: 43004323\nN.I.F.: 75236270G\nTELÉFONO: 670 966 607\nPÁG: 1\n\nCÓDIGO | DESCRIPCIÓN | UNIDADES | PRECIO | IMPORTE\n--------|-------------|----------|--------|--------\nALBARÁN PO-25002674 FECHA 29/01/25\nPed. 25002616PO\nCF2PH1724W Frig. 2p. Corbero CF2PH1724W. 304L. Color Blanco. 1 263.53\n\nTOTAL IMP. 263.53\n% IMPORTE 21.00\n% I.V.A. 55.34\n% REC. 5.20\nTOTAL FRA. (€) 332.57\n\nForma de PagoGIRO A 30 DÍAS\nBanco:\n\nVencimientos:\n05/03/25\n332.57\n\nDevoluciones de Producto:\nCualquier incidencia en la mercancía ocasionada por el transporte deberá ser comunicada en las 24 horas siguientes a la recepción de la misma. En caso contrario, se entenderá que la mercancía ha sido recibida en perfecto estado de nuevo dpto., conforme. Todas las devoluciones por causas no imputables a ALMCE S.L. sufrirán una depreciación mínima del 10% sobre el importe originariamente facturado.\n\nAhora la mejor compra electrodomésticos S.L. Inscrita en el Registro Mercantil del Córdoba\nFolio 101 Tomo 2101 hoja CO-29903 Inscripción 1ª. Nº RIT-AEE: 13210\n```"
+  },
+  "extracted_data": {
+    "invoice_number": "25003427",
+    "invoice_date": "2025-02-03",
+    "due_date": "2025-03-05",
+    "supplier_name": "ALMCE S.L.",
+    "supplier_vat": "B14891592",
+    "supplier_address": "C/ FAUSTO GARCÍA TENA Nº 23",
+    "supplier_city": "Córdoba",
+    "supplier_zip": "14014",
+    "customer_name": "El Pelotazo",
+    "customer_vat": "B04957403",
+    "subtotal": 263.53,
+    "tax_amount": 55.34,
+    "total_amount": 332.57,
+    "tax_rate": 21,
+    "payment_method": "GIRO A 30 DÍAS",
+    "payment_terms": "GIRO A 30 DÍAS",
+    "currency": "EUR",
+    "line_items": [
+      {
+        "name": "CF2PH1724W Frig. 2p. Corbero CF2PH1724W. 304L. Color Blanco.",
+        "quantity": 1,
+        "price_unit": 263.53,
+        "discount": 0,
+        "default_code": "CF2PH1724W",
+        "tax_rate": 21
+      }
+    ]
+  },
+  "metadata": {
+    "filename": "FA25003427.PDF",
+    "processed_at": "2025-07-10T09:59:50.871008",
+    "processed_by": "yo@mail.com",
+    "ocr_id": "20250710095950_FA25003427"
+  }
+}

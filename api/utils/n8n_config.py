@@ -3,7 +3,7 @@ Configuración para la integración con n8n
 """
 import os
 from dotenv import load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 # Cargar variables de entorno desde .env si existe
 load_dotenv()
@@ -28,9 +28,11 @@ class N8nSettings(BaseSettings):
         "servidor_mcp": None
     }
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "ignore"
+    }
 
 # Instancia de configuración para usar en la aplicación
 n8n_config = N8nSettings()
