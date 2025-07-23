@@ -11,6 +11,7 @@ plantillasodoo
 de_manus
 /mcp-odoo-you
 tests/
+test_*.py
 /legacy/
 relicaHostingerMCP/
 
