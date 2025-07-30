@@ -1,1 +1,0 @@
-SELECT id, login, password FROM res_users WHERE active = true ORDER BY id;
